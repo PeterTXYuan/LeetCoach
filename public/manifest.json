@@ -1,0 +1,18 @@
+{
+  "manifest_version": 3,
+  "name": "LeetCoach",
+  "description": "Guided LeetCode pattern recognition without giving away final answers.",
+  "version": "0.1.0",
+  "action": {
+    "default_title": "Open LeetCoach"
+  },
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "permissions": ["sidePanel", "tabs"],
+  "host_permissions": ["https://leetcode.com/problems/*"],
+  "side_panel": {
+    "default_path": "sidePanel.html"
+  }
+}
