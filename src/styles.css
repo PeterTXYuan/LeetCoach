@@ -1,6 +1,6 @@
 :root {
-  color: #172033;
-  background: #f5f7fb;
+  color: #262626;
+  background: #ffffff;
   font-family:
     Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
     sans-serif;
@@ -25,32 +25,95 @@ button {
 }
 
 .app-shell {
+  --accent: #ffa116;
+  --accent-hover: #f08f00;
+  --bg: #f7f8fa;
+  --card: #ffffff;
+  --card-muted: #f3f4f6;
+  --border: #e4e6eb;
+  --text: #262626;
+  --muted: #6b7280;
+  --subtle: #8a8a8a;
+  --code-bg: #eef0f4;
+  --shadow: 0 12px 28px rgba(0, 0, 0, 0.08);
+
   display: grid;
   gap: 16px;
+  align-content: start;
   min-height: 100vh;
   padding: 20px;
-  background:
-    radial-gradient(circle at top left, rgba(86, 112, 255, 0.15), transparent 34%),
-    #f5f7fb;
+  color: var(--text);
+  background: var(--bg);
+}
+
+.app-shell[data-theme="dark"] {
+  --bg: #1a1a1a;
+  --card: #282828;
+  --card-muted: #333333;
+  --border: #3f3f3f;
+  --text: #f5f5f5;
+  --muted: #b0b0b0;
+  --subtle: #8f8f8f;
+  --code-bg: #373737;
+  --shadow: 0 14px 32px rgba(0, 0, 0, 0.28);
+}
+
+.top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.brand-mark {
+  color: var(--text);
+  font-size: 0.95rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.theme-toggle {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--card-muted);
+}
+
+.theme-option {
+  border: 0;
+  border-radius: 999px;
+  padding: 6px 10px;
+  color: var(--muted);
+  background: transparent;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.theme-option.active {
+  color: var(--text);
+  background: var(--card);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
 }
 
 .hero-card,
 .status-card,
 .guide-card {
-  border: 1px solid rgba(98, 112, 143, 0.18);
-  border-radius: 24px;
-  background: rgba(255, 255, 255, 0.88);
-  box-shadow: 0 18px 48px rgba(27, 39, 74, 0.08);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--card);
+  box-shadow: var(--shadow);
 }
 
 .hero-card {
-  align-self: end;
-  padding: 28px;
+  padding: 24px;
 }
 
 .eyebrow {
   margin: 0 0 12px;
-  color: #5162ff;
+  color: var(--accent);
   font-size: 0.78rem;
   font-weight: 800;
   letter-spacing: 0.12em;
@@ -64,24 +127,24 @@ p {
 }
 
 h1 {
-  max-width: 10ch;
+  max-width: 11ch;
   margin-bottom: 16px;
-  color: #121a2c;
-  font-size: clamp(2.15rem, 9vw, 4.2rem);
-  line-height: 0.94;
-  letter-spacing: -0.07em;
+  color: var(--text);
+  font-size: clamp(2rem, 8vw, 3.8rem);
+  line-height: 0.98;
+  letter-spacing: -0.055em;
 }
 
 h2 {
   margin-bottom: 8px;
-  color: #182238;
+  color: var(--text);
   font-size: 1rem;
 }
 
 .hero-copy,
 .status-card p,
 .guide-card li {
-  color: #5f6b81;
+  color: var(--muted);
   line-height: 1.6;
 }
 
@@ -93,17 +156,17 @@ h2 {
 .primary-action {
   width: 100%;
   border: 0;
-  border-radius: 999px;
+  border-radius: 10px;
   padding: 14px 18px;
-  color: #ffffff;
-  background: #5162ff;
+  color: #1a1a1a;
+  background: var(--accent);
   font-weight: 800;
   cursor: pointer;
-  box-shadow: 0 12px 24px rgba(81, 98, 255, 0.28);
+  box-shadow: none;
 }
 
 .primary-action:hover {
-  background: #4050e8;
+  background: var(--accent-hover);
 }
 
 .status-card {
@@ -122,12 +185,15 @@ h2 {
   flex: 0 0 auto;
   margin-top: 5px;
   border-radius: 50%;
-  background: #f4b740;
-  box-shadow: 0 0 0 6px rgba(244, 183, 64, 0.16);
+  background: var(--accent);
+  box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent) 18%, transparent);
 }
 
 .inline-code {
-  color: #34405a;
+  padding: 2px 5px;
+  border-radius: 6px;
+  color: var(--text);
+  background: var(--code-bg);
   font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
   font-size: 0.86em;
 }

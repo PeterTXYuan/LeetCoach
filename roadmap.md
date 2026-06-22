@@ -37,6 +37,7 @@ AI
 - Vite build setup for the side panel extension bundle
 - Basic project hygiene with ignored generated files and dependencies
 - Simple README for the initial open-source project landing page
+- LeetCode-inspired light and dark side panel themes
 
 ---
 
