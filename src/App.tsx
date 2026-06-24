@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useActiveProblem } from "./useActiveProblem";
 
 const leetCodeProblemsUrl = "https://leetcode.com/problemset/";
 const themeStorageKey = "leetcoach-theme";
@@ -28,6 +29,7 @@ function openLeetCode() {
 
 export default function App() {
   const [theme, setTheme] = useState<Theme>(getInitialTheme);
+  const activeProblem = useActiveProblem();
 
   useEffect(() => {
     window.localStorage.setItem(themeStorageKey, theme);
@@ -64,29 +66,61 @@ export default function App() {
           process without revealing the final solution.
         </p>
 
-        <button className="primary-action" type="button" onClick={openLeetCode}>
-          Open LeetCode
-        </button>
+        {activeProblem.status !== "detected" && (
+          <button className="primary-action" type="button" onClick={openLeetCode}>
+            Open LeetCode
+          </button>
+        )}
       </section>
 
-      <section className="status-card" aria-labelledby="status-title">
-        <div className="status-dot" aria-hidden="true" />
-        <div>
-          <h2 id="status-title">Waiting for a problem page</h2>
-          <p>
-            For the first milestone, LeetCoach targets pages like
-            <span className="inline-code"> leetcode.com/problems/two-sum/</span>.
-          </p>
-        </div>
-      </section>
+      {activeProblem.status === "detected" ? (
+        <section className="status-card detected" aria-labelledby="status-title">
+          <div className="status-dot" aria-hidden="true" />
+          <div>
+            <h2 id="status-title">Problem page detected</h2>
+            <p>
+              Connected to
+              <span className="inline-code"> {activeProblem.slug}</span>.
+            </p>
+          </div>
+        </section>
+      ) : (
+        <section className="status-card" aria-labelledby="status-title">
+          <div className="status-dot" aria-hidden="true" />
+          <div>
+            <h2 id="status-title">
+              {activeProblem.status === "checking"
+                ? "Checking active tab"
+                : "Waiting for a problem page"}
+            </h2>
+            <p>
+              For this milestone, LeetCoach targets pages like
+              <span className="inline-code"> leetcode.com/problems/two-sum/</span>.
+            </p>
+          </div>
+        </section>
+      )}
 
       <section className="guide-card" aria-labelledby="guide-title">
-        <h2 id="guide-title">What this panel will show</h2>
-        <ol>
-          <li>Problem identity detected from the current LeetCode tab.</li>
-          <li>Pattern classification from the local backend database.</li>
-          <li>Guided thinking steps from the mock AI provider.</li>
-        </ol>
+        {activeProblem.status === "detected" ? (
+          <>
+            <h2 id="guide-title">Pattern analysis coming next</h2>
+            <p>
+              LeetCoach can now identify the active problem. The next milestone
+              will connect this slug to local pattern data and guided thinking
+              steps.
+            </p>
+          </>
+        ) : (
+          <>
+            <h2 id="guide-title">What this panel will show</h2>
+            <ol>
+              <li>Problem identity detected from the current LeetCode tab.</li>
+              <li>Pattern classification from the local backend database.</li>
+              <li>Guided thinking steps from the mock AI provider.</li>
+            </ol>
+          </>
+        )}
       </section>
     </main>
   );

@@ -189,6 +189,11 @@ h2 {
   box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent) 18%, transparent);
 }
 
+.status-card.detected .status-dot {
+  background: #2db55d;
+  box-shadow: 0 0 0 6px rgba(45, 181, 93, 0.16);
+}
+
 .inline-code {
   padding: 2px 5px;
   border-radius: 6px;
@@ -208,4 +213,10 @@ h2 {
   gap: 10px;
   margin: 0;
   padding-left: 20px;
+}
+
+.guide-card p {
+  margin-bottom: 0;
+  color: var(--muted);
+  line-height: 1.6;
 }
