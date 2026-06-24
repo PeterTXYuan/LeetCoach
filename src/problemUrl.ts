@@ -37,3 +37,27 @@ export function parseLeetCodeProblemUrl(rawUrl?: string): ProblemPageMatch {
     return { isSupported: false };
   }
 }
+
+export function getProblemDisplayTitle(slug: string, tabTitle?: string) {
+  const normalizedTabTitle = tabTitle?.replace(/\s+-\s+LeetCode\s*$/i, "").trim();
+
+  if (normalizedTabTitle && isUsableProblemTitle(normalizedTabTitle)) {
+    return normalizedTabTitle;
+  }
+
+  return slug
+    .split("-")
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+}
+
+function isUsableProblemTitle(title: string) {
+  const lowerTitle = title.toLowerCase();
+
+  return (
+    lowerTitle !== "leetcode" &&
+    !lowerTitle.startsWith("http") &&
+    !lowerTitle.includes("leetcode.com/problems/")
+  );
+}

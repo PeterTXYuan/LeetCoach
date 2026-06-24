@@ -100,6 +100,7 @@ button {
 
 .hero-card,
 .status-card,
+.problem-card,
 .guide-card {
   border: 1px solid var(--border);
   border-radius: 16px;
@@ -175,6 +176,23 @@ h2 {
   padding: 18px;
 }
 
+.problem-card {
+  padding: 22px;
+}
+
+.problem-heading-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.problem-title {
+  margin-bottom: 0;
+  font-size: clamp(1.75rem, 7vw, 2.75rem);
+  line-height: 1.08;
+  letter-spacing: -0.045em;
+}
+
 .status-card p {
   margin-bottom: 0;
 }
@@ -189,9 +207,15 @@ h2 {
   box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent) 18%, transparent);
 }
 
-.status-card.detected .status-dot {
+.problem-card.detected .status-dot {
   background: #2db55d;
   box-shadow: 0 0 0 6px rgba(45, 181, 93, 0.16);
+}
+
+.problem-placeholder {
+  margin: 18px 0 0 26px;
+  color: var(--subtle);
+  font-size: 0.92rem;
 }
 
 .inline-code {

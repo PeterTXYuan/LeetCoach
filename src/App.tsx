@@ -74,15 +74,18 @@ export default function App() {
       </section>
 
       {activeProblem.status === "detected" ? (
-        <section className="status-card detected" aria-labelledby="status-title">
-          <div className="status-dot" aria-hidden="true" />
-          <div>
-            <h2 id="status-title">Problem page detected</h2>
-            <p>
-              Connected to
-              <span className="inline-code"> {activeProblem.slug}</span>.
-            </p>
+        <section className="problem-card detected" aria-labelledby="problem-title">
+          <div className="problem-heading-row">
+            <div
+              className="status-dot"
+              aria-label="LeetCode problem page detected"
+              role="img"
+            />
+            <h2 id="problem-title" className="problem-title">
+              {activeProblem.title}
+            </h2>
           </div>
+          <p className="problem-placeholder">Pattern analysis coming next.</p>
         </section>
       ) : (
         <section className="status-card" aria-labelledby="status-title">
@@ -104,12 +107,8 @@ export default function App() {
       <section className="guide-card" aria-labelledby="guide-title">
         {activeProblem.status === "detected" ? (
           <>
-            <h2 id="guide-title">Pattern analysis coming next</h2>
-            <p>
-              LeetCoach can now identify the active problem. The next milestone
-              will connect this slug to local pattern data and guided thinking
-              steps.
-            </p>
+            <h2 id="guide-title">Ready for guidance</h2>
+            <p>LeetCoach will use this problem context for pattern lookup next.</p>
           </>
         ) : (
           <>

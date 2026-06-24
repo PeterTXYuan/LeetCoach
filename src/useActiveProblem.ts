@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { parseLeetCodeProblemUrl } from "./problemUrl";
+import { getProblemDisplayTitle, parseLeetCodeProblemUrl } from "./problemUrl";
 
 export type ActiveProblemState =
   | {
@@ -8,6 +8,7 @@ export type ActiveProblemState =
   | {
       status: "detected";
       slug: string;
+      title: string;
       url: string;
     }
   | {
@@ -39,6 +40,7 @@ async function getActiveProblemState(): Promise<ActiveProblemState> {
   return {
     status: "detected",
     slug: match.slug,
+    title: getProblemDisplayTitle(match.slug, activeTab?.title),
     url: match.url
   };
 }
