@@ -1,5 +1,10 @@
 import { useEffect, useState } from "react";
+import {
+  type ProblemApproach,
+  unavailableProblemMessage
+} from "./api/problemAnalysis";
 import { useActiveProblem } from "./useActiveProblem";
+import { useProblemAnalysis } from "./useProblemAnalysis";
 
 const leetCodeProblemsUrl = "https://leetcode.com/problemset/";
 const themeStorageKey = "leetcoach-theme";
@@ -30,6 +35,10 @@ function openLeetCode() {
 export default function App() {
   const [theme, setTheme] = useState<Theme>(getInitialTheme);
   const activeProblem = useActiveProblem();
+  const { analysisState: problemAnalysis, retry: retryProblemAnalysis } =
+    useProblemAnalysis(
+    activeProblem.status === "detected" ? activeProblem.slug : undefined
+  );
 
   useEffect(() => {
     window.localStorage.setItem(themeStorageKey, theme);
@@ -57,21 +66,21 @@ export default function App() {
         </div>
       </header>
 
-      <section className="hero-card" aria-labelledby="welcome-title">
-        <p className="eyebrow">LeetCoach MVP</p>
-        <h1 id="welcome-title">Learn the pattern before the answer.</h1>
-        <p className="hero-copy">
-          Open a LeetCode problem and LeetCoach will help you recognize the
-          pattern, read the signals, and build an interview-style thinking
-          process without revealing the final solution.
-        </p>
+      {activeProblem.status !== "detected" && (
+        <section className="hero-card" aria-labelledby="welcome-title">
+          <p className="eyebrow">LeetCoach MVP</p>
+          <h1 id="welcome-title">Learn the pattern before the answer.</h1>
+          <p className="hero-copy">
+            Open a LeetCode problem and LeetCoach will help you recognize the
+            pattern, read the signals, and build an interview-style thinking
+            process without revealing the final solution.
+          </p>
 
-        {activeProblem.status !== "detected" && (
           <button className="primary-action" type="button" onClick={openLeetCode}>
             Open LeetCode
           </button>
-        )}
-      </section>
+        </section>
+      )}
 
       {activeProblem.status === "detected" ? (
         <section className="problem-card detected" aria-labelledby="problem-title">
@@ -85,7 +94,6 @@ export default function App() {
               {activeProblem.title}
             </h2>
           </div>
-          <p className="problem-placeholder">Pattern analysis coming next.</p>
         </section>
       ) : (
         <section className="status-card" aria-labelledby="status-title">
@@ -106,10 +114,11 @@ export default function App() {
 
       <section className="guide-card" aria-labelledby="guide-title">
         {activeProblem.status === "detected" ? (
-          <>
-            <h2 id="guide-title">Ready for guidance</h2>
-            <p>LeetCoach will use this problem context for pattern lookup next.</p>
-          </>
+          <AnalysisContent
+            analysisState={problemAnalysis}
+            onRetry={retryProblemAnalysis}
+            problemSlug={activeProblem.slug}
+          />
         ) : (
           <>
             <h2 id="guide-title">What this panel will show</h2>
@@ -122,5 +131,146 @@ export default function App() {
         )}
       </section>
     </main>
+  );
+}
+
+type AnalysisContentProps = {
+  analysisState: ReturnType<typeof useProblemAnalysis>["analysisState"];
+  onRetry: () => void;
+  problemSlug: string;
+};
+
+function AnalysisContent({
+  analysisState,
+  onRetry,
+  problemSlug
+}: AnalysisContentProps) {
+  const [selectedApproachId, setSelectedApproachId] = useState<string | null>(
+    null
+  );
+  const [isThinkingExpanded, setIsThinkingExpanded] = useState(false);
+
+  useEffect(() => {
+    setSelectedApproachId(null);
+    setIsThinkingExpanded(false);
+  }, [problemSlug]);
+
+  if (analysisState.status === "loading") {
+    return <p className="analysis-message">Loading pattern analysis...</p>;
+  }
+
+  if (analysisState.status === "not_found") {
+    return <p className="analysis-message">{unavailableProblemMessage}</p>;
+  }
+
+  if (analysisState.status === "error") {
+    return (
+      <>
+        <p className="analysis-message">
+          Unable to connect to the local LeetCoach backend.
+        </p>
+        <button className="secondary-action" type="button" onClick={onRetry}>
+          Retry
+        </button>
+      </>
+    );
+  }
+
+  if (analysisState.status !== "success") {
+    return null;
+  }
+
+  const selectedApproach =
+    analysisState.analysis.approaches.find(
+      (approach) => approach.id === selectedApproachId
+    ) ?? null;
+
+  if (analysisState.analysis.approaches.length === 0) {
+    return (
+      <p className="analysis-message">
+        This problem does not have any approaches in the local LeetCoach dataset
+        yet.
+      </p>
+    );
+  }
+
+  return (
+    <>
+      <h2 id="guide-title">Choose an approach</h2>
+      <div className="approach-button-group" aria-label="Available approaches">
+        {analysisState.analysis.approaches.map((approach, index) => (
+          <button
+            className={
+              selectedApproachId === approach.id
+                ? "approach-button selected"
+                : "approach-button"
+            }
+            key={approach.id}
+            type="button"
+            onClick={() => {
+              setSelectedApproachId(approach.id);
+              setIsThinkingExpanded(false);
+            }}
+          >
+            Approach {index + 1}
+          </button>
+        ))}
+      </div>
+
+      {selectedApproach && (
+        <SelectedApproach
+          approach={selectedApproach}
+          isThinkingExpanded={isThinkingExpanded}
+          onToggleThinking={() =>
+            setIsThinkingExpanded((isExpanded) => !isExpanded)
+          }
+        />
+      )}
+    </>
+  );
+}
+
+type SelectedApproachProps = {
+  approach: ProblemApproach;
+  isThinkingExpanded: boolean;
+  onToggleThinking: () => void;
+};
+
+function SelectedApproach({
+  approach,
+  isThinkingExpanded,
+  onToggleThinking
+}: SelectedApproachProps) {
+  return (
+    <section className="selected-approach" aria-label={approach.name}>
+      <p className="analysis-label">Selected approach</p>
+      <h3 className="approach-title">{approach.name}</h3>
+      <dl className="approach-details">
+        <div>
+          <dt>Pattern</dt>
+          <dd>{approach.pattern}</dd>
+        </div>
+        <div>
+          <dt>Summary</dt>
+          <dd>{approach.summary}</dd>
+        </div>
+      </dl>
+
+      <button
+        className="secondary-action"
+        type="button"
+        onClick={onToggleThinking}
+      >
+        {isThinkingExpanded ? "Hide thinking process" : "Show thinking process"}
+      </button>
+
+      {isThinkingExpanded && (
+        <ol className="thinking-steps">
+          {approach.thinkingSteps.map((step) => (
+            <li key={step}>{step}</li>
+          ))}
+        </ol>
+      )}
+    </section>
   );
 }

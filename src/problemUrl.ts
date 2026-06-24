@@ -48,7 +48,7 @@ export function getProblemDisplayTitle(slug: string, tabTitle?: string) {
   return slug
     .split("-")
     .filter(Boolean)
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .map(formatTitleWord)
     .join(" ");
 }
 
@@ -60,4 +60,20 @@ function isUsableProblemTitle(title: string) {
     !lowerTitle.startsWith("http") &&
     !lowerTitle.includes("leetcode.com/problems/")
   );
+}
+
+function formatTitleWord(word: string, index: number) {
+  const lowercaseWord = word.toLowerCase();
+  const smallWords = new Set(["a", "an", "and", "in", "of", "or", "the", "to"]);
+  const romanNumerals = new Set(["i", "ii", "iii", "iv", "v"]);
+
+  if (romanNumerals.has(lowercaseWord)) {
+    return lowercaseWord.toUpperCase();
+  }
+
+  if (index > 0 && smallWords.has(lowercaseWord)) {
+    return lowercaseWord;
+  }
+
+  return lowercaseWord.charAt(0).toUpperCase() + lowercaseWord.slice(1);
 }
