@@ -74,6 +74,10 @@ AI
 - Generate Answer UI shown only after selecting an approach
 - Generated answer warning, code block, explanation, time complexity, and space complexity
 - Generated answer reset when switching approach or LeetCode problem
+- UI polish separating progressive Hints from solution-strategy Approaches
+- Subtle reduced-motion-aware reveal animations for hints, selected approaches, thinking process, and generated answers
+- Hint-card spacing/readability polish and selected-approach collapse behavior
+- CSS-only hint and approach section spacing polish for wider, calmer reading cards
 - Simple README instructions for extension and backend development
 
 ---
@@ -98,7 +102,7 @@ AI
 - `src/components/GenerateAnswer.tsx`: language selector, generate button, answer warning, code block, explanation, and complexity display.
 - `src/components/ThinkingProcess.tsx`: show/hide thinking-process steps with `aria-expanded`.
 - `src/components/AnalysisStatus.tsx`: loading, not-found, error, and success composition.
-- `src/styles.css`: styles for hint cards, component layout, approach selection, generated answers, and thinking-process controls.
+- `src/styles.css`: styles for hint cards, component layout, approach selection, generated answers, reveal animations, and thinking-process controls.
 - `roadmap.md`: PM handoff for the current milestone.
 
 ---
@@ -172,6 +176,12 @@ Generated Answer Flow
 - Click `Show thinking process`, switch approaches, and confirm the thinking process collapses.
 - Navigate to another supported LeetCode problem and confirm selected approach, thinking process, and hints reset.
 - Confirm the generated answer also clears when navigating to another LeetCode problem.
+- Confirm Hints and Approaches are visually distinct but still match the LeetCoach theme.
+- Confirm revealed hint cards have comfortable spacing, padding, and line height.
+- Confirm hint cards use more available horizontal width and the approach section has clearer label/title/body/button spacing.
+- Confirm revealed hints, selected approach details, thinking process, and generated answers appear with a quick subtle animation.
+- Confirm clicking the selected approach again, or using `Close`, clears selected approach details and hides Generate Answer.
+- If reduced motion is enabled at the OS/browser level, confirm reveal animations are disabled or minimized.
 - Stop the backend and confirm the side panel shows a retryable backend connection error.
 
 ---
@@ -189,6 +199,9 @@ Generated Answer Flow
 - Two Sum `hash-map` and `brute-force` return different mock code and complexity values.
 - Unsupported solution languages return 400.
 - Mock solution coverage exists for every seeded approach and supported language.
+- UI-only polish build passed with no backend/API/hook changes.
+- CSS-only hint and approach spacing polish build passed.
+- Selected approach can be collapsed without changing backend/API contracts.
 - Invalid problem slugs return 404.
 - Invalid approach IDs return 404.
 - The local dev server was stopped after verification.

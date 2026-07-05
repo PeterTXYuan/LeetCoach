@@ -24,7 +24,7 @@ export function ThinkingProcess({
       </button>
 
       {isExpanded && (
-        <>
+        <div className="thinking-reveal reveal-motion">
           <h3 id="thinking-title" className="thinking-title">
             Thinking process
           </h3>
@@ -33,7 +33,7 @@ export function ThinkingProcess({
               <li key={step}>{step}</li>
             ))}
           </ol>
-        </>
+        </div>
       )}
     </section>
   );

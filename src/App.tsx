@@ -78,7 +78,18 @@ export default function App() {
     setIsThinkingExpanded(false);
   }, [detectedSlug]);
 
+  const clearSelectedApproach = () => {
+    setSelectedApproachId(null);
+    setIsThinkingExpanded(false);
+    approachHints.resetHints();
+  };
+
   const handleSelectApproach = (approachId: string) => {
+    if (approachId === selectedApproachId) {
+      clearSelectedApproach();
+      return;
+    }
+
     setSelectedApproachId(approachId);
     setIsThinkingExpanded(false);
   };
@@ -163,7 +174,10 @@ export default function App() {
                 />
                 {selectedApproach && (
                   <>
-                    <ApproachDetails approach={selectedApproach} />
+                    <ApproachDetails
+                      approach={selectedApproach}
+                      onClose={clearSelectedApproach}
+                    />
                     <GenerateAnswer
                       onGenerate={approachSolution.generateSolution}
                       onRetry={approachSolution.retrySolution}

@@ -90,7 +90,10 @@ export function GenerateAnswer({
       )}
 
       {solutionState.status === "success" && (
-        <article className="generated-answer" aria-label="Generated answer">
+        <article
+          className="generated-answer reveal-motion"
+          aria-label="Generated answer"
+        >
           <p className="answer-warning" role="note">
             {solutionState.response.warning}
           </p>

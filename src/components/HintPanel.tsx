@@ -25,12 +25,16 @@ export function HintPanel({
     hintState.status === "success"
       ? hintState.response.hints.slice(0, visibleHintCount)
       : [];
-  const hasMoreHints = hintState.status === "success" && visibleHintCount < totalHints;
+  const hasMoreHints =
+    hintState.status === "success" && visibleHintCount < totalHints;
 
   return (
     <section className="hint-panel" aria-labelledby="hint-panel-title">
       <div className="section-heading-row">
-        <h2 id="hint-panel-title">Hints</h2>
+        <div>
+          <p className="section-kicker">Progressive guidance</p>
+          <h2 id="hint-panel-title">Hints</h2>
+        </div>
         {hasVisibleHints && (
           <button
             aria-label="Reset revealed hints"
@@ -93,7 +97,7 @@ export function HintPanel({
       {hasVisibleHints && (
         <ol className="hint-list">
           {visibleHints.map((hint, index) => (
-            <li key={`${index}-${hint}`}>
+            <li className="reveal-motion" key={`${index}-${hint}`}>
               <span className="hint-count">
                 Hint {index + 1} of {totalHints}
               </span>
