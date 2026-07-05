@@ -1,8 +1,13 @@
-import { useEffect, useState } from "react";
-import {
-  type ProblemApproach,
-  unavailableProblemMessage
-} from "./api/problemAnalysis";
+import { useEffect, useMemo, useState } from "react";
+import { AnalysisStatus } from "./components/AnalysisStatus";
+import { ApproachDetails } from "./components/ApproachDetails";
+import { ApproachSelector } from "./components/ApproachSelector";
+import { GenerateAnswer } from "./components/GenerateAnswer";
+import { HintPanel } from "./components/HintPanel";
+import { ProblemHeader } from "./components/ProblemHeader";
+import { ThinkingProcess } from "./components/ThinkingProcess";
+import { useApproachHints } from "./hooks/useApproachHints";
+import { useApproachSolution } from "./hooks/useApproachSolution";
 import { useActiveProblem } from "./useActiveProblem";
 import { useProblemAnalysis } from "./useProblemAnalysis";
 
@@ -34,15 +39,49 @@ function openLeetCode() {
 
 export default function App() {
   const [theme, setTheme] = useState<Theme>(getInitialTheme);
-  const activeProblem = useActiveProblem();
-  const { analysisState: problemAnalysis, retry: retryProblemAnalysis } =
-    useProblemAnalysis(
-    activeProblem.status === "detected" ? activeProblem.slug : undefined
+  const [selectedApproachId, setSelectedApproachId] = useState<string | null>(
+    null
   );
+  const [isThinkingExpanded, setIsThinkingExpanded] = useState(false);
+  const activeProblem = useActiveProblem();
+  const detectedSlug =
+    activeProblem.status === "detected" ? activeProblem.slug : undefined;
+  const { analysisState: problemAnalysis, retry: retryProblemAnalysis } =
+    useProblemAnalysis(detectedSlug);
+  const approachHints = useApproachHints({
+    slug: problemAnalysis.status === "success" ? detectedSlug : undefined,
+    selectedApproachId
+  });
+  const approachSolution = useApproachSolution({
+    slug: problemAnalysis.status === "success" ? detectedSlug : undefined,
+    approachId: selectedApproachId
+  });
+
+  const selectedApproach = useMemo(() => {
+    if (problemAnalysis.status !== "success" || !selectedApproachId) {
+      return null;
+    }
+
+    return (
+      problemAnalysis.analysis.approaches.find(
+        (approach) => approach.id === selectedApproachId
+      ) ?? null
+    );
+  }, [problemAnalysis, selectedApproachId]);
 
   useEffect(() => {
     window.localStorage.setItem(themeStorageKey, theme);
   }, [theme]);
+
+  useEffect(() => {
+    setSelectedApproachId(null);
+    setIsThinkingExpanded(false);
+  }, [detectedSlug]);
+
+  const handleSelectApproach = (approachId: string) => {
+    setSelectedApproachId(approachId);
+    setIsThinkingExpanded(false);
+  };
 
   return (
     <main className="app-shell" data-theme={theme}>
@@ -83,18 +122,7 @@ export default function App() {
       )}
 
       {activeProblem.status === "detected" ? (
-        <section className="problem-card detected" aria-labelledby="problem-title">
-          <div className="problem-heading-row">
-            <div
-              className="status-dot"
-              aria-label="LeetCode problem page detected"
-              role="img"
-            />
-            <h2 id="problem-title" className="problem-title">
-              {activeProblem.title}
-            </h2>
-          </div>
-        </section>
+        <ProblemHeader title={activeProblem.title} />
       ) : (
         <section className="status-card" aria-labelledby="status-title">
           <div className="status-dot" aria-hidden="true" />
@@ -114,11 +142,45 @@ export default function App() {
 
       <section className="guide-card" aria-labelledby="guide-title">
         {activeProblem.status === "detected" ? (
-          <AnalysisContent
+          <AnalysisStatus
             analysisState={problemAnalysis}
             onRetry={retryProblemAnalysis}
-            problemSlug={activeProblem.slug}
-          />
+          >
+            {problemAnalysis.status === "success" && (
+              <div className="analysis-stack">
+                <HintPanel
+                  hintState={approachHints.hintState}
+                  onRequestFirstHint={approachHints.requestFirstHint}
+                  onResetHints={approachHints.resetHints}
+                  onRetryHints={approachHints.retryHints}
+                  onShowNextHint={approachHints.showNextHint}
+                  visibleHintCount={approachHints.visibleHintCount}
+                />
+                <ApproachSelector
+                  approaches={problemAnalysis.analysis.approaches}
+                  onSelectApproach={handleSelectApproach}
+                  selectedApproachId={selectedApproachId}
+                />
+                {selectedApproach && (
+                  <>
+                    <ApproachDetails approach={selectedApproach} />
+                    <GenerateAnswer
+                      onGenerate={approachSolution.generateSolution}
+                      onRetry={approachSolution.retrySolution}
+                      solutionState={approachSolution.solutionState}
+                    />
+                    <ThinkingProcess
+                      approach={selectedApproach}
+                      isExpanded={isThinkingExpanded}
+                      onToggle={() =>
+                        setIsThinkingExpanded((isExpanded) => !isExpanded)
+                      }
+                    />
+                  </>
+                )}
+              </div>
+            )}
+          </AnalysisStatus>
         ) : (
           <>
             <h2 id="guide-title">What this panel will show</h2>
@@ -131,146 +193,5 @@ export default function App() {
         )}
       </section>
     </main>
-  );
-}
-
-type AnalysisContentProps = {
-  analysisState: ReturnType<typeof useProblemAnalysis>["analysisState"];
-  onRetry: () => void;
-  problemSlug: string;
-};
-
-function AnalysisContent({
-  analysisState,
-  onRetry,
-  problemSlug
-}: AnalysisContentProps) {
-  const [selectedApproachId, setSelectedApproachId] = useState<string | null>(
-    null
-  );
-  const [isThinkingExpanded, setIsThinkingExpanded] = useState(false);
-
-  useEffect(() => {
-    setSelectedApproachId(null);
-    setIsThinkingExpanded(false);
-  }, [problemSlug]);
-
-  if (analysisState.status === "loading") {
-    return <p className="analysis-message">Loading pattern analysis...</p>;
-  }
-
-  if (analysisState.status === "not_found") {
-    return <p className="analysis-message">{unavailableProblemMessage}</p>;
-  }
-
-  if (analysisState.status === "error") {
-    return (
-      <>
-        <p className="analysis-message">
-          Unable to connect to the local LeetCoach backend.
-        </p>
-        <button className="secondary-action" type="button" onClick={onRetry}>
-          Retry
-        </button>
-      </>
-    );
-  }
-
-  if (analysisState.status !== "success") {
-    return null;
-  }
-
-  const selectedApproach =
-    analysisState.analysis.approaches.find(
-      (approach) => approach.id === selectedApproachId
-    ) ?? null;
-
-  if (analysisState.analysis.approaches.length === 0) {
-    return (
-      <p className="analysis-message">
-        This problem does not have any approaches in the local LeetCoach dataset
-        yet.
-      </p>
-    );
-  }
-
-  return (
-    <>
-      <h2 id="guide-title">Choose an approach</h2>
-      <div className="approach-button-group" aria-label="Available approaches">
-        {analysisState.analysis.approaches.map((approach, index) => (
-          <button
-            className={
-              selectedApproachId === approach.id
-                ? "approach-button selected"
-                : "approach-button"
-            }
-            key={approach.id}
-            type="button"
-            onClick={() => {
-              setSelectedApproachId(approach.id);
-              setIsThinkingExpanded(false);
-            }}
-          >
-            Approach {index + 1}
-          </button>
-        ))}
-      </div>
-
-      {selectedApproach && (
-        <SelectedApproach
-          approach={selectedApproach}
-          isThinkingExpanded={isThinkingExpanded}
-          onToggleThinking={() =>
-            setIsThinkingExpanded((isExpanded) => !isExpanded)
-          }
-        />
-      )}
-    </>
-  );
-}
-
-type SelectedApproachProps = {
-  approach: ProblemApproach;
-  isThinkingExpanded: boolean;
-  onToggleThinking: () => void;
-};
-
-function SelectedApproach({
-  approach,
-  isThinkingExpanded,
-  onToggleThinking
-}: SelectedApproachProps) {
-  return (
-    <section className="selected-approach" aria-label={approach.name}>
-      <p className="analysis-label">Selected approach</p>
-      <h3 className="approach-title">{approach.name}</h3>
-      <dl className="approach-details">
-        <div>
-          <dt>Pattern</dt>
-          <dd>{approach.pattern}</dd>
-        </div>
-        <div>
-          <dt>Summary</dt>
-          <dd>{approach.summary}</dd>
-        </div>
-      </dl>
-
-      <button
-        className="secondary-action"
-        type="button"
-        onClick={onToggleThinking}
-      >
-        {isThinkingExpanded ? "Hide thinking process" : "Show thinking process"}
-      </button>
-
-      {isThinkingExpanded && (
-        <ol className="thinking-steps">
-          {approach.thinkingSteps.map((step) => (
-            <li key={step}>{step}</li>
-          ))}
-        </ol>
-      )}
-    </section>
   );
 }

@@ -8,6 +8,8 @@ export type ProblemApproach = {
   name: string;
   pattern: string;
   summary: string;
+  isPrimary: boolean;
+  displayOrder: number;
   thinkingSteps: string[];
 };
 
@@ -62,6 +64,8 @@ export function normalizeProblemAnalysis(rawAnalysis: unknown): ProblemAnalysis 
           name: rawAnalysis.pattern.name,
           pattern: rawAnalysis.pattern.name,
           summary: rawAnalysis.pattern.summary,
+          isPrimary: true,
+          displayOrder: 1,
           thinkingSteps: rawAnalysis.thinkingSteps.map(String)
         }
       ]
@@ -78,6 +82,8 @@ function normalizeApproach(rawApproach: unknown): ProblemApproach {
     typeof rawApproach.name !== "string" ||
     typeof rawApproach.pattern !== "string" ||
     typeof rawApproach.summary !== "string" ||
+    typeof rawApproach.isPrimary !== "boolean" ||
+    typeof rawApproach.displayOrder !== "number" ||
     !Array.isArray(rawApproach.thinkingSteps)
   ) {
     throw new Error("Invalid problem approach response.");
@@ -88,6 +94,8 @@ function normalizeApproach(rawApproach: unknown): ProblemApproach {
     name: rawApproach.name,
     pattern: rawApproach.pattern,
     summary: rawApproach.summary,
+    isPrimary: rawApproach.isPrimary,
+    displayOrder: rawApproach.displayOrder,
     thinkingSteps: rawApproach.thinkingSteps.map(String)
   };
 }

@@ -15,19 +15,24 @@ Frontend
 - Vite
 - Chrome Extension Manifest V3
 - Chrome Side Panel
+- Active-tab problem detection for `https://leetcode.com/problems/*`
 
 Backend
 - FastAPI
-- In-memory mock problem analysis dataset
+- In-memory mock problem dataset
 - Local CORS for Chrome extension and localhost development
+- Canonical approach metadata with stable approach IDs
+- Hint service abstraction reading mock approach-owned hints
+- Solution service abstraction returning approach-specific mock answers
 
 Database
 - Planned: SQLite for local MVP
 - Planned: SQLAlchemy and Alembic for future PostgreSQL migration
 
 AI
-- Planned: Mock provider behind a swappable provider interface
-- Current milestone uses static mock guidance only
+- Current: static mock guidance only
+- Planned: mock AI provider interface before any real LLM integration
+- Future providers may include OpenAI, Gemini, or OpenRouter
 
 ---
 
@@ -38,90 +43,186 @@ AI
 - LeetCode-inspired light and dark side panel themes
 - Active LeetCode problem URL detection from the side panel
 - Prominent problem title display with tab-title normalization and slug-title fallback
-- Hidden internal slug tracking for future backend lookup
+- Hidden internal slug tracking for backend lookup
 - Side panel refresh on active-tab switches and tab URL updates
 - Minimal FastAPI backend with `GET /health`
 - Mock problem analysis endpoint at `GET /api/problems/{slug}`
 - Seeded local analyses for `two-sum`, `valid-parentheses`, and `longest-substring-without-repeating-characters`
 - Multi-approach backend response shape using `approaches[]`
-- Frontend response normalization for current `approaches[]` data and legacy single-pattern data
-- Progressive disclosure UI: choose an approach first, then optionally reveal its thinking process
-- Active-problem layout hides the welcome hero to save side-panel space
-- Higher-contrast side-panel colors and larger typography
-- Frontend fetch flow for loading, success, not-found, and backend-error states
-- Retry action for backend connection errors after the local server starts
+- Stable canonical approach IDs using `approach.id`
+- Exactly one primary approach per seeded problem
+- Approach ordering with `displayOrder`
+- Mock hints stored on the exact approach they belong to
+- Dataset validation for missing primary approach, multiple primary approaches, and duplicate approach IDs
+- Default primary hint endpoint at `GET /api/problems/{slug}/hints`
+- Approach-specific hint endpoint at `GET /api/problems/{slug}/approaches/{approach_id}/hints`
+- Hint service layer in `backend/app/services/hint_service.py`
+- Frontend hint API module and lazy hint hook
+- Progressive hint disclosure above the approach selector
+- Hint reset, retry, stale-response protection, and request cancellation
+- Approach selector buttons that do not reveal approach names before selection
+- Selected approach details reveal name, pattern, and summary only after selection
+- Thinking process remains collapsed until explicitly opened
+- Switching approaches collapses the thinking process
+- Switching problems resets selected approach, thinking state, and hint state
+- Cleaner React component structure for problem header, hint panel, approach selector, approach details, thinking process, and analysis status
+- Accessibility attributes for approach selection and expandable thinking process
+- Backend connection, unsupported problem, loading, and success states preserved
+- Approach-specific mock solution endpoint at `POST /api/problems/{slug}/approaches/{approach_id}/solution`
+- Mock answer generation for Python, Java, JavaScript, and C++
+- Generated answers tied to the selected stable `approach.id`
+- Generate Answer UI shown only after selecting an approach
+- Generated answer warning, code block, explanation, time complexity, and space complexity
+- Generated answer reset when switching approach or LeetCode problem
 - Simple README instructions for extension and backend development
-
----
-
-## Data Flow
-
-- The side panel reads the active Chrome tab with `chrome.tabs.query`.
-- `src/problemUrl.ts` validates `https://leetcode.com/problems/*`, extracts the slug, and normalizes the display title.
-- `src/useActiveProblem.ts` refreshes the active problem when tabs change or URLs update.
-- `src/useProblemAnalysis.ts` requests `http://localhost:8000/api/problems/{slug}` when a slug is detected.
-- `src/api/problemAnalysis.ts` maps 200 responses to a `ProblemAnalysis` object with `approaches[]`, 404 responses to the local-dataset fallback, and network failures to the backend connection-error state.
-- `src/App.tsx` renders numbered approach buttons first. It reveals approach name, pattern, and summary only after selection, and reveals thinking steps only after the user clicks `Show thinking process`.
-- Switching detected slugs resets the selected approach and collapses thinking steps.
 
 ---
 
 ## Important Files Changed
 
-- `backend/app/main.py`: FastAPI app, CORS, health endpoint, multi-approach in-memory analyses, and 404 fallback.
-- `backend/requirements.txt`: Backend dependencies.
-- `backend/README.md`: Backend setup and run instructions.
-- `src/api/problemAnalysis.ts`: Frontend API client and multi-approach response types.
-- `src/useProblemAnalysis.ts`: React hook for backend analysis state management and retry.
-- `src/App.tsx`: Approach selection, selected approach details, thinking-process toggle, and conditional welcome hero.
-- `src/styles.css`: Higher contrast themes, larger typography, approach buttons, selected approach layout, and progressive disclosure styling.
-- `public/manifest.json`: Adds narrow `http://localhost:8000/*` host permission.
-- `roadmap.md`: PM handoff and manual test instructions.
+- `.gitignore`: ignores generated log files.
+- `backend/app/main.py`: canonical mock problem data, dataset validation, main analysis endpoint, primary hint endpoint, and approach-specific hint endpoint.
+- `backend/app/services/hint_service.py`: focused hint lookup service that operates on canonical approach objects.
+- `backend/app/services/solution_service.py`: approach-specific mock solution service with supported-language validation.
+- `backend/app/services/__init__.py`: service package marker.
+- `src/api/problemAnalysis.ts`: frontend analysis response types and validation for `isPrimary` and `displayOrder`.
+- `src/api/approachHints.ts`: hint API client and response validation.
+- `src/api/approachSolution.ts`: generated-answer API client, request body, response validation, and unsupported-language error mapping.
+- `src/hooks/useApproachHints.ts`: lazy hint loading, caching, reset behavior, retry behavior, cancellation, and stale-response protection.
+- `src/hooks/useApproachSolution.ts`: lazy generated-answer loading, retry behavior, cancellation, and stale-response protection.
+- `src/App.tsx`: coordinates active problem, analysis state, selected approach, thinking expansion, and child components.
+- `src/components/ProblemHeader.tsx`: detected problem heading.
+- `src/components/HintPanel.tsx`: progressive hint disclosure UI.
+- `src/components/ApproachSelector.tsx`: numbered approach buttons with `aria-pressed`.
+- `src/components/ApproachDetails.tsx`: selected approach name, pattern, and summary.
+- `src/components/GenerateAnswer.tsx`: language selector, generate button, answer warning, code block, explanation, and complexity display.
+- `src/components/ThinkingProcess.tsx`: show/hide thinking-process steps with `aria-expanded`.
+- `src/components/AnalysisStatus.tsx`: loading, not-found, error, and success composition.
+- `src/styles.css`: styles for hint cards, component layout, approach selection, generated answers, and thinking-process controls.
+- `roadmap.md`: PM handoff for the current milestone.
+
+---
+
+## Canonical Approach And Hint Data Flow
+
+Backend
+- Each problem owns a stable list of approaches.
+- Each approach has a unique `id`, `isPrimary`, `displayOrder`, `thinkingSteps`, and `hints`.
+- `GET /api/problems/{slug}` returns sorted approach metadata without hint arrays.
+- `GET /api/problems/{slug}/hints` resolves the one canonical primary approach and returns only its `approachId` and hints.
+- `GET /api/problems/{slug}/approaches/{approach_id}/hints` verifies the approach belongs to that exact problem before returning hints.
+- The hint service receives the canonical problem and approach context; it does not choose or infer an approach independently.
+
+Frontend
+- `useActiveProblem` detects the active LeetCode problem and provides the slug and display title.
+- `useProblemAnalysis` fetches canonical approach metadata for the detected slug.
+- `App.tsx` owns `selectedApproachId` and the thinking-process expanded state.
+- `HintPanel` appears above approach buttons and fetches hints only when the user clicks `Get first hint`.
+- With no selected approach, `useApproachHints` calls the primary hint endpoint.
+- With a selected approach, `useApproachHints` calls the approach-specific hint endpoint.
+- The hook stores the returned `approachId`, reveals hints one at a time, and clears incompatible hint data when the selected approach changes.
+- `GenerateAnswer` appears only after an approach is selected.
+- `useApproachSolution` posts `slug`, selected `approach.id`, and selected language to the backend only when the user clicks `Generate answer`.
+- Switching approaches or LeetCode problems clears the generated answer.
+- Changing language does not automatically regenerate; the user must click `Generate answer` again.
+- The same stable `approach.id` connects hints, thinking process, generated answers, future starter code, and future LLM prompts.
+
+Generated Answer Flow
+- `POST /api/problems/{slug}/approaches/{approach_id}/solution` validates that the problem exists.
+- The backend validates that the requested approach belongs to that exact problem.
+- The backend validates the requested language: `python`, `java`, `javascript`, or `cpp`.
+- `solution_service.py` receives the canonical problem object, canonical approach object, and language.
+- The mock service returns code that matches the selected approach, not a generic problem-level answer.
+- Future LLM replacement should keep this same contract: problem metadata plus selected canonical approach plus language produces an approach-specific answer. The LLM must not choose or rename the approach.
 
 ---
 
 ## Manual Test
 
 - Run `npm run build` and confirm it succeeds.
-- From `backend/`, install dependencies with `pip install -r requirements.txt`.
+- From `backend/`, install dependencies with `pip install -r requirements.txt` if needed.
 - From `backend/`, run `uvicorn app.main:app --reload`.
 - Visit `http://localhost:8000/health` and confirm `{"status":"ok"}`.
-- Visit `http://localhost:8000/api/problems/two-sum` and confirm it returns an `approaches` array with `brute-force` and `hash-map`.
-- Visit `http://localhost:8000/api/problems/valid-parentheses` and confirm it returns multiple approaches.
-- Visit `http://localhost:8000/api/problems/longest-substring-without-repeating-characters` and confirm it returns three approaches.
-- Visit an unknown slug such as `http://localhost:8000/api/problems/total-waviness-of-numbers-in-range-ii` and confirm the 404 detail says the problem is not available yet.
+- Visit `http://localhost:8000/api/problems/two-sum` and confirm it returns sorted `approaches[]` with `isPrimary` and `displayOrder`, but no `hints`.
+- Visit `http://localhost:8000/api/problems/two-sum/hints` and confirm it returns `approachId: "hash-map"` with three hints.
+- Visit `http://localhost:8000/api/problems/two-sum/approaches/brute-force/hints` and confirm it returns only `brute-force` hints.
+- Send `POST http://localhost:8000/api/problems/two-sum/approaches/hash-map/solution` with `{"language":"python"}` and confirm it returns hash-map style code.
+- Send `POST http://localhost:8000/api/problems/two-sum/approaches/brute-force/solution` with `{"language":"python"}` and confirm it returns brute-force style code.
+- Send `POST http://localhost:8000/api/problems/two-sum/approaches/hash-map/solution` with `{"language":"ruby"}` and confirm it returns 400.
+- Visit `http://localhost:8000/api/problems/not-seeded/hints` and confirm it returns 404 with the local-dataset fallback detail.
+- Visit `http://localhost:8000/api/problems/two-sum/approaches/not-real/hints` and confirm it returns 404 with the approach fallback detail.
+- Send `POST http://localhost:8000/api/problems/not-seeded/approaches/hash-map/solution` and confirm it returns 404.
+- Send `POST http://localhost:8000/api/problems/two-sum/approaches/not-real/solution` and confirm it returns 404.
 - Load `dist/` as an unpacked Chrome extension.
-- Open `https://leetcode.com/problems/two-sum/`, open the LeetCoach side panel, and confirm it initially shows `Choose an approach` with `Approach 1` and `Approach 2`.
-- Confirm the `LeetCoach MVP` welcome hero is hidden while a problem is detected.
-- Navigate away from a problem page and confirm the welcome hero returns.
-- Confirm the initial buttons do not reveal names like `Brute Force` or `Hash Map`.
-- Click `Approach 1` and confirm it reveals approach name, pattern, and summary, but not thinking steps.
-- Click `Show thinking process` and confirm only Approach 1 thinking steps appear.
-- Click `Hide thinking process` and confirm the steps collapse.
-- Click `Approach 2` and confirm the previous thinking process is collapsed automatically.
-- Navigate to `https://leetcode.com/problems/valid-parentheses/` and confirm the selected approach resets.
-- Navigate to an unsupported but detected problem and confirm the local-dataset fallback displays.
-- Stop the backend and confirm the side panel shows `Unable to connect to the local LeetCoach backend.`
-- Restart the backend, click `Retry`, and confirm the analysis loads without navigating away.
+- Open `https://leetcode.com/problems/two-sum/` and open the LeetCoach side panel.
+- Confirm the detected problem view is ordered as title, hints, approaches, selected approach details, then thinking process.
+- Confirm no hint, approach name, pattern, or thinking process is revealed automatically.
+- Click `Get first hint` and confirm exactly one hint appears.
+- Click `Show next hint` and confirm each click reveals exactly one additional hint.
+- Click `Reset hints` and confirm the hints hide without clearing the selected approach.
+- Request hints before selecting an approach, then select the primary approach and confirm compatible hints remain.
+- Request hints before selecting an approach, then select a different approach and confirm hints reset.
+- Select an approach first, then click `Get first hint` and confirm the approach-specific hint endpoint is used.
+- Confirm Generate Answer is hidden before an approach is selected.
+- Select an approach and confirm Generate Answer appears below the selected approach details.
+- Select Python and click `Generate answer`; confirm the warning appears above a readable code block.
+- Switch from `Approach 2` to `Approach 1` on Two Sum and confirm the generated answer clears.
+- Generate an answer for both Two Sum approaches and confirm the code matches the selected approach.
+- Change the language after generating an answer and confirm no new request happens until clicking `Generate answer` again.
+- Click `Show thinking process`, switch approaches, and confirm the thinking process collapses.
+- Navigate to another supported LeetCode problem and confirm selected approach, thinking process, and hints reset.
+- Confirm the generated answer also clears when navigating to another LeetCode problem.
+- Stop the backend and confirm the side panel shows a retryable backend connection error.
 
 ---
 
-## Next
+## Verified This Milestone
 
-- Add focused tests for URL parsing, title normalization, backend 404 behavior, multi-approach response shape, and frontend API state mapping.
-- Add SQLite with SQLAlchemy models for problems and approaches after the API contract stabilizes.
-- Keep progressive disclosure intact when replacing the in-memory dictionary with database-backed lookup.
+- `npm run build` succeeds.
+- `python -m compileall app` succeeds from `backend/`.
+- The seeded mock dataset reports exactly one primary approach per problem.
+- `GET /health` returns status 200.
+- The main problem-analysis endpoint still works.
+- The default hint endpoint returns the primary approach hints.
+- The approach-specific hint endpoint returns the requested approach hints.
+- The generated-answer endpoint returns an approach-specific response for valid problem, approach, and language.
+- Two Sum `hash-map` and `brute-force` return different mock code and complexity values.
+- Unsupported solution languages return 400.
+- Mock solution coverage exists for every seeded approach and supported language.
+- Invalid problem slugs return 404.
+- Invalid approach IDs return 404.
+- The local dev server was stopped after verification.
+
+---
+
+## Known Limitations
+
+- Chrome side-panel interactions still need manual browser verification after reloading the unpacked extension.
+- The backend still uses in-memory mock data.
+- Hints are static mock strings, not generated by an AI provider.
+- Generated answers are static mock strings, not generated by an AI provider.
+- No SQLite, SQLAlchemy, Alembic, PostgreSQL, authentication, user history, or starter code yet.
+- The extension assumes the local backend is available at `http://localhost:8000`.
+
+---
+
+## Next Recommended Milestone
+
+- Add focused tests for backend dataset validation, hint endpoints, solution endpoint behavior, URL parsing, API response normalization, and React hook behavior.
+- After tests are in place, introduce SQLite with SQLAlchemy models for problems, approaches, related problems, and starter templates.
+- Keep the stable `approach.id` contract unchanged when moving from mock data to database-backed data.
 
 ---
 
 ## Future Features
 
+- SQLite persistence
+- SQLAlchemy models
 - Alembic migrations
 - Mock AI provider abstraction
-- Starter code
-- Hints
+- Starter code with progressive guidance levels
 - Related questions
-- Follow-up questions
+- Interview follow-up questions
 - OpenAI, Gemini, or OpenRouter provider integration
 - PostgreSQL migration
 - User accounts and learning history
