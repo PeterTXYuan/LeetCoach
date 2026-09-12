@@ -1,0 +1,972 @@
+%PDF-1.4
+%‚„œ”
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [7 0 R 9 0 R 11 0 R 13 0 R 15 0 R 17 0 R 19 0 R 21 0 R] /Count 8 >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>
+endobj
+6 0 obj
+<< /Length 2364 >>
+stream
+BT
+/F2 18 Tf
+1 0 0 1 54 734 Tm
+(LeetCoach New Device Handoff) Tj
+/F1 10 Tf
+1 0 0 1 54 696 Tm
+(Generated: September 12, 2026) Tj
+/F2 14 Tf
+1 0 0 1 54 664 Tm
+(Purpose) Tj
+/F1 10 Tf
+1 0 0 1 54 638 Tm
+(LeetCoach is a Chrome extension that helps users learn how to think through LeetCode) Tj
+/F1 10 Tf
+1 0 0 1 54 624 Tm
+(problems instead of immediately showing final answers.) Tj
+/F1 10 Tf
+1 0 0 1 54 602 Tm
+(Core philosophy:) Tj
+/F1 10 Tf
+1 0 0 1 54 580 Tm
+(Don't give me the answer. Teach me how to discover it.) Tj
+/F1 10 Tf
+1 0 0 1 54 558 Tm
+(The project is currently an MVP full-stack learning tool:) Tj
+/F1 10 Tf
+1 0 0 1 54 536 Tm
+(- Chrome extension side panel built with React, TypeScript, Vite, and Manifest V3.) Tj
+/F1 10 Tf
+1 0 0 1 54 522 Tm
+(- FastAPI backend using an in-memory mock dataset.) Tj
+/F1 10 Tf
+1 0 0 1 54 508 Tm
+(- No SQLite, PostgreSQL, accounts, authentication, or real LLM API yet.) Tj
+/F1 10 Tf
+1 0 0 1 54 494 Tm
+(- Current AI-like behavior is mocked and deterministic.) Tj
+/F2 14 Tf
+1 0 0 1 54 462 Tm
+(Repository Status Before Device Switch) Tj
+/F1 10 Tf
+1 0 0 1 54 436 Tm
+(- Current branch: `master`.) Tj
+/F1 10 Tf
+1 0 0 1 54 422 Tm
+(- `master` is even with `origin/master` at the time this handoff was generated.) Tj
+/F1 10 Tf
+1 0 0 1 54 408 Tm
+(- The only visible untracked item was `pet-work/`, which appears unrelated to the) Tj
+/F1 10 Tf
+1 0 0 1 54 394 Tm
+(  LeetCoach app.) Tj
+/F1 10 Tf
+1 0 0 1 54 380 Tm
+(- Main handoff file inside the repo: `roadmap.md`.) Tj
+/F1 10 Tf
+1 0 0 1 54 358 Tm
+(If the new device does not have the project yet, clone it from GitHub:) Tj
+/F3 8 Tf
+1 0 0 1 54 328 Tm
+(git clone https://github.com/<your-github-username>/LeetCoach.git) Tj
+/F3 8 Tf
+1 0 0 1 54 314 Tm
+(cd LeetCoach) Tj
+/F1 10 Tf
+1 0 0 1 54 284 Tm
+(If `pet-work/` matters, copy it manually from the old device. It is not part of the) Tj
+/F1 10 Tf
+1 0 0 1 54 270 Tm
+(tracked LeetCoach codebase.) Tj
+/F2 14 Tf
+1 0 0 1 54 238 Tm
+(How To Run On The New Device) Tj
+/F2 14 Tf
+1 0 0 1 54 202 Tm
+(Frontend / Extension) Tj
+/F3 8 Tf
+1 0 0 1 54 168 Tm
+(npm install) Tj
+/F3 8 Tf
+1 0 0 1 54 154 Tm
+(npm run build) Tj
+/F1 10 Tf
+1 0 0 1 54 124 Tm
+(The Chrome-loadable extension bundle is generated in:) Tj
+/F3 8 Tf
+1 0 0 1 54 94 Tm
+(dist/) Tj
+/F1 10 Tf
+1 0 0 1 54 64 Tm
+(Load it in Chrome:) Tj
+/F1 8 Tf
+1 0 0 1 54 30 Tm
+(LeetCoach handoff - page 1 of 8) Tj
+ET
+endstream
+endobj
+7 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 6 0 R /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> >>
+endobj
+8 0 obj
+<< /Length 2121 >>
+stream
+BT
+/F1 10 Tf
+1 0 0 1 54 738 Tm
+(1. Open `chrome://extensions`.) Tj
+/F1 10 Tf
+1 0 0 1 54 724 Tm
+(2. Enable Developer Mode.) Tj
+/F1 10 Tf
+1 0 0 1 54 710 Tm
+(3. Click `Load unpacked`.) Tj
+/F1 10 Tf
+1 0 0 1 54 696 Tm
+(4. Select the repo's `dist/` folder.) Tj
+/F1 10 Tf
+1 0 0 1 54 682 Tm
+(5. Open a supported LeetCode problem page such as `https://leetcode.com/problems/two-) Tj
+/F1 10 Tf
+1 0 0 1 54 668 Tm
+(   sum/`.) Tj
+/F1 10 Tf
+1 0 0 1 54 654 Tm
+(6. Open the LeetCoach side panel.) Tj
+/F2 14 Tf
+1 0 0 1 54 622 Tm
+(Backend) Tj
+/F3 8 Tf
+1 0 0 1 54 588 Tm
+(cd backend) Tj
+/F3 8 Tf
+1 0 0 1 54 574 Tm
+(python -m venv .venv) Tj
+/F3 8 Tf
+1 0 0 1 54 560 Tm
+(.venv\\Scripts\\activate) Tj
+/F3 8 Tf
+1 0 0 1 54 546 Tm
+(pip install -r requirements.txt) Tj
+/F3 8 Tf
+1 0 0 1 54 532 Tm
+(uvicorn app.main:app --reload) Tj
+/F1 10 Tf
+1 0 0 1 54 502 Tm
+(The backend runs at:) Tj
+/F3 8 Tf
+1 0 0 1 54 472 Tm
+(http://localhost:8000) Tj
+/F1 10 Tf
+1 0 0 1 54 442 Tm
+(Quick health check:) Tj
+/F3 8 Tf
+1 0 0 1 54 412 Tm
+(curl http://localhost:8000/health) Tj
+/F1 10 Tf
+1 0 0 1 54 382 Tm
+(Expected response:) Tj
+/F3 8 Tf
+1 0 0 1 54 352 Tm
+({"status":"ok"}) Tj
+/F2 14 Tf
+1 0 0 1 54 312 Tm
+(Current Architecture) Tj
+/F1 10 Tf
+1 0 0 1 54 286 Tm
+(Frontend:) Tj
+/F1 10 Tf
+1 0 0 1 54 264 Tm
+(- React) Tj
+/F1 10 Tf
+1 0 0 1 54 250 Tm
+(- TypeScript) Tj
+/F1 10 Tf
+1 0 0 1 54 236 Tm
+(- Vite) Tj
+/F1 10 Tf
+1 0 0 1 54 222 Tm
+(- Chrome Extension Manifest V3) Tj
+/F1 10 Tf
+1 0 0 1 54 208 Tm
+(- Chrome Side Panel API) Tj
+/F1 10 Tf
+1 0 0 1 54 194 Tm
+(- Active tab detection for `https://leetcode.com/problems/*`) Tj
+/F1 10 Tf
+1 0 0 1 54 172 Tm
+(Backend:) Tj
+/F1 10 Tf
+1 0 0 1 54 150 Tm
+(- FastAPI) Tj
+/F1 10 Tf
+1 0 0 1 54 136 Tm
+(- In-memory mock problem dataset) Tj
+/F1 10 Tf
+1 0 0 1 54 122 Tm
+(- CORS configured for local extension development) Tj
+/F1 10 Tf
+1 0 0 1 54 108 Tm
+(- Canonical approach metadata with stable approach IDs) Tj
+/F1 10 Tf
+1 0 0 1 54 94 Tm
+(- Hint service abstraction) Tj
+/F1 10 Tf
+1 0 0 1 54 80 Tm
+(- Solution service abstraction) Tj
+/F1 10 Tf
+1 0 0 1 54 58 Tm
+(Database:) Tj
+/F1 8 Tf
+1 0 0 1 54 30 Tm
+(LeetCoach handoff - page 2 of 8) Tj
+ET
+endstream
+endobj
+9 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 8 0 R /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> >>
+endobj
+10 0 obj
+<< /Length 2326 >>
+stream
+BT
+/F1 10 Tf
+1 0 0 1 54 730 Tm
+(- Not implemented yet.) Tj
+/F1 10 Tf
+1 0 0 1 54 716 Tm
+(- Planned local MVP database: SQLite.) Tj
+/F1 10 Tf
+1 0 0 1 54 702 Tm
+(- Future migration plan: SQLAlchemy + Alembic + PostgreSQL.) Tj
+/F1 10 Tf
+1 0 0 1 54 680 Tm
+(AI:) Tj
+/F1 10 Tf
+1 0 0 1 54 658 Tm
+(- No real LLM provider yet.) Tj
+/F1 10 Tf
+1 0 0 1 54 644 Tm
+(- Mock/static guidance only.) Tj
+/F1 10 Tf
+1 0 0 1 54 630 Tm
+(- Future providers may include OpenAI, Gemini, or OpenRouter.) Tj
+/F2 14 Tf
+1 0 0 1 54 598 Tm
+(Current User Flow) Tj
+/F1 10 Tf
+1 0 0 1 54 572 Tm
+(1. User opens a LeetCode problem page.) Tj
+/F1 10 Tf
+1 0 0 1 54 558 Tm
+(2. Extension side panel detects the active tab URL.) Tj
+/F1 10 Tf
+1 0 0 1 54 544 Tm
+(3. URL parser extracts the problem slug from `leetcode.com/problems/{slug}`.) Tj
+/F1 10 Tf
+1 0 0 1 54 530 Tm
+(4. Side panel fetches problem analysis from the local FastAPI backend.) Tj
+/F1 10 Tf
+1 0 0 1 54 516 Tm
+(5. Backend returns canonical approaches for the detected problem.) Tj
+/F1 10 Tf
+1 0 0 1 54 502 Tm
+(6. UI shows:) Tj
+/F1 10 Tf
+1 0 0 1 54 488 Tm
+(  - Problem title) Tj
+/F1 10 Tf
+1 0 0 1 54 474 Tm
+(  - Hints section) Tj
+/F1 10 Tf
+1 0 0 1 54 460 Tm
+(  - Approach selector) Tj
+/F1 10 Tf
+1 0 0 1 54 446 Tm
+(  - Selected approach details) Tj
+/F1 10 Tf
+1 0 0 1 54 432 Tm
+(  - Generate Answer section) Tj
+/F1 10 Tf
+1 0 0 1 54 418 Tm
+(  - Thinking process toggle) Tj
+/F1 10 Tf
+1 0 0 1 54 396 Tm
+(The extension currently supports only `leetcode.com`, not `leetcode.cn`.) Tj
+/F2 14 Tf
+1 0 0 1 54 364 Tm
+(Seeded Problems) Tj
+/F1 10 Tf
+1 0 0 1 54 338 Tm
+(The backend mock dataset currently includes:) Tj
+/F1 10 Tf
+1 0 0 1 54 316 Tm
+(- `two-sum`) Tj
+/F1 10 Tf
+1 0 0 1 54 302 Tm
+(- `valid-parentheses`) Tj
+/F1 10 Tf
+1 0 0 1 54 288 Tm
+(- `longest-substring-without-repeating-characters`) Tj
+/F1 10 Tf
+1 0 0 1 54 266 Tm
+(Unknown problems return:) Tj
+/F3 8 Tf
+1 0 0 1 54 236 Tm
+({) Tj
+/F3 8 Tf
+1 0 0 1 54 222 Tm
+(  "detail": "This problem is not available in the local LeetCoach dataset) Tj
+/F3 8 Tf
+1 0 0 1 54 208 Tm
+(yet.") Tj
+/F3 8 Tf
+1 0 0 1 54 194 Tm
+(}) Tj
+/F2 14 Tf
+1 0 0 1 54 154 Tm
+(Backend API Surface) Tj
+/F1 10 Tf
+1 0 0 1 54 128 Tm
+(Health:) Tj
+/F3 8 Tf
+1 0 0 1 54 98 Tm
+(GET /health) Tj
+/F1 10 Tf
+1 0 0 1 54 68 Tm
+(Problem analysis:) Tj
+/F1 8 Tf
+1 0 0 1 54 30 Tm
+(LeetCoach handoff - page 3 of 8) Tj
+ET
+endstream
+endobj
+11 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 10 0 R /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> >>
+endobj
+12 0 obj
+<< /Length 1913 >>
+stream
+BT
+/F3 8 Tf
+1 0 0 1 54 738 Tm
+(GET /api/problems/{slug}) Tj
+/F1 10 Tf
+1 0 0 1 54 708 Tm
+(Primary approach hints:) Tj
+/F3 8 Tf
+1 0 0 1 54 678 Tm
+(GET /api/problems/{slug}/hints) Tj
+/F1 10 Tf
+1 0 0 1 54 648 Tm
+(Approach-specific hints:) Tj
+/F3 8 Tf
+1 0 0 1 54 618 Tm
+(GET /api/problems/{slug}/approaches/{approach_id}/hints) Tj
+/F1 10 Tf
+1 0 0 1 54 588 Tm
+(Approach-specific mock solution:) Tj
+/F3 8 Tf
+1 0 0 1 54 558 Tm
+(POST /api/problems/{slug}/approaches/{approach_id}/solution) Tj
+/F1 10 Tf
+1 0 0 1 54 528 Tm
+(Request body:) Tj
+/F3 8 Tf
+1 0 0 1 54 498 Tm
+({) Tj
+/F3 8 Tf
+1 0 0 1 54 484 Tm
+(  "language": "python") Tj
+/F3 8 Tf
+1 0 0 1 54 470 Tm
+(}) Tj
+/F1 10 Tf
+1 0 0 1 54 440 Tm
+(Supported languages:) Tj
+/F1 10 Tf
+1 0 0 1 54 418 Tm
+(- `python`) Tj
+/F1 10 Tf
+1 0 0 1 54 404 Tm
+(- `java`) Tj
+/F1 10 Tf
+1 0 0 1 54 390 Tm
+(- `javascript`) Tj
+/F1 10 Tf
+1 0 0 1 54 376 Tm
+(- `cpp`) Tj
+/F1 10 Tf
+1 0 0 1 54 354 Tm
+(Important product rule:) Tj
+/F1 10 Tf
+1 0 0 1 54 332 Tm
+(Generated answers, hints, thinking process, and future starter code must always be tied) Tj
+/F1 10 Tf
+1 0 0 1 54 318 Tm
+(to a stable `approach.id`.) Tj
+/F1 10 Tf
+1 0 0 1 54 296 Tm
+(The backend must never generate generic problem-level solutions.) Tj
+/F2 14 Tf
+1 0 0 1 54 264 Tm
+(Canonical Approach Rules) Tj
+/F1 10 Tf
+1 0 0 1 54 238 Tm
+(Each problem owns a stable list of approaches.) Tj
+/F1 10 Tf
+1 0 0 1 54 216 Tm
+(Each approach has:) Tj
+/F1 10 Tf
+1 0 0 1 54 194 Tm
+(- `id`) Tj
+/F1 10 Tf
+1 0 0 1 54 180 Tm
+(- `name`) Tj
+/F1 10 Tf
+1 0 0 1 54 166 Tm
+(- `pattern`) Tj
+/F1 10 Tf
+1 0 0 1 54 152 Tm
+(- `summary`) Tj
+/F1 10 Tf
+1 0 0 1 54 138 Tm
+(- `isPrimary`) Tj
+/F1 10 Tf
+1 0 0 1 54 124 Tm
+(- `displayOrder`) Tj
+/F1 10 Tf
+1 0 0 1 54 110 Tm
+(- `thinkingSteps`) Tj
+/F1 10 Tf
+1 0 0 1 54 96 Tm
+(- `hints`) Tj
+/F1 10 Tf
+1 0 0 1 54 74 Tm
+(Validation currently rejects mock data when:) Tj
+/F1 8 Tf
+1 0 0 1 54 30 Tm
+(LeetCoach handoff - page 4 of 8) Tj
+ET
+endstream
+endobj
+13 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 12 0 R /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> >>
+endobj
+14 0 obj
+<< /Length 3050 >>
+stream
+BT
+/F1 10 Tf
+1 0 0 1 54 738 Tm
+(- A problem has no primary approach.) Tj
+/F1 10 Tf
+1 0 0 1 54 724 Tm
+(- A problem has more than one primary approach.) Tj
+/F1 10 Tf
+1 0 0 1 54 710 Tm
+(- A problem has duplicate approach IDs.) Tj
+/F1 10 Tf
+1 0 0 1 54 688 Tm
+(Exactly one approach per problem is primary.) Tj
+/F1 10 Tf
+1 0 0 1 54 666 Tm
+(Before a user selects an approach, hints use the primary approach.) Tj
+/F1 10 Tf
+1 0 0 1 54 644 Tm
+(After a user selects an approach, hints and generated answers use the selected) Tj
+/F1 10 Tf
+1 0 0 1 54 630 Tm
+(`approach.id`.) Tj
+/F2 14 Tf
+1 0 0 1 54 598 Tm
+(Frontend File Map) Tj
+/F1 10 Tf
+1 0 0 1 54 572 Tm
+(Core app:) Tj
+/F1 10 Tf
+1 0 0 1 54 550 Tm
+(- `src/App.tsx`: coordinates active problem, selected approach, thinking expansion,) Tj
+/F1 10 Tf
+1 0 0 1 54 536 Tm
+(  hints, and generated answer composition.) Tj
+/F1 10 Tf
+1 0 0 1 54 522 Tm
+(- `src/main.tsx`: React entry point.) Tj
+/F1 10 Tf
+1 0 0 1 54 508 Tm
+(- `src/styles.css`: all side panel styling.) Tj
+/F1 10 Tf
+1 0 0 1 54 486 Tm
+(Active problem detection:) Tj
+/F1 10 Tf
+1 0 0 1 54 464 Tm
+(- `src/problemUrl.ts`: LeetCode problem URL parsing and title normalization.) Tj
+/F1 10 Tf
+1 0 0 1 54 450 Tm
+(- `src/useActiveProblem.ts`: reads active Chrome tab and updates on tab) Tj
+/F1 10 Tf
+1 0 0 1 54 436 Tm
+(  changes/navigation.) Tj
+/F1 10 Tf
+1 0 0 1 54 414 Tm
+(Problem analysis:) Tj
+/F1 10 Tf
+1 0 0 1 54 392 Tm
+(- `src/api/problemAnalysis.ts`: problem-analysis API client and response) Tj
+/F1 10 Tf
+1 0 0 1 54 378 Tm
+(  normalization.) Tj
+/F1 10 Tf
+1 0 0 1 54 364 Tm
+(- `src/useProblemAnalysis.ts`: problem-analysis request state.) Tj
+/F1 10 Tf
+1 0 0 1 54 342 Tm
+(Hints:) Tj
+/F1 10 Tf
+1 0 0 1 54 320 Tm
+(- `src/api/approachHints.ts`: hint API client.) Tj
+/F1 10 Tf
+1 0 0 1 54 306 Tm
+(- `src/hooks/useApproachHints.ts`: lazy hint loading, caching, progressive reveal,) Tj
+/F1 10 Tf
+1 0 0 1 54 292 Tm
+(  stale response protection.) Tj
+/F1 10 Tf
+1 0 0 1 54 278 Tm
+(- `src/components/HintPanel.tsx`: hint UI.) Tj
+/F1 10 Tf
+1 0 0 1 54 256 Tm
+(Generated answers:) Tj
+/F1 10 Tf
+1 0 0 1 54 234 Tm
+(- `src/api/approachSolution.ts`: generated-answer API client.) Tj
+/F1 10 Tf
+1 0 0 1 54 220 Tm
+(- `src/hooks/useApproachSolution.ts`: generated-answer request state.) Tj
+/F1 10 Tf
+1 0 0 1 54 206 Tm
+(- `src/components/GenerateAnswer.tsx`: language selector and answer display.) Tj
+/F1 10 Tf
+1 0 0 1 54 184 Tm
+(Approaches and thinking:) Tj
+/F1 10 Tf
+1 0 0 1 54 162 Tm
+(- `src/components/ApproachSelector.tsx`: numbered approach buttons.) Tj
+/F1 10 Tf
+1 0 0 1 54 148 Tm
+(- `src/components/ApproachDetails.tsx`: selected approach name, pattern, summary,) Tj
+/F1 10 Tf
+1 0 0 1 54 134 Tm
+(  close action.) Tj
+/F1 10 Tf
+1 0 0 1 54 120 Tm
+(- `src/components/ThinkingProcess.tsx`: thinking-process toggle and steps.) Tj
+/F1 10 Tf
+1 0 0 1 54 98 Tm
+(Other components:) Tj
+/F1 10 Tf
+1 0 0 1 54 76 Tm
+(- `src/components/ProblemHeader.tsx`) Tj
+/F1 10 Tf
+1 0 0 1 54 62 Tm
+(- `src/components/AnalysisStatus.tsx`) Tj
+/F1 8 Tf
+1 0 0 1 54 30 Tm
+(LeetCoach handoff - page 5 of 8) Tj
+ET
+endstream
+endobj
+15 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 14 0 R /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> >>
+endobj
+16 0 obj
+<< /Length 2608 >>
+stream
+BT
+/F1 10 Tf
+1 0 0 1 54 730 Tm
+(Chrome extension:) Tj
+/F1 10 Tf
+1 0 0 1 54 708 Tm
+(- `public/manifest.json`) Tj
+/F1 10 Tf
+1 0 0 1 54 694 Tm
+(- `src/background.ts`) Tj
+/F1 10 Tf
+1 0 0 1 54 680 Tm
+(- `sidePanel.html`) Tj
+/F1 10 Tf
+1 0 0 1 54 658 Tm
+(Backend:) Tj
+/F1 10 Tf
+1 0 0 1 54 636 Tm
+(- `backend/app/main.py`: FastAPI app, mock dataset, routes.) Tj
+/F1 10 Tf
+1 0 0 1 54 622 Tm
+(- `backend/app/services/hint_service.py`: hint lookup from canonical approach.) Tj
+/F1 10 Tf
+1 0 0 1 54 608 Tm
+(- `backend/app/services/solution_service.py`: approach-specific mock solution) Tj
+/F1 10 Tf
+1 0 0 1 54 594 Tm
+(  generation.) Tj
+/F1 10 Tf
+1 0 0 1 54 580 Tm
+(- `backend/requirements.txt`) Tj
+/F2 14 Tf
+1 0 0 1 54 548 Tm
+(Current UI Behavior) Tj
+/F1 10 Tf
+1 0 0 1 54 522 Tm
+(When no supported LeetCode problem is open:) Tj
+/F1 10 Tf
+1 0 0 1 54 500 Tm
+(- Shows LeetCoach MVP intro copy.) Tj
+/F1 10 Tf
+1 0 0 1 54 486 Tm
+(- Shows an `Open LeetCode` button.) Tj
+/F1 10 Tf
+1 0 0 1 54 464 Tm
+(When a supported problem is open:) Tj
+/F1 10 Tf
+1 0 0 1 54 442 Tm
+(- Intro copy is hidden to save sidebar space.) Tj
+/F1 10 Tf
+1 0 0 1 54 428 Tm
+(- Problem title is shown prominently.) Tj
+/F1 10 Tf
+1 0 0 1 54 414 Tm
+(- Hints are shown above approaches.) Tj
+/F1 10 Tf
+1 0 0 1 54 400 Tm
+(- No hint is revealed automatically.) Tj
+/F1 10 Tf
+1 0 0 1 54 386 Tm
+(- Approach buttons are labeled `Approach 1`, `Approach 2`, etc.) Tj
+/F1 10 Tf
+1 0 0 1 54 372 Tm
+(- Approach names and patterns remain hidden until selection.) Tj
+/F1 10 Tf
+1 0 0 1 54 358 Tm
+(- Clicking selected approach again collapses it.) Tj
+/F1 10 Tf
+1 0 0 1 54 344 Tm
+(- Selected approach details can also be closed with a `Close` action.) Tj
+/F1 10 Tf
+1 0 0 1 54 330 Tm
+(- Generate Answer appears only after selecting an approach.) Tj
+/F1 10 Tf
+1 0 0 1 54 316 Tm
+(- Thinking process remains collapsed until explicitly opened.) Tj
+/F1 10 Tf
+1 0 0 1 54 294 Tm
+(Recent UI polish:) Tj
+/F1 10 Tf
+1 0 0 1 54 272 Tm
+(- Hints and Approaches are visually distinct.) Tj
+/F1 10 Tf
+1 0 0 1 54 258 Tm
+(- Hint cards have wider reading width, more padding, and more line height.) Tj
+/F1 10 Tf
+1 0 0 1 54 244 Tm
+(- Reveal animations are quick and subtle.) Tj
+/F1 10 Tf
+1 0 0 1 54 230 Tm
+(- `prefers-reduced-motion` is respected.) Tj
+/F2 14 Tf
+1 0 0 1 54 198 Tm
+(Verification Checklist) Tj
+/F1 10 Tf
+1 0 0 1 54 172 Tm
+(Frontend:) Tj
+/F3 8 Tf
+1 0 0 1 54 142 Tm
+(npm run build) Tj
+/F1 10 Tf
+1 0 0 1 54 112 Tm
+(Backend:) Tj
+/F3 8 Tf
+1 0 0 1 54 82 Tm
+(cd backend) Tj
+/F3 8 Tf
+1 0 0 1 54 68 Tm
+(python -m compileall app) Tj
+/F1 8 Tf
+1 0 0 1 54 30 Tm
+(LeetCoach handoff - page 6 of 8) Tj
+ET
+endstream
+endobj
+17 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 16 0 R /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> >>
+endobj
+18 0 obj
+<< /Length 3031 >>
+stream
+BT
+/F3 8 Tf
+1 0 0 1 54 738 Tm
+(uvicorn app.main:app --reload) Tj
+/F1 10 Tf
+1 0 0 1 54 708 Tm
+(Endpoint checks:) Tj
+/F3 8 Tf
+1 0 0 1 54 678 Tm
+(curl http://localhost:8000/health) Tj
+/F3 8 Tf
+1 0 0 1 54 664 Tm
+(curl http://localhost:8000/api/problems/two-sum) Tj
+/F3 8 Tf
+1 0 0 1 54 650 Tm
+(curl http://localhost:8000/api/problems/two-sum/hints) Tj
+/F3 8 Tf
+1 0 0 1 54 636 Tm
+(curl http://localhost:8000/api/problems/two-sum/approaches/brute-force/hints) Tj
+/F1 10 Tf
+1 0 0 1 54 606 Tm
+(Example generated-answer test:) Tj
+/F3 8 Tf
+1 0 0 1 54 576 Tm
+(curl -X POST http://localhost:8000/api/problems/two-sum/approaches/hash-) Tj
+/F3 8 Tf
+1 0 0 1 54 562 Tm
+(map/solution \\) Tj
+/F3 8 Tf
+1 0 0 1 54 548 Tm
+(  -H "Content-Type: application/json" \\) Tj
+/F3 8 Tf
+1 0 0 1 54 534 Tm
+(  -d "{\\"language\\":\\"python\\"}") Tj
+/F1 10 Tf
+1 0 0 1 54 504 Tm
+(Manual Chrome checks:) Tj
+/F1 10 Tf
+1 0 0 1 54 482 Tm
+(- Load `dist/` as unpacked extension.) Tj
+/F1 10 Tf
+1 0 0 1 54 468 Tm
+(- Open `https://leetcode.com/problems/two-sum/`.) Tj
+/F1 10 Tf
+1 0 0 1 54 454 Tm
+(- Confirm title appears.) Tj
+/F1 10 Tf
+1 0 0 1 54 440 Tm
+(- Confirm hints are not fetched until `Get first hint`.) Tj
+/F1 10 Tf
+1 0 0 1 54 426 Tm
+(- Confirm `Show next hint` reveals one hint at a time.) Tj
+/F1 10 Tf
+1 0 0 1 54 412 Tm
+(- Confirm approach names are hidden before selection.) Tj
+/F1 10 Tf
+1 0 0 1 54 398 Tm
+(- Confirm selected approach details appear after clicking an approach.) Tj
+/F1 10 Tf
+1 0 0 1 54 384 Tm
+(- Confirm clicking the same approach collapses selected details.) Tj
+/F1 10 Tf
+1 0 0 1 54 370 Tm
+(- Confirm Generate Answer appears only after approach selection.) Tj
+/F1 10 Tf
+1 0 0 1 54 356 Tm
+(- Confirm switching approach clears generated answer and collapses thinking.) Tj
+/F1 10 Tf
+1 0 0 1 54 342 Tm
+(- Confirm unsupported problems show the local dataset fallback.) Tj
+/F1 10 Tf
+1 0 0 1 54 328 Tm
+(- Stop backend and confirm retryable connection error state.) Tj
+/F2 14 Tf
+1 0 0 1 54 296 Tm
+(Known Limitations) Tj
+/F1 10 Tf
+1 0 0 1 54 270 Tm
+(- No SQLite yet.) Tj
+/F1 10 Tf
+1 0 0 1 54 256 Tm
+(- No SQLAlchemy models yet.) Tj
+/F1 10 Tf
+1 0 0 1 54 242 Tm
+(- No Alembic migrations yet.) Tj
+/F1 10 Tf
+1 0 0 1 54 228 Tm
+(- No PostgreSQL yet.) Tj
+/F1 10 Tf
+1 0 0 1 54 214 Tm
+(- No user accounts or auth.) Tj
+/F1 10 Tf
+1 0 0 1 54 200 Tm
+(- No real LLM provider.) Tj
+/F1 10 Tf
+1 0 0 1 54 186 Tm
+(- No starter-code generator yet.) Tj
+/F1 10 Tf
+1 0 0 1 54 172 Tm
+(- No related questions yet.) Tj
+/F1 10 Tf
+1 0 0 1 54 158 Tm
+(- No follow-up questions yet.) Tj
+/F1 10 Tf
+1 0 0 1 54 144 Tm
+(- Backend README is slightly behind the current API surface; `roadmap.md` is the) Tj
+/F1 10 Tf
+1 0 0 1 54 130 Tm
+(  better source of truth.) Tj
+/F1 10 Tf
+1 0 0 1 54 116 Tm
+(- The extension assumes the backend is running at `http://localhost:8000`.) Tj
+/F2 14 Tf
+1 0 0 1 54 84 Tm
+(Recommended Next Milestone) Tj
+/F1 10 Tf
+1 0 0 1 54 58 Tm
+(Add focused automated tests before adding the database layer.) Tj
+/F1 8 Tf
+1 0 0 1 54 30 Tm
+(LeetCoach handoff - page 7 of 8) Tj
+ET
+endstream
+endobj
+19 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 18 0 R /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> >>
+endobj
+20 0 obj
+<< /Length 2074 >>
+stream
+BT
+/F1 10 Tf
+1 0 0 1 54 730 Tm
+(Suggested tests:) Tj
+/F1 10 Tf
+1 0 0 1 54 708 Tm
+(- URL parsing and title normalization.) Tj
+/F1 10 Tf
+1 0 0 1 54 694 Tm
+(- Problem-analysis response normalization.) Tj
+/F1 10 Tf
+1 0 0 1 54 680 Tm
+(- Hint endpoint behavior.) Tj
+/F1 10 Tf
+1 0 0 1 54 666 Tm
+(- Solution endpoint behavior.) Tj
+/F1 10 Tf
+1 0 0 1 54 652 Tm
+(- Backend dataset validation.) Tj
+/F1 10 Tf
+1 0 0 1 54 638 Tm
+(- Hook behavior for lazy hints and generated answers.) Tj
+/F1 10 Tf
+1 0 0 1 54 616 Tm
+(After tests:) Tj
+/F1 10 Tf
+1 0 0 1 54 594 Tm
+(1. Add SQLite.) Tj
+/F1 10 Tf
+1 0 0 1 54 580 Tm
+(2. Add SQLAlchemy models for problems, approaches, hints, related problems, starter) Tj
+/F1 10 Tf
+1 0 0 1 54 566 Tm
+(   templates.) Tj
+/F1 10 Tf
+1 0 0 1 54 552 Tm
+(3. Add Alembic migrations.) Tj
+/F1 10 Tf
+1 0 0 1 54 538 Tm
+(4. Seed 10-20 curated LeetCode problems.) Tj
+/F1 10 Tf
+1 0 0 1 54 524 Tm
+(5. Preserve the existing `approach.id` contract.) Tj
+/F2 14 Tf
+1 0 0 1 54 492 Tm
+(Project Management Rule) Tj
+/F1 10 Tf
+1 0 0 1 54 466 Tm
+(Keep updating `roadmap.md` after meaningful changes.) Tj
+/F1 10 Tf
+1 0 0 1 54 444 Tm
+(This file is used as a ChatGPT/Codex PM handoff file so future sessions can quickly) Tj
+/F1 10 Tf
+1 0 0 1 54 430 Tm
+(recover context.) Tj
+/F1 10 Tf
+1 0 0 1 54 408 Tm
+(Minor UI-only tweaks can be summarized briefly.) Tj
+/F2 14 Tf
+1 0 0 1 54 376 Tm
+(Most Important Design Constraint) Tj
+/F1 10 Tf
+1 0 0 1 54 350 Tm
+(Approaches are canonical.) Tj
+/F1 10 Tf
+1 0 0 1 54 328 Tm
+(Hints, thinking steps, generated answers, and future starter code must always come from) Tj
+/F1 10 Tf
+1 0 0 1 54 314 Tm
+(the selected or primary canonical approach.) Tj
+/F1 10 Tf
+1 0 0 1 54 292 Tm
+(Never infer approach identity from:) Tj
+/F1 10 Tf
+1 0 0 1 54 270 Tm
+(- Button index) Tj
+/F1 10 Tf
+1 0 0 1 54 256 Tm
+(- Pattern name) Tj
+/F1 10 Tf
+1 0 0 1 54 242 Tm
+(- Display text) Tj
+/F1 10 Tf
+1 0 0 1 54 228 Tm
+(- Array position) Tj
+/F1 10 Tf
+1 0 0 1 54 206 Tm
+(Use only the stable backend-provided `approach.id`.) Tj
+/F1 8 Tf
+1 0 0 1 54 30 Tm
+(LeetCoach handoff - page 8 of 8) Tj
+ET
+endstream
+endobj
+21 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 20 0 R /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> >>
+endobj
+xref
+0 22
+0000000000 65535 f 
+0000000015 00000 n 
+0000000064 00000 n 
+0000000169 00000 n 
+0000000239 00000 n 
+0000000314 00000 n 
+0000000382 00000 n 
+0000002798 00000 n 
+0000002944 00000 n 
+0000005117 00000 n 
+0000005263 00000 n 
+0000007642 00000 n 
+0000007790 00000 n 
+0000009756 00000 n 
+0000009904 00000 n 
+0000013007 00000 n 
+0000013155 00000 n 
+0000015816 00000 n 
+0000015964 00000 n 
+0000019048 00000 n 
+0000019196 00000 n 
+0000021323 00000 n 
+trailer
+<< /Size 22 /Root 1 0 R >>
+startxref
+21471
+%%EOF

@@ -78,6 +78,7 @@ AI
 - Subtle reduced-motion-aware reveal animations for hints, selected approaches, thinking process, and generated answers
 - Hint-card spacing/readability polish and selected-approach collapse behavior
 - CSS-only hint and approach section spacing polish for wider, calmer reading cards
+- New-device handoff summary generated as Markdown and PDF under `docs/`
 - Simple README instructions for extension and backend development
 
 ---
@@ -103,6 +104,9 @@ AI
 - `src/components/ThinkingProcess.tsx`: show/hide thinking-process steps with `aria-expanded`.
 - `src/components/AnalysisStatus.tsx`: loading, not-found, error, and success composition.
 - `src/styles.css`: styles for hint cards, component layout, approach selection, generated answers, reveal animations, and thinking-process controls.
+- `docs/LeetCoach-new-device-handoff.md`: portable project handoff summary for continuing on another device.
+- `docs/LeetCoach-new-device-handoff.pdf`: PDF version of the new-device handoff.
+- `scripts/make_handoff_pdf.py`: dependency-free local script used to generate the handoff PDF.
 - `roadmap.md`: PM handoff for the current milestone.
 
 ---
