@@ -2,8 +2,11 @@
   color: #262626;
   background: #ffffff;
   font-family:
-    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-    sans-serif;
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif,
+    "Apple Color Emoji", "Segoe UI Emoji";
+  font-size: 14px;
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -26,20 +29,19 @@ button {
 
 .app-shell {
   --accent: #ffa116;
+  --submit-green: #01b328;
   --accent-hover: #f08f00;
   --accent-soft: #fff2d8;
-  --bg: #eef0f3;
+  --bg: #f0f0f0;
   --card: #ffffff;
-  --card-muted: #e7e9ed;
-  --border: #c9ced6;
-  --strong-border: #aeb5c0;
-  --text: #111827;
-  --muted: #374151;
-  --subtle: #5b6472;
-  --code-bg: #dde2e9;
-  --hint-bg: #fffaf0;
-  --strategy-bg: #f4f6f8;
-  --shadow: 0 14px 32px rgba(17, 24, 39, 0.13);
+  --card-muted: #f5f5f5;
+  --border: #00000014;
+  --strong-border: #00000021;
+  --text: #1a1a1a;
+  --muted: #525252;
+  --subtle: #777777;
+  --code-bg: #f5f5f5;
+  --shadow: 0 0 1px #0000001a, 0 0.5px 5px #0000001a;
 
   display: grid;
   gap: 14px;
@@ -48,23 +50,21 @@ button {
   padding: 16px;
   color: var(--text);
   background: var(--bg);
-  font-size: 17px;
+  font-size: 14px;
 }
 
 .app-shell[data-theme="dark"] {
+  --submit-green: #28c244;
   --accent-soft: #3b2a10;
-  --bg: #0f0f0f;
-  --card: #1f1f1f;
-  --card-muted: #2f2f2f;
-  --border: #565656;
-  --strong-border: #747474;
-  --text: #ffffff;
-  --muted: #d1d5db;
-  --subtle: #b8bec8;
-  --code-bg: #383838;
-  --hint-bg: #2a2418;
-  --strategy-bg: #252525;
-  --shadow: 0 16px 36px rgba(0, 0, 0, 0.45);
+  --bg: #1a1a1a;
+  --card: #262626;
+  --card-muted: #323232;
+  --border: #ffffff14;
+  --strong-border: #ffffff24;
+  --text: #f5f5f5;
+  --muted: #dfdfdf;
+  --subtle: #b7b7b7;
+  --code-bg: #323232;
 }
 
 .top-bar {
@@ -77,7 +77,7 @@ button {
 .brand-mark {
   color: var(--text);
   font-size: 1.1rem;
-  font-weight: 800;
+  font-weight: 600;
   letter-spacing: -0.02em;
 }
 
@@ -96,8 +96,8 @@ button {
   padding: 6px 10px;
   color: var(--muted);
   background: transparent;
-  font-size: 0.86rem;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 500;
   cursor: pointer;
 }
 
@@ -110,9 +110,11 @@ button {
 .hero-card,
 .status-card,
 .problem-card,
-.guide-card {
+.guide-card,
+.hint-panel,
+.strategy-card {
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: 8px;
   background: var(--card);
   box-shadow: var(--shadow);
 }
@@ -125,7 +127,7 @@ button {
   margin: 0 0 12px;
   color: var(--accent);
   font-size: 0.78rem;
-  font-weight: 800;
+  font-weight: 600;
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
@@ -148,7 +150,8 @@ h1 {
 h2 {
   margin-bottom: 8px;
   color: var(--text);
-  font-size: 1.18rem;
+  font-size: 16px;
+  font-weight: 600;
 }
 
 .hero-copy,
@@ -160,7 +163,7 @@ h2 {
 
 .hero-copy {
   margin-bottom: 24px;
-  font-size: 1.08rem;
+  font-size: 14px;
 }
 
 .primary-action {
@@ -170,7 +173,7 @@ h2 {
   padding: 14px 18px;
   color: #1a1a1a;
   background: var(--accent);
-  font-weight: 800;
+  font-weight: 600;
   font-size: 1rem;
   cursor: pointer;
   box-shadow: none;
@@ -187,8 +190,8 @@ h2 {
   padding: 12px 15px;
   color: var(--text);
   background: var(--card-muted);
-  font-weight: 800;
-  font-size: 0.98rem;
+  font-weight: 600;
+  font-size: 14px;
   cursor: pointer;
 }
 
@@ -208,15 +211,16 @@ h2 {
 
 .problem-heading-row {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 14px;
 }
 
 .problem-title {
   margin-bottom: 0;
-  font-size: clamp(2rem, 7.5vw, 3.05rem);
-  line-height: 1.08;
-  letter-spacing: -0.045em;
+  font-size: 24px;
+  line-height: 32px;
+  letter-spacing: normal;
+  overflow-wrap: anywhere;
 }
 
 .status-card p {
@@ -234,8 +238,11 @@ h2 {
 }
 
 .problem-card.detected .status-dot {
+  width: 12px;
+  height: 12px;
+  margin-top: 0;
   background: #2db55d;
-  box-shadow: 0 0 0 6px rgba(45, 181, 93, 0.16);
+  box-shadow: 0 0 0 4px rgba(45, 181, 93, 0.16);
 }
 
 .inline-code {
@@ -254,17 +261,28 @@ h2 {
 
 .analysis-stack {
   display: grid;
-  gap: 18px;
+  gap: 16px;
 }
 
-.guide-card ol {
+.guide-content {
+  min-width: 0;
+}
+
+.strategy-card {
+  display: grid;
+  gap: 20px;
+  min-width: 0;
+  padding: 20px;
+}
+
+.guide-card > ol {
   display: grid;
   gap: 10px;
   margin: 0;
   padding-left: 20px;
 }
 
-.guide-card p {
+.guide-card > p {
   margin-bottom: 0;
   color: var(--muted);
   line-height: 1.6;
@@ -273,17 +291,16 @@ h2 {
 .analysis-message {
   margin-bottom: 0;
   color: var(--muted);
-  font-size: 1.05rem;
+  font-size: 14px;
   line-height: 1.6;
 }
 
 .analysis-label {
   margin-bottom: 6px;
-  color: var(--accent);
+  color: var(--subtle);
   font-size: 0.82rem;
-  font-weight: 800;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: normal;
 }
 
 .section-heading-row {
@@ -291,22 +308,53 @@ h2 {
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
+  flex-wrap: wrap;
+}
+
+.hint-title-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.hint-approach-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--card-muted);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.hint-approach-badge svg {
+  color: var(--submit-green);
+}
+
+.code-language {
+  display: block;
+  margin-bottom: 10px;
+  color: var(--subtle);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  font-size: 12px;
+  font-weight: 500;
 }
 
 .hint-panel {
-  border: 1px solid color-mix(in srgb, var(--accent) 38%, var(--border));
-  border-radius: 14px;
-  padding: 18px;
-  background: var(--hint-bg);
+  min-width: 0;
+  padding: 20px;
 }
 
 .section-kicker {
   margin: 0 0 8px;
-  color: var(--accent);
-  font-size: 0.76rem;
-  font-weight: 900;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  color: var(--subtle);
+  font-size: 12px;
+  font-weight: 500;
 }
 
 .hint-panel h2,
@@ -315,14 +363,14 @@ h2 {
 }
 
 .hint-panel h2 {
-  margin-bottom: 20px;
+  margin-bottom: 0;
 }
 
 .hint-list {
   display: grid;
   gap: 20px;
   width: 100%;
-  margin: 0;
+  margin: 20px 0 0;
   padding-left: 0;
   color: var(--muted);
   line-height: 1.78;
@@ -333,7 +381,7 @@ h2 {
   width: 100%;
   border-radius: 12px;
   padding: 18px 18px 18px 20px;
-  background: color-mix(in srgb, var(--card) 72%, transparent);
+  background: var(--card-muted);
   box-shadow: inset 3px 0 0 var(--accent);
 }
 
@@ -347,18 +395,22 @@ h2 {
   margin-bottom: 10px;
   color: var(--accent);
   font-size: 0.84rem;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .hint-panel .secondary-action {
-  margin-top: 24px;
+  margin-top: 16px;
+}
+
+.hint-panel .secondary-action + .secondary-action {
+  margin-left: 8px;
 }
 
 .all-hints-revealed {
   margin-top: 22px;
   color: var(--subtle);
   font-size: 0.95rem;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .text-action {
@@ -367,7 +419,7 @@ h2 {
   color: var(--accent);
   background: transparent;
   font-size: 0.9rem;
-  font-weight: 800;
+  font-weight: 600;
   cursor: pointer;
 }
 
@@ -382,10 +434,7 @@ h2 {
 }
 
 .approach-selector {
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 18px;
-  background: var(--strategy-bg);
+  min-width: 0;
 }
 
 .section-copy.compact {
@@ -407,8 +456,8 @@ h2 {
   padding: 15px 16px;
   color: var(--text);
   background: var(--card-muted);
-  font-weight: 800;
-  font-size: 1.08rem;
+  font-weight: 600;
+  font-size: 14px;
   text-align: left;
   cursor: pointer;
 }
@@ -436,27 +485,33 @@ h2 {
 }
 
 .close-approach-button {
-  border: 1px solid var(--border);
+  border: 1px solid #b91c1c;
   border-radius: 999px;
   padding: 5px 9px;
-  color: var(--subtle);
-  background: transparent;
+  color: #ffffff;
+  background: #b91c1c;
   font-size: 0.8rem;
-  font-weight: 800;
+  font-weight: 600;
   cursor: pointer;
 }
 
 .close-approach-button:hover {
-  border-color: var(--accent);
-  color: var(--accent);
+  border-color: #991b1b;
+  background: #991b1b;
+}
+
+.close-approach-button:focus-visible {
+  outline: 2px solid #ef4444;
+  outline-offset: 3px;
 }
 
 .approach-title {
   margin: 0 0 14px;
   color: var(--text);
-  font-size: 1.65rem;
+  font-size: 20px;
+  font-weight: 600;
   line-height: 1.2;
-  letter-spacing: -0.03em;
+  letter-spacing: normal;
 }
 
 .approach-details {
@@ -469,15 +524,14 @@ h2 {
   margin-bottom: 4px;
   color: var(--subtle);
   font-size: 0.82rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: normal;
 }
 
 .approach-details dd {
   margin: 0;
   color: var(--muted);
-  font-size: 1.05rem;
+  font-size: 14px;
   line-height: 1.6;
 }
 
@@ -502,20 +556,33 @@ h2 {
   margin-bottom: 8px;
   color: var(--subtle);
   font-size: 0.82rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: normal;
+}
+
+.language-select-control {
+  position: relative;
 }
 
 .language-select {
+  appearance: none;
   width: 100%;
   border: 1px solid var(--strong-border);
   border-radius: 10px;
-  padding: 12px 14px;
+  padding: 12px 44px 12px 14px;
   color: var(--text);
   background: var(--card-muted);
   font: inherit;
-  font-weight: 700;
+  font-weight: 500;
+}
+
+.language-select-chevron {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--subtle);
+  pointer-events: none;
 }
 
 .generate-button {
@@ -546,7 +613,7 @@ h2 {
   padding: 12px 14px;
   color: var(--text);
   background: var(--accent-soft);
-  font-weight: 800;
+  font-weight: 600;
   line-height: 1.5;
 }
 
@@ -575,9 +642,8 @@ h2 {
   margin-bottom: 4px;
   color: var(--subtle);
   font-size: 0.82rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: normal;
 }
 
 .solution-details dd {
@@ -592,7 +658,7 @@ h2 {
   margin: 16px 0 0;
   padding-left: 20px;
   color: var(--muted);
-  font-size: 1.05rem;
+  font-size: 14px;
   line-height: 1.6;
 }
 

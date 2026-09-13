@@ -48,10 +48,19 @@ export default function App() {
     activeProblem.status === "detected" ? activeProblem.slug : undefined;
   const { analysisState: problemAnalysis, retry: retryProblemAnalysis } =
     useProblemAnalysis(detectedSlug);
+  const approaches = problemAnalysis.status === "success"
+    ? problemAnalysis.analysis.approaches
+    : [];
+  const primaryApproachId = approaches.find((approach) => approach.isPrimary)?.id ?? null;
   const approachHints = useApproachHints({
     slug: problemAnalysis.status === "success" ? detectedSlug : undefined,
-    selectedApproachId
+    selectedApproachId,
+    primaryApproachId
   });
+  const hintApproachId = approachHints.hintState.status === "success"
+    ? approachHints.hintState.response.approachId
+    : selectedApproachId ?? primaryApproachId;
+  const hintApproachNumber = approaches.findIndex((approach) => approach.id === hintApproachId) + 1;
   const approachSolution = useApproachSolution({
     slug: problemAnalysis.status === "success" ? detectedSlug : undefined,
     approachId: selectedApproachId
@@ -151,7 +160,14 @@ export default function App() {
         </section>
       )}
 
-      <section className="guide-card" aria-labelledby="guide-title">
+      <section
+        className={
+          activeProblem.status === "detected" && problemAnalysis.status === "success"
+            ? "guide-content"
+            : "guide-card"
+        }
+        aria-label="Problem guidance"
+      >
         {activeProblem.status === "detected" ? (
           <AnalysisStatus
             analysisState={problemAnalysis}
@@ -160,6 +176,7 @@ export default function App() {
             {problemAnalysis.status === "success" && (
               <div className="analysis-stack">
                 <HintPanel
+                  approachNumber={hintApproachNumber || undefined}
                   hintState={approachHints.hintState}
                   onRequestFirstHint={approachHints.requestFirstHint}
                   onResetHints={approachHints.resetHints}
@@ -167,31 +184,34 @@ export default function App() {
                   onShowNextHint={approachHints.showNextHint}
                   visibleHintCount={approachHints.visibleHintCount}
                 />
-                <ApproachSelector
-                  approaches={problemAnalysis.analysis.approaches}
-                  onSelectApproach={handleSelectApproach}
-                  selectedApproachId={selectedApproachId}
-                />
-                {selectedApproach && (
-                  <>
-                    <ApproachDetails
-                      approach={selectedApproach}
-                      onClose={clearSelectedApproach}
-                    />
-                    <GenerateAnswer
-                      onGenerate={approachSolution.generateSolution}
-                      onRetry={approachSolution.retrySolution}
-                      solutionState={approachSolution.solutionState}
-                    />
-                    <ThinkingProcess
-                      approach={selectedApproach}
-                      isExpanded={isThinkingExpanded}
-                      onToggle={() =>
-                        setIsThinkingExpanded((isExpanded) => !isExpanded)
-                      }
-                    />
-                  </>
-                )}
+                <section className="strategy-card" aria-label="Solution strategies">
+                  <ApproachSelector
+                    approaches={problemAnalysis.analysis.approaches}
+                    onSelectApproach={handleSelectApproach}
+                    selectedApproachId={selectedApproachId}
+                  />
+                  {selectedApproach && (
+                    <>
+                      <ApproachDetails
+                        approach={selectedApproach}
+                        onClose={clearSelectedApproach}
+                      />
+                      <GenerateAnswer
+                        onLanguageChange={approachSolution.resetSolution}
+                        onGenerate={approachSolution.generateSolution}
+                        onRetry={approachSolution.retrySolution}
+                        solutionState={approachSolution.solutionState}
+                      />
+                      <ThinkingProcess
+                        approach={selectedApproach}
+                        isExpanded={isThinkingExpanded}
+                        onToggle={() =>
+                          setIsThinkingExpanded((isExpanded) => !isExpanded)
+                        }
+                      />
+                    </>
+                  )}
+                </section>
               </div>
             )}
           </AnalysisStatus>

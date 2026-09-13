@@ -6,6 +6,7 @@ type GenerateAnswerProps = {
   solutionState: ApproachSolutionState;
   onGenerate: (language: SolutionLanguage) => void;
   onRetry: () => void;
+  onLanguageChange: () => void;
 };
 
 const languageOptions: Array<{
@@ -21,7 +22,8 @@ const languageOptions: Array<{
 export function GenerateAnswer({
   solutionState,
   onGenerate,
-  onRetry
+  onRetry,
+  onLanguageChange
 }: GenerateAnswerProps) {
   const [language, setLanguage] = useState<SolutionLanguage>("python");
   const isLoading = solutionState.status === "loading";
@@ -30,26 +32,43 @@ export function GenerateAnswer({
     <section className="generate-answer" aria-labelledby="generate-answer-title">
       <h2 id="generate-answer-title">Generate Answer</h2>
       <p className="section-copy">
-        Generate a mock answer for the selected approach only.
+        View a curated mock example for the selected approach.
       </p>
 
       <label className="field-label" htmlFor="solution-language">
         Language
       </label>
-      <select
-        id="solution-language"
-        className="language-select"
-        value={language}
-        onChange={(event) =>
-          setLanguage(event.target.value as SolutionLanguage)
-        }
-      >
-        {languageOptions.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
+      <div className="language-select-control">
+        <select
+          id="solution-language"
+          className="language-select"
+          value={language}
+          onChange={(event) => {
+            setLanguage(event.target.value as SolutionLanguage);
+            onLanguageChange();
+          }}
+        >
+          {languageOptions.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+        <svg
+          className="language-select-chevron"
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.75"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          <path d="m6 9 6 6 6-6" />
+        </svg>
+      </div>
 
       <button
         className="primary-action generate-button"
@@ -98,6 +117,7 @@ export function GenerateAnswer({
             {solutionState.response.warning}
           </p>
           <pre className="code-block">
+            <span className="code-language">{getLanguageLabel(solutionState.response.language)}</span>
             <code>{solutionState.response.code}</code>
           </pre>
           <dl className="solution-details">

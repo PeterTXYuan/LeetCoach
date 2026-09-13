@@ -37,6 +37,8 @@ npm run build
 
 The Chrome-loadable extension bundle is generated in `dist/`.
 
+Run the frontend regression tests with `npm test`. From the repository root, run the Python snippet tests with `python -B -m unittest discover -s backend/tests`.
+
 ## Backend
 
 Install backend dependencies:

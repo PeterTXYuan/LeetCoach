@@ -1,7 +1,7 @@
 SUPPORTED_LANGUAGES = {"python", "java", "javascript", "cpp"}
 
-AI_GENERATED_WARNING = (
-    "This answer is AI-generated and may not be fully correct. "
+CURATED_MOCK_WARNING = (
+    "This answer is a curated mock example. "
     "Review and test it before using."
 )
 
@@ -134,7 +134,7 @@ public:
         while previous != s:
             previous = s
             s = s.replace("()", "").replace("[]", "").replace("{}", "")
-        return s == """"",
+        return s == ''""",
             "java": """class Solution {
     public boolean isValid(String s) {
         // Mock answer: repeatedly remove resolved pairs.
@@ -481,8 +481,8 @@ def generate_approach_solution(problem, approach, language):
         "slug": problem["slug"],
         "approachId": approach["id"],
         "language": normalized_language,
-        "isAiGenerated": True,
-        "warning": AI_GENERATED_WARNING,
+        "isAiGenerated": False,
+        "warning": CURATED_MOCK_WARNING,
         "code": mock_solution["code"][normalized_language],
         "explanation": mock_solution["explanation"],
         "timeComplexity": mock_solution["timeComplexity"],

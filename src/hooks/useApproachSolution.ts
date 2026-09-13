@@ -54,11 +54,16 @@ export function useApproachSolution({
     latestContextRef.current = { slug, approachId };
   }, [approachId, slug]);
 
-  useEffect(() => {
+  const resetSolution = useCallback(() => {
     abortRef.current?.abort();
     lastRequestContextRef.current = null;
     setSolutionState({ status: "idle" });
-  }, [approachId, slug]);
+  }, []);
+
+  useEffect(() => {
+    resetSolution();
+    return () => abortRef.current?.abort();
+  }, [approachId, slug, resetSolution]);
 
   const generateSolution = useCallback(
     (language: SolutionLanguage) => {
@@ -105,7 +110,8 @@ export function useApproachSolution({
   return {
     solutionState,
     generateSolution,
-    retrySolution
+    retrySolution,
+    resetSolution
   };
 }
 
@@ -142,6 +148,10 @@ async function requestSolutionForContext(
     if (response === null) {
       setSolutionState({ status: "not_found" });
       return;
+    }
+
+    if (response.language !== context.language) {
+      throw new Error("The solution language does not match the request.");
     }
 
     if (!canApplyResponse(response, latestContextRef.current)) {

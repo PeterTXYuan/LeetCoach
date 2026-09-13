@@ -1,6 +1,7 @@
 import type { ApproachHintsState } from "../hooks/useApproachHints";
 
 type HintPanelProps = {
+  approachNumber?: number;
   hintState: ApproachHintsState;
   onRequestFirstHint: () => void;
   onResetHints: () => void;
@@ -10,6 +11,7 @@ type HintPanelProps = {
 };
 
 export function HintPanel({
+  approachNumber,
   hintState,
   onRequestFirstHint,
   onResetHints,
@@ -26,14 +28,27 @@ export function HintPanel({
       ? hintState.response.hints.slice(0, visibleHintCount)
       : [];
   const hasMoreHints =
-    hintState.status === "success" && visibleHintCount < totalHints;
+    hasVisibleHints && visibleHintCount < totalHints;
 
   return (
     <section className="hint-panel" aria-labelledby="hint-panel-title">
       <div className="section-heading-row">
         <div>
           <p className="section-kicker">Progressive guidance</p>
-          <h2 id="hint-panel-title">Hints</h2>
+          <div className="hint-title-row">
+            <h2 id="hint-panel-title">Hints</h2>
+            {approachNumber !== undefined && (
+              <span className="hint-approach-badge" aria-label={`Hints for Approach ${approachNumber}`}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <circle cx="6" cy="5" r="2" />
+                  <circle cx="6" cy="19" r="2" />
+                  <circle cx="18" cy="5" r="2" />
+                  <path d="M6 7v10M18 7a6 6 0 0 1-6 6H6" />
+                </svg>
+                Approach {approachNumber}
+              </span>
+            )}
+          </div>
         </div>
         {hasVisibleHints && (
           <button

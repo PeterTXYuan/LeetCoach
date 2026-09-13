@@ -5,6 +5,14 @@
 Don't give me the answer.
 Teach me how to discover it.
 
+## UI Baseline (User-approved September 13, 2026)
+
+Preserve this visual format for future UI work unless the user explicitly asks otherwise:
+- Separate Hints and Solution strategies cards, white on neutral gray in light mode and charcoal in dark mode.
+- LeetCode-style system fonts, 14px body text, restrained weights, compact rounded controls, and subtle borders/shadows.
+- Centered green problem-status dot and red selected-approach Close button.
+- New controls and badges should fit this style rather than introduce a new visual system.
+
 ---
 
 ## Current Architecture
@@ -38,6 +46,12 @@ AI
 
 ## Completed
 
+- Inset the language dropdown chevron 14px from the right edge and colored the hint-approach icon with LeetCode's theme-specific Submit green.
+- Fixed the Python repeated-pair-removal example's empty-string return expression; all seven Python examples compile and pair-removal behavior is regression tested.
+- Hint state and cache identity now use the canonical selected-or-primary approach ID. Closing an alternative cancels pending hints and restores the primary context; reset hints hides the next-hint control.
+- Added an icon and numbered approach badge beside Hints, resolved from canonical IDs and matching the approach selector's display numbering without revealing strategy names.
+- Changing solution language clears the answer/error and cancels any in-flight request without automatically generating; displayed code is labeled with its response language.
+- Added eight frontend regression tests covering default/selected hints, closing and resetting approaches, late responses, and solution-language changes, plus two backend snippet tests.
 - Project planning and MVP requirements
 - Initial Chrome extension side panel home UI
 - LeetCode-inspired light and dark side panel themes
@@ -79,6 +93,10 @@ AI
 - Hint-card spacing/readability polish and selected-approach collapse behavior
 - CSS-only hint and approach section spacing polish for wider, calmer reading cards
 - New-device handoff summary generated as Markdown and PDF under `docs/`
+- Static answers labeled as curated mock examples, with `isAiGenerated: false` in the solution response.
+- Centered and reduced the detected-problem green dot, added a clear divider between progressive guidance and solution strategies, and styled the selected-approach Close button red with hover and keyboard-focus states.
+- Replaced the divider and shared outer card with two independent cards for Hints and Solution strategies; selected approach details, answers, and thinking remain inside the strategy card. Light mode uses white cards on neutral gray; dark mode uses charcoal surfaces.
+- Matched LeetCode's inspected problem-page system font stack, 14px body text, 24px semibold problem title, lighter control weights, neutral palette, and subtle card shadows. Inspected rendered content with Defuddle after its direct URL request returned 403; font and color values came from browser computed styles and loaded stylesheets.
 - Simple README instructions for extension and backend development
 
 ---
@@ -133,6 +151,7 @@ Frontend
 - `useApproachSolution` posts `slug`, selected `approach.id`, and selected language to the backend only when the user clicks `Generate answer`.
 - Switching approaches or LeetCode problems clears the generated answer.
 - Changing language does not automatically regenerate; the user must click `Generate answer` again.
+- Changing language also clears the previous answer and retry context and cancels its request. Each answer displays its returned language above the code.
 - The same stable `approach.id` connects hints, thinking process, generated answers, future starter code, and future LLM prompts.
 
 Generated Answer Flow
@@ -192,6 +211,8 @@ Generated Answer Flow
 
 ## Verified This Milestone
 
+- `npm test`: eight frontend regression tests passed.
+- `python -B -m unittest discover -s backend/tests`: both backend regression tests passed, including compilation of every stored Python example.
 - `npm run build` succeeds.
 - `python -m compileall app` succeeds from `backend/`.
 - The seeded mock dataset reports exactly one primary approach per problem.
@@ -205,6 +226,7 @@ Generated Answer Flow
 - Mock solution coverage exists for every seeded approach and supported language.
 - UI-only polish build passed with no backend/API/hook changes.
 - CSS-only hint and approach spacing polish build passed.
+- Separate guidance/strategy cards and LeetCode-style typography build passed; browser preview with the seeded problem fixtures verified light/dark cards, hint reveal, approach selection, and centered status dot.
 - Selected approach can be collapsed without changing backend/API contracts.
 - Invalid problem slugs return 404.
 - Invalid approach IDs return 404.
@@ -225,7 +247,7 @@ Generated Answer Flow
 
 ## Next Recommended Milestone
 
-- Add focused tests for backend dataset validation, hint endpoints, solution endpoint behavior, URL parsing, API response normalization, and React hook behavior.
+- Extend the existing regression suite with backend dataset validation, endpoint behavior, URL parsing, API normalization, and additional navigation cases.
 - After tests are in place, introduce SQLite with SQLAlchemy models for problems, approaches, related problems, and starter templates.
 - Keep the stable `approach.id` contract unchanged when moving from mock data to database-backed data.
 
