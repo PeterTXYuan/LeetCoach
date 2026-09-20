@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.services.hint_service import (
     get_approach_hints,
@@ -9,6 +9,10 @@ from app.services.hint_service import (
 from app.services.solution_service import (
     UnsupportedLanguageError,
     generate_approach_solution,
+)
+from app.services.starter_code_service import (
+    UnsupportedStarterLanguageError,
+    generate_starter_code,
 )
 
 app = FastAPI(title="LeetCoach API")
@@ -23,6 +27,11 @@ app.add_middleware(
 
 class SolutionRequest(BaseModel):
     language: str
+
+
+class StarterCodeRequest(BaseModel):
+    language: str
+    level: int = Field(strict=True, ge=1, le=3)
 
 PROBLEM_ANALYSES = {
     "two-sum": {
@@ -294,3 +303,18 @@ def generate_problem_approach_solution(
             status_code=400,
             detail="Unsupported language. Supported languages: python, java, javascript, cpp.",
         )
+
+
+@app.post("/api/problems/{slug}/approaches/{approach_id}/starter-code")
+def get_problem_starter_code(slug: str, approach_id: str, request: StarterCodeRequest):
+    problem = get_problem_or_404(slug)
+    approach = get_approach_or_404(problem, approach_id)
+    try:
+        return generate_starter_code(problem, approach, request.language, request.level)
+    except UnsupportedStarterLanguageError:
+        raise HTTPException(
+            status_code=400,
+            detail="Unsupported language. Supported languages: python, java, javascript, cpp.",
+        )
+    except KeyError:
+        raise HTTPException(status_code=404, detail="Starter code is not available for this approach yet.")

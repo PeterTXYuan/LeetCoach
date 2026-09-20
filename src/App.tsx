@@ -5,6 +5,7 @@ import { ApproachSelector } from "./components/ApproachSelector";
 import { GenerateAnswer } from "./components/GenerateAnswer";
 import { HintPanel } from "./components/HintPanel";
 import { ProblemHeader } from "./components/ProblemHeader";
+import { StarterCode } from "./components/StarterCode";
 import { ThinkingProcess } from "./components/ThinkingProcess";
 import { useApproachHints } from "./hooks/useApproachHints";
 import { useApproachSolution } from "./hooks/useApproachSolution";
@@ -61,6 +62,8 @@ export default function App() {
     ? approachHints.hintState.response.approachId
     : selectedApproachId ?? primaryApproachId;
   const hintApproachNumber = approaches.findIndex((approach) => approach.id === hintApproachId) + 1;
+  const starterApproachId = selectedApproachId ?? primaryApproachId;
+  const starterApproachNumber = approaches.findIndex((approach) => approach.id === starterApproachId) + 1;
   const approachSolution = useApproachSolution({
     slug: problemAnalysis.status === "success" ? detectedSlug : undefined,
     approachId: selectedApproachId
@@ -184,6 +187,14 @@ export default function App() {
                   onShowNextHint={approachHints.showNextHint}
                   visibleHintCount={approachHints.visibleHintCount}
                 />
+                {problemAnalysis.analysis.slug === detectedSlug && (
+                  <StarterCode
+                    key={JSON.stringify([detectedSlug, selectedApproachId])}
+                    slug={problemAnalysis.analysis.slug}
+                    approachId={starterApproachId}
+                    approachNumber={starterApproachNumber || undefined}
+                  />
+                )}
                 <section className="strategy-card" aria-label="Solution strategies">
                   <ApproachSelector
                     approaches={problemAnalysis.analysis.approaches}

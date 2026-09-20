@@ -32,6 +32,7 @@ Backend
 - Canonical approach metadata with stable approach IDs
 - Hint service abstraction reading mock approach-owned hints
 - Solution service abstraction returning approach-specific mock answers
+- Independent starter-code service with curated progressive scaffolds
 
 Database
 - Planned: SQLite for local MVP
@@ -46,6 +47,14 @@ AI
 
 ## Completed
 
+- Starter Code opens from a neutral Get starter code button; language, levels, and orange generation controls stay hidden initially. Hiding it cancels pending requests and clears code. Its approach badge uses the same green branch icon as Hints.
+- Progressive Starter Code (September 19, 2026): independent card between Hints and Solution strategies, preserving the approved light/dark styling.
+- Three explicit guidance levels: Minimal signatures, Guided variables/data structures, and Strong Scaffold control flow with meaningful algorithm TODOs. Placeholder exceptions keep unfinished scaffolds from silently behaving like solutions.
+- Separate, independently authored starter templates for all seven canonical approaches, all four answer languages (Python, Java, JavaScript, C++), and all three levels: 84 combinations. Full solution templates are not used to generate starter code.
+- `POST /api/problems/{slug}/approaches/{approach_id}/starter-code` accepts `language` and an integer `level` from 1 to 3. Unknown problems/approaches return 404, unsupported languages 400, and invalid levels 422.
+- Starter requests use the selected stable `approach.id`, or the canonical primary ID before selection. A numbered badge identifies the target without revealing the strategy name.
+- Starter generation is explicit: language/level changes clear stale results without requesting code. Problem/approach changes and Clear cancel requests and discard late responses. Code labels identify the generated language and level.
+- Added 27 frontend starter-code regression tests and six backend tests covering all 84 combinations, validation, approach-specific scaffolding, and all 21 Python starter snippets.
 - Inset the language dropdown chevron 14px from the right edge and colored the hint-approach icon with LeetCode's theme-specific Submit green.
 - Fixed the Python repeated-pair-removal example's empty-string return expression; all seven Python examples compile and pair-removal behavior is regression tested.
 - Hint state and cache identity now use the canonical selected-or-primary approach ID. Closing an alternative cancels pending hints and restores the primary context; reset hints hides the next-hint control.
@@ -182,7 +191,11 @@ Generated Answer Flow
 - Send `POST http://localhost:8000/api/problems/two-sum/approaches/not-real/solution` and confirm it returns 404.
 - Load `dist/` as an unpacked Chrome extension.
 - Open `https://leetcode.com/problems/two-sum/` and open the LeetCoach side panel.
-- Confirm the detected problem view is ordered as title, hints, approaches, selected approach details, then thinking process.
+- Confirm the detected problem view is ordered as title, hints, starter code, approaches, selected approach details/Generate Answer, then thinking process.
+- Generate starter code for each level and confirm progressively more structure appears while Level 3 still requires meaningful algorithm work.
+- Confirm starter requests use the primary approach before selection and the selected canonical ID afterward, including after closing an alternative approach.
+- Change starter language/level and confirm old code clears without a request; click Generate Starter Code to load the new scaffold.
+- Clear starter code, switch approaches, and switch problems; confirm old code and pending results cannot reappear.
 - Confirm no hint, approach name, pattern, or thinking process is revealed automatically.
 - Click `Get first hint` and confirm exactly one hint appears.
 - Click `Show next hint` and confirm each click reveals exactly one additional hint.
@@ -211,8 +224,10 @@ Generated Answer Flow
 
 ## Verified This Milestone
 
-- `npm test`: eight frontend regression tests passed.
-- `python -B -m unittest discover -s backend/tests`: both backend regression tests passed, including compilation of every stored Python example.
+- `npm test`: 35 frontend regression tests passed, including the existing eight guidance tests and starter-menu disclosure/cancellation checks.
+- `py -B -m unittest discover -s backend/tests`: all eight backend tests passed, covering all 84 starter responses and compilation of every Python full-answer and starter example.
+- All 21 JavaScript starter snippets passed Node syntax checks.
+- Built-app browser preview against the real starter endpoint verified Java Level 3, separate card placement, and light/dark layouts at 420px and 320px. Narrow layouts keep code overflow inside its scrollable block.
 - `npm run build` succeeds.
 - `python -m compileall app` succeeds from `backend/`.
 - The seeded mock dataset reports exactly one primary approach per problem.
@@ -240,7 +255,8 @@ Generated Answer Flow
 - The backend still uses in-memory mock data.
 - Hints are static mock strings, not generated by an AI provider.
 - Generated answers are static mock strings, not generated by an AI provider.
-- No SQLite, SQLAlchemy, Alembic, PostgreSQL, authentication, user history, or starter code yet.
+- Starter code is curated mock content; only the three seeded problems and their seven approaches are supported.
+- No SQLite, SQLAlchemy, Alembic, PostgreSQL, authentication, or user history yet.
 - The extension assumes the local backend is available at `http://localhost:8000`.
 
 ---
@@ -259,7 +275,6 @@ Generated Answer Flow
 - SQLAlchemy models
 - Alembic migrations
 - Mock AI provider abstraction
-- Starter code with progressive guidance levels
 - Related questions
 - Interview follow-up questions
 - OpenAI, Gemini, or OpenRouter provider integration

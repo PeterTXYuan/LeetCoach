@@ -112,6 +112,7 @@ button {
 .problem-card,
 .guide-card,
 .hint-panel,
+.starter-card,
 .strategy-card {
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -618,6 +619,7 @@ h2 {
 }
 
 .code-block {
+  min-width: 0;
   max-width: 100%;
   margin: 0;
   overflow-x: auto;
@@ -670,6 +672,72 @@ h2 {
 
 .reveal-motion {
   animation: reveal-fade-slide 160ms ease-out both;
+}
+
+.starter-card {
+  min-width: 0;
+  padding: 20px;
+}
+
+.starter-card h2 {
+  margin-bottom: 0;
+}
+
+.starter-card .section-copy {
+  margin-top: 12px;
+}
+
+.starter-levels {
+  min-width: 0;
+  border: 0;
+  padding: 0;
+  margin: 16px 0 0;
+}
+
+.starter-level-options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.starter-level {
+  display: grid;
+  gap: 4px;
+  align-content: start;
+  border: 1px solid var(--strong-border);
+  border-radius: 10px;
+  padding: 10px 6px;
+  color: var(--text);
+  background: var(--card-muted);
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.starter-level:hover,
+.starter-level.selected {
+  border-color: var(--accent);
+}
+
+.starter-level.selected {
+  background: var(--accent-soft);
+}
+
+.starter-level-name {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.starter-level-description,
+.starter-notice {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.starter-result {
+  min-width: 0;
+  margin-top: 16px;
 }
 
 @keyframes reveal-fade-slide {

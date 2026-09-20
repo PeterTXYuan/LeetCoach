@@ -14,7 +14,7 @@ export function ApproachSelector({
   return (
     <section className="approach-selector" aria-labelledby="approach-selector-title">
       <p className="section-kicker">Solution strategies</p>
-      <h2 id="approach-selector-title">Choose an approach</h2>
+      <h2 id="approach-selector-title">Solutions</h2>
       <p className="section-copy compact">
         Pick a path to explore. Names and patterns stay hidden until you choose.
       </p>

@@ -19,7 +19,7 @@ The first milestone focuses on a small working loop:
 
 ## Current Status
 
-This repository currently contains the initial Chrome extension side panel scaffold built with React, TypeScript, Vite, and Manifest V3.
+The React/TypeScript side panel supports progressive hints, three levels of approach-specific Starter Code, selected-approach thinking steps, and curated full answers. The local FastAPI backend covers three seeded problems in Python, Java, JavaScript, and C++.
 
 ## Development
 
@@ -37,7 +37,7 @@ npm run build
 
 The Chrome-loadable extension bundle is generated in `dist/`.
 
-Run the frontend regression tests with `npm test`. From the repository root, run the Python snippet tests with `python -B -m unittest discover -s backend/tests`.
+Run the frontend regression tests with `npm test`. For backend tests, install `python -m pip install -r backend/requirements-dev.txt`, then run `python -B -m unittest discover -s backend/tests` from the repository root. On Windows, use `py` if `python` is not on PATH.
 
 ## Backend
 
@@ -54,4 +54,4 @@ Run the local FastAPI server:
 uvicorn app.main:app --reload
 ```
 
-The backend serves `GET /health` and `GET /api/problems/{slug}` at `http://localhost:8000`.
+The backend serves health, problem analysis, hints, starter code, and solutions at `http://localhost:8000`. See [backend/README.md](backend/README.md) for endpoint details.
