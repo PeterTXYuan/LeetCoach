@@ -26,11 +26,104 @@ beforeEach(() => {
     onActivated: event, onUpdated: event
   } });
   fetchMock.mockReset().mockImplementation(async (url: string, options?: RequestInit) => {
+    if (url.endsWith("/starter-code")) return json({
+      slug: "two-sum", approachId: "brute-force", ...JSON.parse(options!.body as string),
+      levelName: "Guided", isAiGenerated: false, code: "// TODO: starter scaffold", notice: "Complete the TODOs."
+    });
     if (url.endsWith("/solution")) return json(solution(JSON.parse(options!.body as string).language));
     if (url.endsWith("/hints")) return json(hints(url.includes("/brute-force/") ? "brute-force" : "hash-map"));
     return json({ slug: "two-sum", approaches });
   });
   vi.stubGlobal("fetch", fetchMock);
+});
+
+describe("global section navigation", () => {
+  const selectTab = (name: string) => fireEvent.click(screen.getByRole("tab", { name, exact: true }));
+
+  it("preserves all Coach state across every section without requesting guidance again", async () => {
+    await mount();
+    expect(screen.getAllByRole("tab").map((tab) => tab.textContent)).toEqual(["Coach", "Practice", "Progress", "About"]);
+    expect(screen.getByRole("tab", { name: "Coach" }).getAttribute("aria-selected")).toBe("true");
+    click("Approach 1");
+    click("Get first hint");
+    await screen.findByText("brute-force hint 1");
+    click("Show thinking process");
+    chooseLanguage("java");
+    click("Generate answer in Java");
+    await screen.findByText("java example code");
+    click("Get starter code");
+    fireEvent.change(screen.getByLabelText("Starter language"), { target: { value: "cpp" } });
+    fireEvent.click(screen.getByRole("button", { name: /Level 2/ }));
+    click("Generate Starter Code");
+    await screen.findByText("// TODO: starter scaffold");
+    const coach = screen.getByRole("tabpanel", { name: "Coach" });
+    const requestCount = fetchMock.mock.calls.length;
+    for (const section of ["Practice", "Progress", "About"]) {
+      selectTab(section);
+      expect(screen.queryByRole("tabpanel", { name: "Coach" })).toBeNull();
+      expect(coach.isConnected).toBe(true);
+      expect(screen.getByRole("tabpanel", { name: section })).toBeTruthy();
+      selectTab("Coach");
+      expect(screen.getByRole("tabpanel", { name: "Coach" })).toBe(coach);
+      expect(screen.getByText("brute-force hint 1")).toBeTruthy();
+      expect(screen.getByText("Think first")).toBeTruthy();
+      expect(screen.getByText("java example code")).toBeTruthy();
+      expect(screen.getByText("// TODO: starter scaffold")).toBeTruthy();
+      expect((screen.getByLabelText("Starter language") as HTMLSelectElement).value).toBe("cpp");
+      expect((screen.getByLabelText("Language") as HTMLSelectElement).value).toBe("java");
+      expect(screen.getByRole("button", { name: /Level 2/ }).getAttribute("aria-pressed")).toBe("true");
+    }
+    expect(fetchMock).toHaveBeenCalledTimes(requestCount);
+  });
+
+  it("allows an in-flight Coach request to finish while another section is open", async () => {
+    await mount();
+    click("Approach 1");
+    let resolve!: (value: Response) => void;
+    fetchMock.mockImplementationOnce(() => new Promise((yes) => { resolve = yes; }));
+    click("Generate answer in Python");
+    const signal = fetchMock.mock.lastCall![1].signal;
+    selectTab("Progress");
+    expect(signal.aborted).toBe(false);
+    await act(async () => resolve(json(solution("python"))));
+    selectTab("Coach");
+    expect(screen.getByText("python example code")).toBeTruthy();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("shows only global tabs without a problem and defaults to Coach when one appears", async () => {
+    vi.mocked(chrome.tabs.query).mockResolvedValue([{ url: "https://example.com" }] as chrome.tabs.Tab[]);
+    render(<App />);
+    await screen.findByText("Open a LeetCode problem to use Coach and Practice.");
+    expect(screen.getAllByRole("tab").map((tab) => tab.textContent)).toEqual(["Progress", "About"]);
+    expect(fetchMock).not.toHaveBeenCalled();
+    selectTab("About");
+    expect(screen.getByRole("heading", { name: "About LeetCoach" })).toBeTruthy();
+    vi.mocked(chrome.tabs.query).mockResolvedValue([{ url: "https://leetcode.com/problems/two-sum/" }] as chrome.tabs.Tab[]);
+    const refresh = vi.mocked(chrome.tabs.onActivated.addListener).mock.calls[0][0];
+    await act(async () => refresh({ tabId: 1, windowId: 1 }));
+    await screen.findByRole("button", { name: "Approach 1" });
+    expect(screen.getByRole("tab", { name: "Coach" }).getAttribute("aria-selected")).toBe("true");
+    selectTab("Practice");
+    vi.mocked(chrome.tabs.query).mockResolvedValue([{ url: "https://example.com" }] as chrome.tabs.Tab[]);
+    await act(async () => refresh({ tabId: 2, windowId: 1 }));
+    expect(screen.getAllByRole("tab").map((tab) => tab.textContent)).toEqual(["Progress", "About"]);
+    expect(screen.getByRole("tabpanel", { name: "Progress" })).toBeTruthy();
+  });
+
+  it("supports arrow and Home/End navigation with one tab stop", async () => {
+    await mount();
+    const coach = screen.getByRole("tab", { name: "Coach" });
+    fireEvent.keyDown(coach, { key: "ArrowLeft" });
+    expect(document.activeElement).toBe(screen.getByRole("tab", { name: "About" }));
+    fireEvent.keyDown(document.activeElement!, { key: "Home" });
+    expect(document.activeElement).toBe(coach);
+    fireEvent.keyDown(coach, { key: "ArrowRight" });
+    expect(document.activeElement).toBe(screen.getByRole("tab", { name: "Practice" }));
+    fireEvent.keyDown(document.activeElement!, { key: "End" });
+    expect(document.activeElement).toBe(screen.getByRole("tab", { name: "About" }));
+    expect(screen.getAllByRole("tab").filter((tab) => tab.tabIndex === 0)).toHaveLength(1);
+  });
 });
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 

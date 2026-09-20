@@ -5,6 +5,7 @@ import { ApproachSelector } from "./components/ApproachSelector";
 import { GenerateAnswer } from "./components/GenerateAnswer";
 import { HintPanel } from "./components/HintPanel";
 import { ProblemHeader } from "./components/ProblemHeader";
+import { SectionNav, type SectionId, type SectionOption } from "./components/SectionNav";
 import { StarterCode } from "./components/StarterCode";
 import { ThinkingProcess } from "./components/ThinkingProcess";
 import { useApproachHints } from "./hooks/useApproachHints";
@@ -14,6 +15,16 @@ import { useProblemAnalysis } from "./useProblemAnalysis";
 
 const leetCodeProblemsUrl = "https://leetcode.com/problemset/";
 const themeStorageKey = "leetcoach-theme";
+
+const globalSections: SectionOption[] = [
+  { id: "progress", label: "Progress" },
+  { id: "about", label: "About" }
+];
+const problemSections: SectionOption[] = [
+  { id: "coach", label: "Coach" },
+  { id: "practice", label: "Practice" },
+  ...globalSections
+];
 
 type Theme = "light" | "dark";
 
@@ -45,6 +56,12 @@ export default function App() {
   );
   const [isThinkingExpanded, setIsThinkingExpanded] = useState(false);
   const activeProblem = useActiveProblem();
+  const hasProblem = activeProblem.status === "detected";
+  const [activeSection, setActiveSection] = useState<SectionId>("progress");
+
+  useEffect(() => {
+    setActiveSection(hasProblem ? "coach" : "progress");
+  }, [hasProblem]);
   const detectedSlug =
     activeProblem.status === "detected" ? activeProblem.slug : undefined;
   const { analysisState: problemAnalysis, retry: retryProblemAnalysis } =
@@ -128,114 +145,114 @@ export default function App() {
         </div>
       </header>
 
-      {activeProblem.status !== "detected" && (
-        <section className="hero-card" aria-labelledby="welcome-title">
-          <p className="eyebrow">LeetCoach MVP</p>
-          <h1 id="welcome-title">Learn the pattern before the answer.</h1>
-          <p className="hero-copy">
-            Open a LeetCode problem and LeetCoach will help you recognize the
-            pattern, read the signals, and build an interview-style thinking
-            process without revealing the final solution.
-          </p>
+      <SectionNav
+        sections={hasProblem ? problemSections : globalSections}
+        activeSection={activeSection}
+        onSelect={setActiveSection}
+      />
 
-          <button className="primary-action" type="button" onClick={openLeetCode}>
-            Open LeetCode
-          </button>
-        </section>
-      )}
-
-      {activeProblem.status === "detected" ? (
-        <ProblemHeader title={activeProblem.title} />
-      ) : (
-        <section className="status-card" aria-labelledby="status-title">
-          <div className="status-dot" aria-hidden="true" />
-          <div>
-            <h2 id="status-title">
-              {activeProblem.status === "checking"
-                ? "Checking active tab"
-                : "Waiting for a problem page"}
-            </h2>
-            <p>
-              For this milestone, LeetCoach targets pages like
-              <span className="inline-code"> leetcode.com/problems/two-sum/</span>.
-            </p>
-          </div>
-        </section>
-      )}
-
-      <section
-        className={
-          activeProblem.status === "detected" && problemAnalysis.status === "success"
-            ? "guide-content"
-            : "guide-card"
-        }
-        aria-label="Problem guidance"
-      >
-        {activeProblem.status === "detected" ? (
-          <AnalysisStatus
-            analysisState={problemAnalysis}
-            onRetry={retryProblemAnalysis}
+      {/* Keep Coach mounted across section changes to preserve local UI state. */}
+      {activeProblem.status === "detected" && (
+        <div className="coach-page" role="tabpanel" id="section-panel-coach"
+          aria-labelledby="section-tab-coach" hidden={activeSection !== "coach"} tabIndex={0}>
+          <ProblemHeader title={activeProblem.title} />
+          <section
+            className={
+              problemAnalysis.status === "success"
+                ? "guide-content"
+                : "guide-card"
+            }
+            aria-label="Problem guidance"
           >
-            {problemAnalysis.status === "success" && (
-              <div className="analysis-stack">
-                <HintPanel
-                  approachNumber={hintApproachNumber || undefined}
-                  hintState={approachHints.hintState}
-                  onRequestFirstHint={approachHints.requestFirstHint}
-                  onResetHints={approachHints.resetHints}
-                  onRetryHints={approachHints.retryHints}
-                  onShowNextHint={approachHints.showNextHint}
-                  visibleHintCount={approachHints.visibleHintCount}
-                />
-                {problemAnalysis.analysis.slug === detectedSlug && (
-                  <StarterCode
-                    key={JSON.stringify([detectedSlug, selectedApproachId])}
-                    slug={problemAnalysis.analysis.slug}
-                    approachId={starterApproachId}
-                    approachNumber={starterApproachNumber || undefined}
+            <AnalysisStatus
+              analysisState={problemAnalysis}
+              onRetry={retryProblemAnalysis}
+            >
+              {problemAnalysis.status === "success" && (
+                <div className="analysis-stack">
+                  <HintPanel
+                    approachNumber={hintApproachNumber || undefined}
+                    hintState={approachHints.hintState}
+                    onRequestFirstHint={approachHints.requestFirstHint}
+                    onResetHints={approachHints.resetHints}
+                    onRetryHints={approachHints.retryHints}
+                    onShowNextHint={approachHints.showNextHint}
+                    visibleHintCount={approachHints.visibleHintCount}
                   />
-                )}
-                <section className="strategy-card" aria-label="Solution strategies">
-                  <ApproachSelector
-                    approaches={problemAnalysis.analysis.approaches}
-                    onSelectApproach={handleSelectApproach}
-                    selectedApproachId={selectedApproachId}
-                  />
-                  {selectedApproach && (
-                    <>
-                      <ApproachDetails
-                        approach={selectedApproach}
-                        onClose={clearSelectedApproach}
-                      />
-                      <GenerateAnswer
-                        onLanguageChange={approachSolution.resetSolution}
-                        onGenerate={approachSolution.generateSolution}
-                        onRetry={approachSolution.retrySolution}
-                        solutionState={approachSolution.solutionState}
-                      />
-                      <ThinkingProcess
-                        approach={selectedApproach}
-                        isExpanded={isThinkingExpanded}
-                        onToggle={() =>
-                          setIsThinkingExpanded((isExpanded) => !isExpanded)
-                        }
-                      />
-                    </>
+                  {problemAnalysis.analysis.slug === detectedSlug && (
+                    <StarterCode
+                      key={JSON.stringify([detectedSlug, selectedApproachId])}
+                      slug={problemAnalysis.analysis.slug}
+                      approachId={starterApproachId}
+                      approachNumber={starterApproachNumber || undefined}
+                    />
                   )}
-                </section>
-              </div>
-            )}
-          </AnalysisStatus>
-        ) : (
+                  <section className="strategy-card" aria-label="Solution strategies">
+                    <ApproachSelector
+                      approaches={problemAnalysis.analysis.approaches}
+                      onSelectApproach={handleSelectApproach}
+                      selectedApproachId={selectedApproachId}
+                    />
+                    {selectedApproach && (
+                      <>
+                        <ApproachDetails
+                          approach={selectedApproach}
+                          onClose={clearSelectedApproach}
+                        />
+                        <GenerateAnswer
+                          onLanguageChange={approachSolution.resetSolution}
+                          onGenerate={approachSolution.generateSolution}
+                          onRetry={approachSolution.retrySolution}
+                          solutionState={approachSolution.solutionState}
+                        />
+                        <ThinkingProcess
+                          approach={selectedApproach}
+                          isExpanded={isThinkingExpanded}
+                          onToggle={() =>
+                            setIsThinkingExpanded((isExpanded) => !isExpanded)
+                          }
+                        />
+                      </>
+                    )}
+                  </section>
+                  </div>
+                )}
+              </AnalysisStatus>
+          </section>
+        </div>
+      )}
+
+      {hasProblem && (
+        <section className="guide-card section-page" role="tabpanel" id="section-panel-practice"
+          aria-labelledby="section-tab-practice" hidden={activeSection !== "practice"} tabIndex={0}>
+          <h2>Practice</h2>
+          <p>A space to practice what you have learned is coming soon.</p>
+        </section>
+      )}
+      <section className="guide-card section-page" role="tabpanel" id="section-panel-progress"
+        aria-labelledby="section-tab-progress" hidden={activeSection !== "progress"} tabIndex={0}>
+        <h2>Progress</h2>
+        <p>Your learning progress will appear here in a future update.</p>
+        {!hasProblem && (
           <>
-            <h2 id="guide-title">What this panel will show</h2>
-            <ol>
-              <li>Problem identity detected from the current LeetCode tab.</li>
-              <li>Pattern classification from the local backend database.</li>
-              <li>Guided thinking steps from the mock AI provider.</li>
-            </ol>
+            <p>{activeProblem.status === "checking"
+              ? "Checking the active tab..."
+              : "Open a LeetCode problem to use Coach and Practice."}</p>
+            <button className="secondary-action" type="button" onClick={openLeetCode}>Open LeetCode</button>
           </>
         )}
+      </section>
+      <section className="guide-card section-page" role="tabpanel" id="section-panel-about"
+        aria-labelledby="section-tab-about" hidden={activeSection !== "about"} tabIndex={0}>
+        <h2>About LeetCoach</h2>
+        <p>Learn the pattern before the answer. LeetCoach helps you work through LeetCode problems with guidance you reveal at your own pace.</p>
+        <ul>
+          <li>Reveal hints one step at a time.</li>
+          <li>Build your solution with progressive starter code.</li>
+          <li>Explore approaches and their thinking process.</li>
+          <li>View a full answer when you are ready.</li>
+        </ul>
+        <p>Guidance currently uses curated examples for a small set of problems. Practice and progress tracking are coming soon.</p>
       </section>
     </main>
   );

@@ -312,6 +312,65 @@ h2 {
   flex-wrap: wrap;
 }
 
+.section-nav {
+  display: flex;
+  gap: 2px;
+  width: 100%;
+  padding: 3px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--card-muted);
+}
+
+.section-nav-option {
+  flex: 1 1 0;
+  min-width: 0;
+  border: 0;
+  border-radius: 999px;
+  padding: 5px 4px;
+  color: var(--muted);
+  background: transparent;
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 180ms ease, background-color 180ms ease, box-shadow 180ms ease;
+}
+
+.section-nav-option:hover {
+  color: var(--text);
+}
+
+.section-nav-option[aria-selected="true"] {
+  color: var(--text);
+  background: var(--card);
+  box-shadow: 0 1px 4px #0000001f;
+}
+
+.section-nav-option:focus-visible {
+  outline: 2px solid var(--submit-green);
+  outline-offset: 1px;
+}
+
+.coach-page {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+
+[role="tabpanel"][hidden] {
+  display: none;
+}
+
+.section-page p {
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.section-page > :last-child {
+  margin-bottom: 0;
+}
+
 .hint-title-row {
   display: flex;
   align-items: center;

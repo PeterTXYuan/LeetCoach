@@ -21,6 +21,8 @@ The first milestone focuses on a small working loop:
 
 The React/TypeScript side panel supports progressive hints, three levels of approach-specific Starter Code, selected-approach thinking steps, and curated full answers. The local FastAPI backend covers three seeded problems in Python, Java, JavaScript, and C++.
 
+Global navigation shows Coach and Practice when a LeetCode problem is detected, with Progress and About always available. Coach state stays intact across section switches. Practice and Progress are currently placeholders.
+
 ## Development
 
 Install dependencies:
