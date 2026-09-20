@@ -1,6 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
+from app.services.related_problem_service import get_related_problems
 
 from app.services.hint_service import (
     get_approach_hints,
@@ -271,6 +272,12 @@ def get_problem_hints(slug: str):
         "approachId": approach_id,
         "hints": hints,
     }
+
+
+@app.get("/api/problems/{slug}/related")
+def get_problem_related(slug: str):
+    get_problem_or_404(slug)
+    return get_related_problems(slug)
 
 
 @app.get("/api/problems/{slug}/approaches/{approach_id}/hints")

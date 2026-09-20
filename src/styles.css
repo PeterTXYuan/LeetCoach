@@ -113,6 +113,7 @@ button {
 .guide-card,
 .hint-panel,
 .starter-card,
+.related-problem-card,
 .strategy-card {
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -370,6 +371,25 @@ h2 {
 .section-page > :last-child {
   margin-bottom: 0;
 }
+
+.practice-page { display: grid; gap: 14px; min-width: 0; }
+.related-problems-section { min-width: 0; }
+.related-problems-section .related-problem-card { background: var(--card-muted); box-shadow: none; }
+.related-group { margin-top: 22px; }
+.related-group h3 { margin: 0 0 10px; font-size: 14px; font-weight: 600; }
+.related-problem-list { display: grid; gap: 10px; }
+.related-problem-card { min-width: 0; padding: 16px; }
+.related-problem-heading { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; }
+.related-problem-heading h4 { flex: 1 1 180px; margin: 0; font-size: 14px; font-weight: 600; overflow-wrap: anywhere; }
+.related-problem-card p { margin: 10px 0 0; color: var(--muted); font-size: 13px; line-height: 1.6; }
+.problem-difficulty { font-size: 12px; font-weight: 500; }
+.difficulty-easy { color: #168449; }
+.difficulty-medium { color: #996000; }
+.difficulty-hard { color: #c62828; }
+.app-shell[data-theme="dark"] .difficulty-easy { color: #28c244; }
+.app-shell[data-theme="dark"] .difficulty-medium { color: #ffc35a; }
+.app-shell[data-theme="dark"] .difficulty-hard { color: #ff8585; }
+.related-open { margin-top: 12px; padding: 7px 12px; font-size: 12px; font-weight: 500; }
 
 .hint-title-row {
   display: flex;

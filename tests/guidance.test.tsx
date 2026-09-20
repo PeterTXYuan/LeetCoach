@@ -26,6 +26,7 @@ beforeEach(() => {
     onActivated: event, onUpdated: event
   } });
   fetchMock.mockReset().mockImplementation(async (url: string, options?: RequestInit) => {
+    if (url.endsWith("/related")) return json({ slug: "two-sum", easier: [], similar: [], harder: [] });
     if (url.endsWith("/starter-code")) return json({
       slug: "two-sum", approachId: "brute-force", ...JSON.parse(options!.body as string),
       levelName: "Guided", isAiGenerated: false, code: "// TODO: starter scaffold", notice: "Complete the TODOs."
@@ -60,6 +61,7 @@ describe("global section navigation", () => {
     const requestCount = fetchMock.mock.calls.length;
     for (const section of ["Practice", "Progress", "About"]) {
       selectTab(section);
+      if (section === "Practice") await screen.findByRole("heading", { name: "Easier" });
       expect(screen.queryByRole("tabpanel", { name: "Coach" })).toBeNull();
       expect(coach.isConnected).toBe(true);
       expect(screen.getByRole("tabpanel", { name: section })).toBeTruthy();
@@ -73,7 +75,8 @@ describe("global section navigation", () => {
       expect((screen.getByLabelText("Language") as HTMLSelectElement).value).toBe("java");
       expect(screen.getByRole("button", { name: /Level 2/ }).getAttribute("aria-pressed")).toBe("true");
     }
-    expect(fetchMock).toHaveBeenCalledTimes(requestCount);
+    expect(fetchMock.mock.calls.filter(([url]) => !url.endsWith("/related"))).toHaveLength(requestCount);
+    expect(fetchMock.mock.calls.filter(([url]) => url.endsWith("/related"))).toHaveLength(1);
   });
 
   it("allows an in-flight Coach request to finish while another section is open", async () => {

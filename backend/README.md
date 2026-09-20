@@ -24,6 +24,7 @@ The API runs at `http://localhost:8000`.
 
 - `GET /health`
 - `GET /api/problems/{slug}`
+- `GET /api/problems/{slug}/related`
 - `GET /api/problems/{slug}/hints` (primary approach)
 - `GET /api/problems/{slug}/approaches/{approach_id}/hints`
 - `POST /api/problems/{slug}/approaches/{approach_id}/solution` with `{"language":"python"}`
@@ -32,6 +33,8 @@ The API runs at `http://localhost:8000`.
 Starter code uses canonical approach IDs and independently curated templates, separate from full answers. Supported languages are `python`, `java`, `javascript`, and `cpp`. Levels are 1 (Minimal), 2 (Guided), and 3 (Strong Scaffold); every level retains TODOs and placeholder exceptions. All seven approaches across the three seeded problems are covered.
 
 Starter responses include `slug`, `approachId`, `language`, `level`, `levelName`, `code`, `notice`, and `isAiGenerated: false`. Unknown problems/approaches return 404, unsupported languages return 400, and malformed or out-of-range levels return 422.
+
+Related-problem responses include `slug` and three arrays: `easier`, `similar`, and `harder`. Each entry has `slug`, `title`, `difficulty` (`Easy`, `Medium`, or `Hard`), and an optional `reason`. All three seeded problems have manually curated entries in `app/services/related_problem_service.py`; an unknown source problem returns 404. Group placement is editorial and does not compute prerequisites or learning paths. Related targets can be outside the Coach dataset.
 
 ## Tests
 

@@ -5,6 +5,7 @@ import { ApproachSelector } from "./components/ApproachSelector";
 import { GenerateAnswer } from "./components/GenerateAnswer";
 import { HintPanel } from "./components/HintPanel";
 import { ProblemHeader } from "./components/ProblemHeader";
+import { PracticePanel } from "./components/PracticePanel";
 import { SectionNav, type SectionId, type SectionOption } from "./components/SectionNav";
 import { StarterCode } from "./components/StarterCode";
 import { ThinkingProcess } from "./components/ThinkingProcess";
@@ -222,11 +223,11 @@ export default function App() {
         </div>
       )}
 
-      {hasProblem && (
-        <section className="guide-card section-page" role="tabpanel" id="section-panel-practice"
+      {activeProblem.status === "detected" && (
+        <section className="practice-page" role="tabpanel" id="section-panel-practice"
           aria-labelledby="section-tab-practice" hidden={activeSection !== "practice"} tabIndex={0}>
-          <h2>Practice</h2>
-          <p>A space to practice what you have learned is coming soon.</p>
+          <ProblemHeader title={activeProblem.title} titleId="practice-problem-title" />
+          <PracticePanel slug={activeProblem.slug} isActive={activeSection === "practice"} />
         </section>
       )}
       <section className="guide-card section-page" role="tabpanel" id="section-panel-progress"
@@ -252,7 +253,7 @@ export default function App() {
           <li>Explore approaches and their thinking process.</li>
           <li>View a full answer when you are ready.</li>
         </ul>
-        <p>Guidance currently uses curated examples for a small set of problems. Practice and progress tracking are coming soon.</p>
+        <p>Guidance and related practice problems are currently curated for a small set of problems. Progress tracking is coming soon.</p>
       </section>
     </main>
   );
