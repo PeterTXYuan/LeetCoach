@@ -48,6 +48,11 @@ AI
 
 ## Completed
 
+- Recognition Signals (September 21, 2026): placed inside Solutions between Summary and Generate Answer, visible only for an explicitly selected canonical approach. It uses the existing section divider, a small green lightbulb icon, and a neutral Reveal recognition signals button, without an approach badge.
+- Each of the seven seeded approaches owns structured `recognitionSignals: { quote?, bullets }` metadata: two or three beginner-friendly cues about recognizing the approach from the statement, plus a short statement excerpt. Metadata is included in the existing problem-analysis response; revealing/hiding it makes no new request.
+- Recognition disclosure resets on approach/problem changes and closing an approach; it stays intact across section switches and temporary visits to non-LeetCode tabs. Missing metadata from older backends hides the section without breaking Coach.
+- Added eight frontend recognition tests and backend coverage of all seven approach payloads. Tests verify placement inside Solutions and navigation state preservation. The initial built-app preview against FastAPI checked keyboard reveal/hide and light/dark styling at narrow sidebar width.
+- Same-problem tab restoration (September 21, 2026): temporarily visiting a non-LeetCode browser tab no longer destroys the problem workspace. Returning to the same slug restores Coach, Practice, Progress, or About and preserves approaches, hints, starter code, thinking, answers, and loaded related problems in the open side-panel session. A different slug still starts at Coach and resets problem-specific state; deliberate Progress/About selections made while away take precedence.
 - Practice now mirrors Coach's composition with the current problem title card above a separate Related problems card, containing Easier / Similar / Harder groups and leaving room for additional Practice sections.
 - Practice: Related Problems (September 19, 2026). `GET /api/problems/{slug}/related` returns `slug` and grouped `easier`, `similar`, and `harder` arrays; unknown problems return 404.
 - Added nine manually curated related-problem entries: one per group for each of the three seeded problems. Each has a canonical slug, title, LeetCode difficulty, and short reason. Groups reflect relative practice challenge, rather than a computed difficulty ranking.
@@ -236,8 +241,8 @@ Generated Answer Flow
 
 ## Verified This Milestone
 
-- `npm test`: 54 frontend regression tests passed, including Coach, Starter Code, navigation, and Practice coverage.
-- `py -B -m unittest discover -s backend/tests`: all 10 backend tests passed, covering related-problem data/endpoints, all 84 starter responses, and compilation of every Python full-answer and starter example.
+- `npm test`: 68 frontend regression tests passed, including Recognition Signals, same-problem section/workspace restoration, Coach, Starter Code, navigation, and Practice coverage.
+- `py -B -m unittest discover -s backend/tests`: all 11 backend tests passed, covering recognition metadata for all seven approaches, related-problem data/endpoints, all 84 starter responses, and compilation of every Python full-answer and starter example.
 - All 21 JavaScript starter snippets passed Node syntax checks.
 - Built-app browser preview against the real starter endpoint verified Java Level 3, separate card placement, and light/dark layouts at 420px and 320px. Narrow layouts keep code overflow inside its scrollable block.
 - `npm run build` succeeds.

@@ -30,6 +30,8 @@ The API runs at `http://localhost:8000`.
 - `POST /api/problems/{slug}/approaches/{approach_id}/solution` with `{"language":"python"}`
 - `POST /api/problems/{slug}/approaches/{approach_id}/starter-code` with `{"language":"java","level":2}`
 
+The analysis response includes `recognitionSignals` on each canonical approach: an optional `quote` string and a `bullets` string array. The seven seeded approaches have two or three short recognition cues and statement excerpts. This metadata is stored directly with its approach and revealed locally in Coach, without an additional endpoint or request. Quotes come from the corresponding LeetCode problem statement.
+
 Starter code uses canonical approach IDs and independently curated templates, separate from full answers. Supported languages are `python`, `java`, `javascript`, and `cpp`. Levels are 1 (Minimal), 2 (Guided), and 3 (Strong Scaffold); every level retains TODOs and placeholder exceptions. All seven approaches across the three seeded problems are covered.
 
 Starter responses include `slug`, `approachId`, `language`, `level`, `levelName`, `code`, `notice`, and `isAiGenerated: false`. Unknown problems/approaches return 404, unsupported languages return 400, and malformed or out-of-range levels return 422.

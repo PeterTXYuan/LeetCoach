@@ -3,6 +3,11 @@ export type ProblemAnalysis = {
   approaches: ProblemApproach[];
 };
 
+export type RecognitionSignalsData = {
+  quote?: string;
+  bullets: string[];
+};
+
 export type ProblemApproach = {
   id: string;
   name: string;
@@ -11,6 +16,7 @@ export type ProblemApproach = {
   isPrimary: boolean;
   displayOrder: number;
   thinkingSteps: string[];
+  recognitionSignals?: RecognitionSignalsData;
 };
 
 export const unavailableProblemMessage =
@@ -96,7 +102,21 @@ function normalizeApproach(rawApproach: unknown): ProblemApproach {
     summary: rawApproach.summary,
     isPrimary: rawApproach.isPrimary,
     displayOrder: rawApproach.displayOrder,
-    thinkingSteps: rawApproach.thinkingSteps.map(String)
+    thinkingSteps: rawApproach.thinkingSteps.map(String),
+    recognitionSignals: normalizeRecognitionSignals(rawApproach.recognitionSignals)
+  };
+}
+
+function normalizeRecognitionSignals(value: unknown): RecognitionSignalsData | undefined {
+  // Older backends may omit this optional metadata. Invalid signals should not
+  // prevent the rest of Coach from working.
+  if (!isRecord(value) || !Array.isArray(value.bullets) || value.bullets.length === 0 ||
+    !value.bullets.every((bullet) => typeof bullet === "string" && bullet.trim())) {
+    return undefined;
+  }
+  return {
+    bullets: value.bullets.map((bullet: string) => bullet.trim()),
+    ...(typeof value.quote === "string" && value.quote.trim() ? { quote: value.quote.trim() } : {})
   };
 }
 

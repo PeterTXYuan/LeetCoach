@@ -43,6 +43,13 @@ PROBLEM_ANALYSES = {
                 "name": "Brute Force",
                 "pattern": "Nested Loops",
                 "summary": "Compare every possible pair until the target sum is found.",
+                "recognitionSignals": {
+                    "quote": "two numbers",
+                    "bullets": [
+                        "The problem asks you to find a pair.",
+                        "Trying every possible pair is a simple starting point when you do not yet see a shortcut.",
+                    ],
+                },
                 "isPrimary": False,
                 "displayOrder": 1,
                 "thinkingSteps": [
@@ -61,6 +68,14 @@ PROBLEM_ANALYSES = {
                 "name": "One-pass Hash Map",
                 "pattern": "Hash Map",
                 "summary": "Remember previously visited values so complements can be found quickly.",
+                "recognitionSignals": {
+                    "quote": "two numbers such that they add up to target",
+                    "bullets": [
+                        "For each number x, the other number you need is target - x.",
+                        "Repeatedly asking whether a value appeared before is a clue to consider a Hash Map.",
+                        "The answer needs indices, so remembering where each value appeared is useful.",
+                    ],
+                },
                 "isPrimary": True,
                 "displayOrder": 2,
                 "thinkingSteps": [
@@ -84,6 +99,13 @@ PROBLEM_ANALYSES = {
                 "name": "Repeated Pair Removal",
                 "pattern": "String Reduction",
                 "summary": "Repeatedly remove valid adjacent bracket pairs until no more can be removed.",
+                "recognitionSignals": {
+                    "quote": "determine if the input string is valid",
+                    "bullets": [
+                        "The input contains only brackets, and you only need a yes-or-no answer.",
+                        "Even a nested group has a small matching pair inside it. This suggests simplifying the string a pair at a time.",
+                    ],
+                },
                 "isPrimary": False,
                 "displayOrder": 1,
                 "thinkingSteps": [
@@ -103,6 +125,13 @@ PROBLEM_ANALYSES = {
                 "name": "Stack of Opening Brackets",
                 "pattern": "Stack",
                 "summary": "Track opening brackets so each closing bracket can match the most recent unresolved opener.",
+                "recognitionSignals": {
+                    "quote": "Open brackets must be closed in the correct order.",
+                    "bullets": [
+                        "The order matters, so counting opening and closing brackets is not enough.",
+                        "The last bracket opened must close first. Whenever the newest unfinished item matters first, think about a Stack.",
+                    ],
+                },
                 "isPrimary": True,
                 "displayOrder": 2,
                 "thinkingSteps": [
@@ -127,6 +156,13 @@ PROBLEM_ANALYSES = {
                 "name": "Check Every Substring",
                 "pattern": "Brute Force",
                 "summary": "Generate candidate substrings and test whether each one contains only unique characters.",
+                "recognitionSignals": {
+                    "quote": "longest substring",
+                    "bullets": [
+                        "A substring is a continuous piece of the text, with a start and an end.",
+                        "The task asks for the longest piece that passes a simple rule: no repeated characters. Checking all possible pieces is a straightforward baseline.",
+                    ],
+                },
                 "isPrimary": False,
                 "displayOrder": 1,
                 "thinkingSteps": [
@@ -146,6 +182,14 @@ PROBLEM_ANALYSES = {
                 "name": "Sliding Window with Set",
                 "pattern": "Sliding Window",
                 "summary": "Maintain a moving window of unique characters and shrink it when a duplicate appears.",
+                "recognitionSignals": {
+                    "quote": "without duplicate characters",
+                    "bullets": [
+                        "The answer is one continuous piece of the text, which is a clue to consider a sliding window.",
+                        "A repeated character is what makes a piece stop being valid.",
+                        "You need to know which characters are already in that piece. A Set fits this yes-or-no question.",
+                    ],
+                },
                 "isPrimary": True,
                 "displayOrder": 2,
                 "thinkingSteps": [
@@ -165,6 +209,13 @@ PROBLEM_ANALYSES = {
                 "name": "Sliding Window with Last Seen Index",
                 "pattern": "Sliding Window + Hash Map",
                 "summary": "Jump the left boundary past repeated characters using their most recent positions.",
+                "recognitionSignals": {
+                    "quote": "without duplicate characters",
+                    "bullets": [
+                        "A repeated character limits how far back a valid piece can start.",
+                        "Knowing where that character last appeared is more useful than only knowing it appeared. This suggests a Hash Map of characters and positions.",
+                    ],
+                },
                 "isPrimary": False,
                 "displayOrder": 3,
                 "thinkingSteps": [
@@ -249,6 +300,7 @@ def public_approach(approach):
         "isPrimary": approach["isPrimary"],
         "displayOrder": approach["displayOrder"],
         "thinkingSteps": approach["thinkingSteps"],
+        "recognitionSignals": approach["recognitionSignals"],
     }
 
 

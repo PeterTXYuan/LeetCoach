@@ -615,7 +615,8 @@ h2 {
   line-height: 1.6;
 }
 
-.generate-answer {
+.generate-answer,
+.recognition-section {
   padding-top: 22px;
   border-top: 1px solid var(--border);
 }
@@ -642,6 +643,45 @@ h2 {
 
 .language-select-control {
   position: relative;
+}
+
+.recognition-section {
+  min-width: 0;
+}
+
+.recognition-section h2 {
+  margin-bottom: 0;
+}
+
+.recognition-icon {
+  flex-shrink: 0;
+  color: var(--submit-green);
+}
+
+.recognition-content {
+  margin-top: 20px;
+  color: var(--muted);
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+
+.recognition-quote {
+  margin: 0 0 16px;
+  border-left: 3px solid var(--strong-border);
+  border-radius: 0 8px 8px 0;
+  padding: 12px 14px;
+  background: var(--card-muted);
+}
+
+.recognition-quote p {
+  margin: 0;
+}
+
+.recognition-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding-left: 20px;
 }
 
 .language-select {
