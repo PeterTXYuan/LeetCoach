@@ -1,6 +1,7 @@
-"""Retained curated source for seeding and existing mock guidance services.
+"""Mock guidance fixtures for the original three fully covered problems.
 
-Stable-data API endpoints read SQLite, not this snapshot.
+Stable-data seeding lives separately in app.stable_data. Hint, Starter Code,
+and Full Solution routes still use these canonical approach contexts.
 """
 
 PROBLEM_ANALYSES = {

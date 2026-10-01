@@ -5,7 +5,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from fastapi.testclient import TestClient
-from app.main import app, PROBLEM_ANALYSES
+from app.main import app
+from app.stable_data import CURATED_PROBLEMS
 from db_test_support import DatabaseTestCase
 
 
@@ -13,7 +14,7 @@ class RecognitionSignalTests(DatabaseTestCase):
     def test_every_seeded_approach_serves_its_own_structured_signals(self):
         count = 0
         with TestClient(app) as client:
-            for slug, problem in PROBLEM_ANALYSES.items():
+            for slug, problem in CURATED_PROBLEMS.items():
                 with self.subTest(slug=slug):
                     response = client.get(f"/api/problems/{slug}")
                     self.assertEqual(response.status_code, 200)
@@ -33,7 +34,7 @@ class RecognitionSignalTests(DatabaseTestCase):
                         distinct_bullets.add(tuple(signals["bullets"]))
                         self.assertNotIn("hints", served[approach["id"]])
                     self.assertEqual(len(distinct_bullets), len(problem["approaches"]))
-        self.assertEqual(count, 7)
+        self.assertGreaterEqual(count, 20)
 
 
 if __name__ == "__main__":

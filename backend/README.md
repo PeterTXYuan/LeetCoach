@@ -37,7 +37,7 @@ py -m uvicorn app.main:app --reload
 
 Relative SQLite paths resolve from `backend/`; an absolute URL such as `sqlite:///C:/path/to/leetcoach.db` also works. Parent directories must already exist. Restart the server after changing the URL. On Windows, `py` can replace `python` in all commands.
 
-The seed command runs in one transaction and currently syncs three problems, seven approaches, seven recognition signal sets (16 ordered bullets), and nine related cards. For each problem present in the curated source, approaches and related cards exactly match that source: missing children are inserted, existing children are updated, and stale children are deleted. Approach deletion also removes its recognition metadata; obsolete bullet positions are still cleaned up. Retained records keep their internal IDs, including related cards moved between categories, and repeated runs create no duplicates. Problem rows outside the current seeded dataset and all their children are left untouched. This is a local editorial bootstrap, not a concurrent import service.
+The seed command runs in one transaction and currently syncs 20 problems, 41 approaches, 41 recognition signal sets (84 ordered bullets), and 68 related cards. Stable editorial data lives in `app/stable_data.py`, independently of the three-problem mock guidance fixtures. For each problem present in the curated source, approaches and related cards exactly match that source: missing children are inserted, existing children are updated, and stale children are deleted. Approach deletion also removes its recognition metadata; obsolete bullet positions are still cleaned up. Retained records keep their internal IDs, including related cards moved between categories, and repeated runs create no duplicates. Problem rows outside the current seeded dataset and all their children are left untouched. This is a local editorial bootstrap, not a concurrent import service.
 
 For schema changes, edit `app/models.py`, then run:
 
@@ -74,13 +74,13 @@ Only `GET /api/problems/{slug}` and `GET /api/problems/{slug}/related` read SQLi
 
 Both hint routes and the starter-code/full-solution POST routes remain in their current mock services, including their fixture-based problem/approach validation. Their content is not stored in SQLite. Adding a problem only to the DB does not yet add guidance templates. `/health` remains a process health check, not a database readiness check.
 
-The analysis response includes `recognitionSignals` on each canonical approach: an optional `quote` string and a `bullets` string array. The seven seeded approaches have two or three short recognition cues and statement excerpts. This metadata is stored directly with its approach and revealed locally in Coach, without an additional endpoint or request. Quotes come from the corresponding LeetCode problem statement.
+The analysis response includes `recognitionSignals` on each canonical approach: an optional `quote` string and a `bullets` string array. All 41 seeded approaches have two or three short recognition cues. This metadata is stored directly with its approach and revealed locally in Coach, without an additional endpoint or request.
 
 Starter code uses canonical approach IDs and independently curated templates, separate from full answers. Supported languages are `python`, `java`, `javascript`, and `cpp`. Levels are 1 (Minimal), 2 (Guided), and 3 (Strong Scaffold); every level retains TODOs and placeholder exceptions. All seven approaches across the three seeded problems are covered.
 
 Starter responses include `slug`, `approachId`, `language`, `level`, `levelName`, `code`, `notice`, and `isAiGenerated: false`. Unknown problems/approaches return 404, unsupported languages return 400, and malformed or out-of-range levels return 422.
 
-Related-problem responses include `slug` and three arrays: `easier`, `similar`, and `harder`. Each entry has `slug`, `title`, `difficulty` (`Easy`, `Medium`, or `Hard`), and an optional `reason`. All three seeded problems have manually curated SQLite rows, seeded from the retained `app/services/related_problem_service.py` fixtures; an unknown source problem returns 404. Group placement is editorial and does not compute prerequisites or learning paths. Related targets can be outside the Coach dataset.
+Related-problem responses include `slug` and three arrays: `easier`, `similar`, and `harder`. Each entry has `slug`, `title`, `difficulty` (`Easy`, `Medium`, or `Hard`), and an optional `reason`. All 20 seeded problems have manually curated SQLite rows from `app/stable_data.py`; an unknown source problem returns 404. A category may be empty when there is no useful recommendation. Group placement is editorial and does not compute prerequisites or learning paths. Related targets can be outside the Coach dataset.
 
 ## Tests
 
@@ -91,7 +91,7 @@ python -m pip install -r backend/requirements-dev.txt
 python -B -m unittest discover -s backend/tests
 ```
 
-On Windows, use `py` if `python` is not on PATH. The suite checks full-answer snippets and all 84 starter-code combinations, request validation, and approach-specific progressive structure. Database tests create temporary file-backed SQLite databases through the real Alembic migration, seed them, override the API session dependency, and dispose of them afterward. They do not require or alter your local database. Coverage includes payload parity, DB-only lookups, persistence, canonical ID uniqueness, foreign keys/cascades, rollback, repeat seeding, and migration/model consistency.
+On Windows, use `py` if `python` is not on PATH. The suite checks the 20-problem catalog, full-answer snippets, all 84 starter-code combinations for the original three problems, request validation, and approach-specific progressive structure. Database tests create temporary file-backed SQLite databases through the real Alembic migration, seed them, override the API session dependency, and dispose of them afterward. They do not require or alter your local database. Coverage includes payload parity, DB-only lookups, persistence, canonical ID uniqueness, foreign keys/cascades, rollback, exact-sync seeding, and migration/model consistency.
 
 ## Future PostgreSQL path
 

@@ -72,7 +72,7 @@ Use `py` instead of `python` on Windows if needed. The default file is `backend/
 
 For schema changes, edit the models, run `python -m alembic revision --autogenerate -m "describe change"`, review the generated migration, then run `python -m alembic upgrade head` and `python -m alembic check`. Migration `0001` creates only schema; `python -m app.seed` loads data separately. Downgrade is destructive and is tested using disposable databases.
 
-Seed behavior: one transaction, lookups by stable natural keys, updates existing rows without replacing their internal IDs, and inserts missing rows. Each problem present in the curated source exactly syncs its approaches and related cards: children absent from the source are deleted, including recognition metadata owned by removed approaches. Obsolete bullet positions are still removed. Related cards retain their IDs when moved between categories. Repeating the command adds no duplicates and refreshes curated fields. Problem rows outside the current seeded dataset and their children remain untouched. Original datasets remain in `app/mock_data.py` and `app/services/related_problem_service.py` as seed sources. Keep them aligned with the mock guidance services for now.
+Seed behavior: one transaction, lookups by stable natural keys, updates existing rows without replacing their internal IDs, and inserts missing rows. Each problem present in `app/stable_data.py` exactly syncs its approaches and related cards: children absent from the source are deleted, including recognition metadata owned by removed approaches. Obsolete bullet positions are still removed. Related cards retain their IDs when moved between categories. Repeating the command adds no duplicates and refreshes curated fields. Problem rows outside the current seeded dataset and their children remain untouched. The separate `app/mock_data.py` remains the guidance source for the original three fully mocked problems.
 
 Still mocked: hint text, starter templates, full-answer code/explanations/complexities, and their existing route validation. Thinking steps are stored with approach metadata in SQLite. No real AI generation is introduced.
 
@@ -82,6 +82,7 @@ Future PostgreSQL path: add the PostgreSQL driver/configuration in a separate mi
 
 ## Completed
 
+- 20-problem SQLite catalog (October 1, 2026): expanded stable editorial coverage to the requested 20 problems, with 41 canonical approaches, exactly one primary approach per problem, 84 ordered recognition-signal bullets, and 68 manually curated related cards. Three related categories are intentionally empty where no useful choice was available. Stable DB seed data now lives in `app/stable_data.py`, separate from mock guidance/code fixtures. No schema or Alembic migration was needed.
 - Exact-sync seeding (October 1, 2026): stale approaches and related cards are now deleted within each seeded problem, while retained DB IDs and unrelated problem rows/children are preserved. Regression tests cover repeat seeding, source-content updates, category moves, partial/empty related lists, stale recognition cleanup, and removed child rows. No API or frontend changes.
 - SQLite stable-data migration (September 30, 2026): migrated all three supported problems, seven approaches, seven recognition signal sets with 16 ordered bullets, and nine related-problem cards. Analysis and related-problem GET endpoints now read SQLite with unchanged API shapes; canonical `approach.id` remains a string, never an internal DB key. The original fixtures are retained for seeding and mock guidance.
 - Recognition Signals (September 21, 2026): placed inside Solutions between Summary and Generate Answer, visible only for an explicitly selected canonical approach. It uses the existing section divider, a small green lightbulb icon, and a neutral Reveal recognition signals button, without an approach badge.
@@ -170,6 +171,7 @@ Future PostgreSQL path: add the PostgreSQL driver/configuration in a separate mi
 - `backend/app/database.py`: shared URL configuration, engine, SQLite foreign-key settings, and request-scoped sessions.
 - `backend/app/models.py`: stable metadata schema with canonical approach keys separate from internal IDs.
 - `backend/app/seed.py`: transactional repeatable exact-sync of curated children within seeded problems.
+- `backend/app/stable_data.py`: 20-problem stable catalog, recognition signals, related cards, and source validation.
 - `backend/app/mock_data.py`: retained original problem fixtures, mock hints, and seed validation.
 - `backend/app/services/problem_repository.py`: DB lookups and API serialization.
 - `backend/alembic.ini` and `backend/alembic/`: schema migration environment and first revision.
@@ -288,8 +290,8 @@ Generated Answer Flow
 
 - September 30 database milestone: backend coverage verifies migration upgrade/downgrade, model consistency, all seeded API payloads, lookups independent of fixtures, persistence after reopening SQLite, seed idempotency/internal ID stability, transaction rollback, uniqueness, foreign keys, cascading deletion, and unchanged mock guidance responses.
 - `npm test`: 68 frontend regression tests passed, including Recognition Signals, same-problem section/workspace restoration, Coach, Starter Code, navigation, and Practice coverage.
-- `py -B -m unittest discover -s backend/tests`: all 26 backend tests passed, including database migrations, exact-sync/repeatable seeding, stable-data API parity, recognition metadata for all seven approaches, related-problem data/endpoints, all 84 starter responses, and compilation of every Python full-answer and starter example.
-- Local `alembic upgrade head` and two consecutive `app.seed` runs succeeded: 3 problems, 7 approaches, 7 signal sets / 16 bullets, and 9 related cards. Both DB-backed endpoints returned 200 for every supported slug using the default local database.
+- `py -B -m unittest discover -s backend/tests`: all 30 backend tests passed, including 20-problem catalog validation, database migrations, exact-sync/repeatable seeding, stable-data API parity, recognition metadata for all 41 approaches, related-problem data/endpoints, guidance-boundary checks, all 84 existing starter responses, and compilation of every existing Python full-answer and starter example.
+- Local `alembic upgrade head` and repeat `app.seed` runs succeeded with 20 problems, 41 approaches / signal sets, 84 signal bullets, and 68 related cards. Both DB-backed endpoints serve the expanded catalog while new DB-only problems correctly remain outside mock guidance coverage.
 - All 21 JavaScript starter snippets passed Node syntax checks.
 - Built-app browser preview against the real starter endpoint verified Java Level 3, separate card placement, and light/dark layouts at 420px and 320px. Narrow layouts keep code overflow inside its scrollable block.
 - `npm run build` succeeds.
@@ -315,12 +317,12 @@ Generated Answer Flow
 
 ## Known Limitations
 
-- Practice currently offers only manually curated related problems stored in SQLite for the three seeded problems. Opening a related problem does not imply Coach guidance is seeded for it. Progress remains a placeholder; no learning-history persistence is implemented yet.
+- Practice offers manually curated related problems stored in SQLite for all 20 seeded problems. Opening a related problem does not imply full mock guidance is available for it. Progress remains a placeholder; no learning-history persistence is implemented yet.
 - Chrome side-panel interactions still need manual browser verification after reloading the unpacked extension.
 - Stable metadata uses SQLite. Guidance routes still use in-memory templates and fixture-based problem/approach validation.
 - Hints are static mock strings, not generated by an AI provider.
 - Generated answers are static mock strings, not generated by an AI provider.
-- Starter code is curated mock content; only the three seeded problems and their seven approaches are supported.
+- Hints, Starter Code, and Full Solutions remain fully mocked only for Two Sum, Valid Parentheses, and Longest Substring Without Repeating Characters (seven approaches total). The other 17 problems provide stable analysis, thinking steps, recognition signals, and related cards without fabricated code templates.
 - No PostgreSQL, authentication, cloud deployment, real LLM, or user history yet.
 - The extension assumes the local backend is available at `http://localhost:8000`.
 

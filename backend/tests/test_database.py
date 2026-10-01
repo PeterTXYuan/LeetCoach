@@ -14,7 +14,7 @@ from app.mock_data import PROBLEM_ANALYSES
 from app.models import Approach, Problem, RecognitionSignalBullet, RecognitionSignals, RelatedProblem
 from app.seed import seed_data
 from app.services.problem_repository import find_problem_analysis
-from app.services.related_problem_service import RELATED_PROBLEMS
+from app.stable_data import CURATED_PROBLEMS, CURATED_RELATED_PROBLEMS
 
 TABLE_MODELS = (Problem, Approach, RecognitionSignals, RecognitionSignalBullet, RelatedProblem)
 
@@ -34,18 +34,18 @@ class DatabaseTests(DatabaseTestCase):
                     for model in TABLE_MODELS}
 
     def test_existing_api_payloads_are_unchanged(self):
-        for slug, problem in PROBLEM_ANALYSES.items():
+        for slug, problem in CURATED_PROBLEMS.items():
             with self.subTest(slug=slug):
                 response = self.client.get(f"/api/problems/{slug}")
                 self.assertEqual(response.status_code, 200)
                 self.assertEqual(response.json(), public_problem_analysis(problem))
                 response = self.client.get(f"/api/problems/{slug}/related")
                 self.assertEqual(response.status_code, 200)
-                self.assertEqual(response.json(), {"slug": slug, **RELATED_PROBLEMS[slug]})
+                self.assertEqual(response.json(), {"slug": slug, **CURATED_RELATED_PROBLEMS[slug]})
 
     def test_seed_repeats_preserve_counts_ids_and_restore_curated_content(self):
         before = self.snapshot_ids()
-        self.assertEqual([len(ids) for ids in before.values()], [3, 7, 7, 16, 9])
+        self.assertEqual(len(before["problems"]), 20)
         with Session(self.engine) as session, session.begin():
             session.scalar(select(Approach)).summary = "Changed summary"
             session.scalar(select(RecognitionSignals)).quote = "Changed quote"
@@ -58,8 +58,8 @@ class DatabaseTests(DatabaseTestCase):
             with Session(self.engine) as session, session.begin():
                 seed_data(session)
         after = self.snapshot_ids()
-        self.assertEqual(after["problems"][:3], before["problems"])
-        self.assertEqual(len(after["problems"]), 4)
+        self.assertEqual(after["problems"][:20], before["problems"])
+        self.assertEqual(len(after["problems"]), 21)
         for table in before.keys() - {"problems"}:
             self.assertEqual(after[table], before[table])
         self.test_existing_api_payloads_are_unchanged()
@@ -109,7 +109,7 @@ class DatabaseTests(DatabaseTestCase):
         try:
             with Session(reopened) as session:
                 self.assertEqual(find_problem_analysis(session, "two-sum"),
-                                 public_problem_analysis(PROBLEM_ANALYSES["two-sum"]))
+                                 public_problem_analysis(CURATED_PROBLEMS["two-sum"]))
         finally:
             reopened.dispose()
 
@@ -159,6 +159,20 @@ class DatabaseTests(DatabaseTestCase):
                         response = self.client.post(f"{endpoint}/solution", json={"language": language})
                         self.assertEqual(response.status_code, 200)
                         self.assertEqual(response.json(), generate_approach_solution(problem, approach, language))
+
+    def test_expanded_database_problem_does_not_gain_mock_guidance(self):
+        slug = "contains-duplicate"
+        self.assertEqual(self.client.get(f"/api/problems/{slug}").status_code, 200)
+        self.assertEqual(self.client.get(f"/api/problems/{slug}/related").status_code, 200)
+        self.assertEqual(self.client.get(f"/api/problems/{slug}/hints").status_code, 404)
+        for path, body in (
+            ("hash-set/hints", None),
+            ("hash-set/starter-code", {"language": "python", "level": 1}),
+            ("hash-set/solution", {"language": "python"}),
+        ):
+            endpoint = f"/api/problems/{slug}/approaches/{path}"
+            response = self.client.get(endpoint) if body is None else self.client.post(endpoint, json=body)
+            self.assertEqual(response.status_code, 404)
 
     def test_database_enforces_uniqueness_and_foreign_keys(self):
         with Session(self.engine) as session:

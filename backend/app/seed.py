@@ -9,15 +9,16 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.database import engine
-from app.mock_data import PROBLEM_ANALYSES, validate_problem_dataset
 from app.models import Approach, Problem, RecognitionSignalBullet, RecognitionSignals, RelatedProblem
-from app.services.related_problem_service import RELATED_PROBLEMS
+from app.stable_data import CURATED_PROBLEMS, CURATED_RELATED_PROBLEMS, validate_curated_data
 
 
-def seed_data(session: Session):
+def seed_data(session: Session, problems=None, related_problems=None):
     """The caller owns the transaction; no schema creation or implicit commit."""
-    validate_problem_dataset(PROBLEM_ANALYSES)
-    for slug, data in PROBLEM_ANALYSES.items():
+    problems = CURATED_PROBLEMS if problems is None else problems
+    related_problems = CURATED_RELATED_PROBLEMS if related_problems is None else related_problems
+    validate_curated_data(problems, related_problems)
+    for slug, data in problems.items():
         problem = session.scalar(select(Problem).where(Problem.slug == slug))
         if problem is None:
             problem = Problem(slug=slug)
@@ -60,12 +61,12 @@ def seed_data(session: Session):
                     signals.bullets.remove(bullet)
         existing_related = {r.slug: r for r in problem.related_problems}
         source_related_slugs = {
-            card["slug"] for cards in RELATED_PROBLEMS[slug].values() for card in cards
+            card["slug"] for cards in related_problems[slug].values() for card in cards
         }
         for related_slug, related in existing_related.items():
             if related_slug not in source_related_slugs:
                 problem.related_problems.remove(related)
-        for category, cards in RELATED_PROBLEMS[slug].items():
+        for category, cards in related_problems[slug].items():
             for order, card in enumerate(cards, start=1):
                 related = existing_related.get(card["slug"])
                 if related is None:
@@ -82,9 +83,9 @@ def seed_data(session: Session):
 def main():
     with Session(engine) as session, session.begin():
         seed_data(session)
-    approach_count = sum(len(p["approaches"]) for p in PROBLEM_ANALYSES.values())
-    related_count = sum(len(cards) for slug in PROBLEM_ANALYSES for cards in RELATED_PROBLEMS[slug].values())
-    print(f"Synced {len(PROBLEM_ANALYSES)} problems, {approach_count} approaches, and {related_count} related problems.")
+    approach_count = sum(len(p["approaches"]) for p in CURATED_PROBLEMS.values())
+    related_count = sum(len(cards) for groups in CURATED_RELATED_PROBLEMS.values() for cards in groups.values())
+    print(f"Synced {len(CURATED_PROBLEMS)} problems, {approach_count} approaches, and {related_count} related problems.")
 
 
 if __name__ == "__main__":
