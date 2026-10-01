@@ -7,9 +7,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from fastapi.testclient import TestClient
 from app.main import app, PROBLEM_ANALYSES
 from app.services.related_problem_service import RELATED_PROBLEMS
+from db_test_support import DatabaseTestCase
 
 
-class RelatedProblemTests(unittest.TestCase):
+class RelatedProblemTests(DatabaseTestCase):
     def test_all_seeded_problems_have_valid_grouped_related_problems(self):
         self.assertEqual(set(RELATED_PROBLEMS), set(PROBLEM_ANALYSES))
         with TestClient(app) as client:

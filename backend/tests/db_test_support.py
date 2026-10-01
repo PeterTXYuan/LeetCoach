@@ -1,0 +1,45 @@
+"""File-backed, migrated SQLite per test; never use the developer's DB."""
+import sys
+import tempfile
+import unittest
+from pathlib import Path
+
+BACKEND_DIR = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(BACKEND_DIR))
+
+from alembic import command
+from alembic.config import Config
+from fastapi.testclient import TestClient
+from sqlalchemy.engine import URL
+from sqlalchemy.orm import Session
+
+from app.database import create_database_engine, get_session
+from app.main import app
+from app.seed import seed_data
+
+
+class DatabaseTestCase(unittest.TestCase):
+    def setUp(self):
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        self.url = URL.create("sqlite", database=str(Path(temporary.name) / "test.db"))
+        self.engine = create_database_engine(self.url)
+        self.addCleanup(self.engine.dispose)
+        self.migrate("upgrade", "head")
+        with Session(self.engine) as session, session.begin():
+            seed_data(session)
+
+        def test_session():
+            with Session(self.engine) as session:
+                yield session
+
+        app.dependency_overrides[get_session] = test_session
+        self.addCleanup(app.dependency_overrides.pop, get_session)
+        self.client = TestClient(app)
+        self.addCleanup(self.client.close)
+
+    def migrate(self, direction, revision):
+        config = Config(str(BACKEND_DIR / "alembic.ini"))
+        with self.engine.begin() as connection:
+            config.attributes["connection"] = connection
+            getattr(command, direction)(config, revision)

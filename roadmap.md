@@ -27,17 +27,19 @@ Frontend
 
 Backend
 - FastAPI
-- In-memory mock problem dataset
+- SQLAlchemy 2.x repositories for stable problem and approach metadata
 - Local CORS for Chrome extension and localhost development
 - Canonical approach metadata with stable approach IDs
 - Hint service abstraction reading mock approach-owned hints
 - Solution service abstraction returning approach-specific mock answers
 - Independent starter-code service with curated progressive scaffolds
-- Manually curated related-problem lists per seeded problem
+- Manually curated related-problem rows per seeded problem
 
 Database
-- Planned: SQLite for local MVP
-- Planned: SQLAlchemy and Alembic for future PostgreSQL migration
+- Local SQLite (`backend/leetcoach.db`) through SQLAlchemy 2.x
+- Alembic revision `0001` and an explicit repeatable seed command
+- Request-scoped sessions; SQLite foreign keys and cascade rules enabled
+- Future PostgreSQL migration remains a separate milestone
 
 AI
 - Current: static mock guidance only
@@ -46,8 +48,41 @@ AI
 
 ---
 
+## SQLite Schema And Workflows (September 30, 2026)
+
+Architecture: FastAPI routes → SQLAlchemy repositories and request-scoped sessions → local SQLite. Only `GET /api/problems/{slug}` and `GET /api/problems/{slug}/related` use the database in this milestone. There is no automatic fixture fallback or startup migration/seeding.
+
+Schema:
+- `problems`: internal integer primary key and unique slug.
+- `approaches`: internal integer primary key, problem foreign key, existing string `approach_key`, name/pattern/summary, primary flag, display order, and JSON thinking steps. Enforces unique `(problem_id, approach_key)`. The seed validates exactly one primary approach per curated problem.
+- `recognition_signal_sets`: one per approach with an optional short quote.
+- `recognition_signal_bullets`: text and explicit positive display order, unique per signal set.
+- `related_problems`: source problem foreign key, target slug/title/difficulty, optional reason, constrained `easier / similar / harder` category, and display order. Targets are simple external cards, not graph nodes or prerequisites; target slug is unique within the source problem.
+
+From `backend/`, initialize or upgrade and seed:
+
+```bash
+python -m pip install -r requirements.txt
+python -m alembic upgrade head
+python -m app.seed
+python -m uvicorn app.main:app --reload
+```
+
+Use `py` instead of `python` on Windows if needed. The default file is `backend/leetcoach.db`; `LEETCOACH_DATABASE_URL` can select another SQLite file. Relative paths resolve from `backend/` for the API, migrations, and seed command alike. Database/journal files are ignored by Git.
+
+For schema changes, edit the models, run `python -m alembic revision --autogenerate -m "describe change"`, review the generated migration, then run `python -m alembic upgrade head` and `python -m alembic check`. Migration `0001` creates only schema; `python -m app.seed` loads data separately. Downgrade is destructive and is tested using disposable databases.
+
+Seed behavior: one transaction, lookups by stable natural keys, updates existing rows without replacing their internal IDs, and inserts missing rows. Repeating the command adds no duplicates and refreshes curated fields, including quotes and ordered signals. Obsolete bullet positions are removed. Unrelated records are preserved; removed fixture approaches/cards require an explicit later data migration. Original datasets remain in `app/mock_data.py` and `app/services/related_problem_service.py` as seed sources. Keep them aligned with the mock guidance services for now.
+
+Still mocked: hint text, starter templates, full-answer code/explanations/complexities, and their existing route validation. Thinking steps are stored with approach metadata in SQLite. No real AI generation is introduced.
+
+Future PostgreSQL path: add the PostgreSQL driver/configuration in a separate milestone, apply and test the portable SQLAlchemy/Alembic schema against that dialect, and transfer local rows with foreign-key/sequence verification (or seed a fresh database). Public problem slugs and canonical approach keys stay unchanged. SQLite-specific connection settings are isolated in `database.py`; PostgreSQL is not installed or deployed now.
+
+---
+
 ## Completed
 
+- SQLite stable-data migration (September 30, 2026): migrated all three supported problems, seven approaches, seven recognition signal sets with 16 ordered bullets, and nine related-problem cards. Analysis and related-problem GET endpoints now read SQLite with unchanged API shapes; canonical `approach.id` remains a string, never an internal DB key. The original fixtures are retained for seeding and mock guidance.
 - Recognition Signals (September 21, 2026): placed inside Solutions between Summary and Generate Answer, visible only for an explicitly selected canonical approach. It uses the existing section divider, a small green lightbulb icon, and a neutral Reveal recognition signals button, without an approach badge.
 - Each of the seven seeded approaches owns structured `recognitionSignals: { quote?, bullets }` metadata: two or three beginner-friendly cues about recognizing the approach from the statement, plus a short statement excerpt. Metadata is included in the existing problem-analysis response; revealing/hiding it makes no new request.
 - Recognition disclosure resets on approach/problem changes and closing an approach; it stays intact across section switches and temporary visits to non-LeetCode tabs. Missing metadata from older backends hides the section without breaking Coach.
@@ -129,8 +164,15 @@ AI
 
 ## Important Files Changed
 
-- `.gitignore`: ignores generated log files.
-- `backend/app/main.py`: canonical mock problem data, dataset validation, main analysis endpoint, primary hint endpoint, and approach-specific hint endpoint.
+- `.gitignore`: ignores generated log files, virtual environments, and SQLite DB/journal files.
+- `backend/app/main.py`: FastAPI routes; analysis/related endpoints use the SQLAlchemy session dependency, while guidance routes retain mock services.
+- `backend/app/database.py`: shared URL configuration, engine, SQLite foreign-key settings, and request-scoped sessions.
+- `backend/app/models.py`: stable metadata schema with canonical approach keys separate from internal IDs.
+- `backend/app/seed.py`: transactional repeatable curated-data upserts.
+- `backend/app/mock_data.py`: retained original problem fixtures, mock hints, and seed validation.
+- `backend/app/services/problem_repository.py`: DB lookups and API serialization.
+- `backend/alembic.ini` and `backend/alembic/`: schema migration environment and first revision.
+- `backend/tests/test_database.py`: isolated migrated-database regression coverage.
 - `backend/app/services/hint_service.py`: focused hint lookup service that operates on canonical approach objects.
 - `backend/app/services/solution_service.py`: approach-specific mock solution service with supported-language validation.
 - `backend/app/services/__init__.py`: service package marker.
@@ -159,8 +201,10 @@ AI
 
 Backend
 - Each problem owns a stable list of approaches.
-- Each approach has a unique `id`, `isPrimary`, `displayOrder`, `thinkingSteps`, and `hints`.
-- `GET /api/problems/{slug}` returns sorted approach metadata without hint arrays.
+- Each DB approach has an internal numeric ID and a canonical string key unique within its problem. The API exposes the canonical key as `id`, plus `isPrimary`, `displayOrder`, and `thinkingSteps`.
+- `GET /api/problems/{slug}` reads SQLite and returns sorted approach metadata and recognition signals without hint arrays or internal IDs.
+- `GET /api/problems/{slug}/related` reads the curated SQLite card rows, grouped by `easier / similar / harder`.
+- Hints and their primary-approach selection still use retained mock fixtures during this milestone; starter/full-answer templates remain in their existing services. A database-only approach does not gain guidance templates automatically.
 - `GET /api/problems/{slug}/hints` resolves the one canonical primary approach and returns only its `approachId` and hints.
 - `GET /api/problems/{slug}/approaches/{approach_id}/hints` verifies the approach belongs to that exact problem before returning hints.
 - The hint service receives the canonical problem and approach context; it does not choose or infer an approach independently.
@@ -241,8 +285,10 @@ Generated Answer Flow
 
 ## Verified This Milestone
 
+- September 30 database milestone: backend coverage verifies migration upgrade/downgrade, model consistency, all seeded API payloads, lookups independent of fixtures, persistence after reopening SQLite, seed idempotency/internal ID stability, transaction rollback, uniqueness, foreign keys, cascading deletion, and unchanged mock guidance responses.
 - `npm test`: 68 frontend regression tests passed, including Recognition Signals, same-problem section/workspace restoration, Coach, Starter Code, navigation, and Practice coverage.
-- `py -B -m unittest discover -s backend/tests`: all 11 backend tests passed, covering recognition metadata for all seven approaches, related-problem data/endpoints, all 84 starter responses, and compilation of every Python full-answer and starter example.
+- `py -B -m unittest discover -s backend/tests`: all 23 backend tests passed, including database migrations, repeatable seeding, stable-data API parity, recognition metadata for all seven approaches, related-problem data/endpoints, all 84 starter responses, and compilation of every Python full-answer and starter example.
+- Local `alembic upgrade head` and two consecutive `app.seed` runs succeeded: 3 problems, 7 approaches, 7 signal sets / 16 bullets, and 9 related cards. Both DB-backed endpoints returned 200 for every supported slug using the default local database.
 - All 21 JavaScript starter snippets passed Node syntax checks.
 - Built-app browser preview against the real starter endpoint verified Java Level 3, separate card placement, and light/dark layouts at 420px and 320px. Narrow layouts keep code overflow inside its scrollable block.
 - `npm run build` succeeds.
@@ -268,30 +314,26 @@ Generated Answer Flow
 
 ## Known Limitations
 
-- Practice currently offers only hard-coded related problems for the three seeded problems. Opening a related problem does not imply Coach guidance is seeded for it. Progress remains a placeholder; no learning-history persistence is implemented yet.
+- Practice currently offers only manually curated related problems stored in SQLite for the three seeded problems. Opening a related problem does not imply Coach guidance is seeded for it. Progress remains a placeholder; no learning-history persistence is implemented yet.
 - Chrome side-panel interactions still need manual browser verification after reloading the unpacked extension.
-- The backend still uses in-memory mock data.
+- Stable metadata uses SQLite. Guidance routes still use in-memory templates and fixture-based problem/approach validation.
 - Hints are static mock strings, not generated by an AI provider.
 - Generated answers are static mock strings, not generated by an AI provider.
 - Starter code is curated mock content; only the three seeded problems and their seven approaches are supported.
-- No SQLite, SQLAlchemy, Alembic, PostgreSQL, authentication, or user history yet.
+- No PostgreSQL, authentication, cloud deployment, real LLM, or user history yet.
 - The extension assumes the local backend is available at `http://localhost:8000`.
 
 ---
 
 ## Next Recommended Milestone
 
-- Extend the existing regression suite with backend dataset validation, endpoint behavior, URL parsing, API normalization, and additional navigation cases.
-- After tests are in place, introduce SQLite with SQLAlchemy models for problems, approaches, related problems, and starter templates.
-- Keep the stable `approach.id` contract unchanged when moving from mock data to database-backed data.
+- Consider a separate milestone for mock guidance storage/provider boundaries, keeping hint, starter, and full-answer behavior explicit and approach-specific.
+- Expand curated coverage only with matching guidance templates; preserve canonical approach keys and the existing API contracts.
 
 ---
 
 ## Future Features
 
-- SQLite persistence
-- SQLAlchemy models
-- Alembic migrations
 - Mock AI provider abstraction
 - Interview follow-up questions
 - OpenAI, Gemini, or OpenRouter provider integration

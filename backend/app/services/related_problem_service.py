@@ -1,4 +1,6 @@
-"""Small, manually curated lists per seeded problem; no ranking or graph logic.
+"""Retained seed fixtures; the related-problem endpoint now reads SQLite.
+
+Small, manually curated lists per seeded problem; no ranking or graph logic.
 
 Group placement is editorial (relative practice challenge), while difficulty is
 LeetCode's published label. Two Easy problems can differ in challenge.

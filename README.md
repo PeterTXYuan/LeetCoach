@@ -50,6 +50,8 @@ Install backend dependencies:
 ```bash
 cd backend
 pip install -r requirements.txt
+python -m alembic upgrade head
+python -m app.seed
 ```
 
 Run the local FastAPI server:
@@ -58,4 +60,4 @@ Run the local FastAPI server:
 uvicorn app.main:app --reload
 ```
 
-The backend serves health, problem analysis, hints, starter code, and solutions at `http://localhost:8000`. See [backend/README.md](backend/README.md) for endpoint details.
+The backend serves health, problem analysis, related problems, hints, starter code, and solutions at `http://localhost:8000`. Stable problem/approach metadata, recognition signals, and related cards use local SQLite through SQLAlchemy. Hints, starter code, and full solutions remain mocked. The seed command can be rerun safely. See [backend/README.md](backend/README.md) for database workflows and endpoint details.

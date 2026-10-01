@@ -6,9 +6,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from fastapi.testclient import TestClient
 from app.main import app, PROBLEM_ANALYSES
+from db_test_support import DatabaseTestCase
 
 
-class RecognitionSignalTests(unittest.TestCase):
+class RecognitionSignalTests(DatabaseTestCase):
     def test_every_seeded_approach_serves_its_own_structured_signals(self):
         count = 0
         with TestClient(app) as client:
