@@ -37,7 +37,7 @@ py -m uvicorn app.main:app --reload
 
 Relative SQLite paths resolve from `backend/`; an absolute URL such as `sqlite:///C:/path/to/leetcoach.db` also works. Parent directories must already exist. Restart the server after changing the URL. On Windows, `py` can replace `python` in all commands.
 
-The seed command runs in one transaction and upserts three problems, seven approaches, seven recognition signal sets (16 ordered bullets), and nine related cards. Repeated runs preserve internal IDs and avoid duplicates. They refresh curated content from the retained fixtures, remove obsolete bullet positions, and leave unrelated records alone. They do not delete approaches or related cards removed from the fixtures; remove obsolete records through an explicit later data migration. This is a local editorial bootstrap, not a concurrent import service.
+The seed command runs in one transaction and currently syncs three problems, seven approaches, seven recognition signal sets (16 ordered bullets), and nine related cards. For each problem present in the curated source, approaches and related cards exactly match that source: missing children are inserted, existing children are updated, and stale children are deleted. Approach deletion also removes its recognition metadata; obsolete bullet positions are still cleaned up. Retained records keep their internal IDs, including related cards moved between categories, and repeated runs create no duplicates. Problem rows outside the current seeded dataset and all their children are left untouched. This is a local editorial bootstrap, not a concurrent import service.
 
 For schema changes, edit `app/models.py`, then run:
 

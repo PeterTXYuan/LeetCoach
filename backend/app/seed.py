@@ -1,8 +1,9 @@
 """Run after `alembic upgrade head`: python -m app.seed.
 
-Upsert the curated records in one transaction. Re-running refreshes their
-content without changing internal IDs or duplicating rows. Unrelated records
-are left alone; obsolete bullet positions in a seeded signal set are removed.
+Sync curated child records in one transaction. Re-running refreshes their
+content without changing retained IDs or duplicating rows. Stale approaches,
+related cards, and bullet positions are removed within seeded problems only.
+Problems outside the curated dataset and their children are left alone.
 """
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -23,6 +24,11 @@ def seed_data(session: Session):
             session.add(problem)
             session.flush()
         existing_approaches = {a.approach_key: a for a in problem.approaches}
+        source_approach_keys = {a["id"] for a in data["approaches"]}
+        for key, approach in existing_approaches.items():
+            if key not in source_approach_keys:
+                # delete-orphan also removes the approach's recognition metadata.
+                problem.approaches.remove(approach)
         for source in data["approaches"]:
             approach = existing_approaches.get(source["id"])
             if approach is None:
@@ -53,6 +59,12 @@ def seed_data(session: Session):
                 if bullet.display_order > len(source_signals["bullets"]):
                     signals.bullets.remove(bullet)
         existing_related = {r.slug: r for r in problem.related_problems}
+        source_related_slugs = {
+            card["slug"] for cards in RELATED_PROBLEMS[slug].values() for card in cards
+        }
+        for related_slug, related in existing_related.items():
+            if related_slug not in source_related_slugs:
+                problem.related_problems.remove(related)
         for category, cards in RELATED_PROBLEMS[slug].items():
             for order, card in enumerate(cards, start=1):
                 related = existing_related.get(card["slug"])
@@ -70,7 +82,9 @@ def seed_data(session: Session):
 def main():
     with Session(engine) as session, session.begin():
         seed_data(session)
-    print("Seeded 3 problems, 7 approaches with recognition signals, and 9 related problems.")
+    approach_count = sum(len(p["approaches"]) for p in PROBLEM_ANALYSES.values())
+    related_count = sum(len(cards) for slug in PROBLEM_ANALYSES for cards in RELATED_PROBLEMS[slug].values())
+    print(f"Synced {len(PROBLEM_ANALYSES)} problems, {approach_count} approaches, and {related_count} related problems.")
 
 
 if __name__ == "__main__":

@@ -72,7 +72,7 @@ Use `py` instead of `python` on Windows if needed. The default file is `backend/
 
 For schema changes, edit the models, run `python -m alembic revision --autogenerate -m "describe change"`, review the generated migration, then run `python -m alembic upgrade head` and `python -m alembic check`. Migration `0001` creates only schema; `python -m app.seed` loads data separately. Downgrade is destructive and is tested using disposable databases.
 
-Seed behavior: one transaction, lookups by stable natural keys, updates existing rows without replacing their internal IDs, and inserts missing rows. Repeating the command adds no duplicates and refreshes curated fields, including quotes and ordered signals. Obsolete bullet positions are removed. Unrelated records are preserved; removed fixture approaches/cards require an explicit later data migration. Original datasets remain in `app/mock_data.py` and `app/services/related_problem_service.py` as seed sources. Keep them aligned with the mock guidance services for now.
+Seed behavior: one transaction, lookups by stable natural keys, updates existing rows without replacing their internal IDs, and inserts missing rows. Each problem present in the curated source exactly syncs its approaches and related cards: children absent from the source are deleted, including recognition metadata owned by removed approaches. Obsolete bullet positions are still removed. Related cards retain their IDs when moved between categories. Repeating the command adds no duplicates and refreshes curated fields. Problem rows outside the current seeded dataset and their children remain untouched. Original datasets remain in `app/mock_data.py` and `app/services/related_problem_service.py` as seed sources. Keep them aligned with the mock guidance services for now.
 
 Still mocked: hint text, starter templates, full-answer code/explanations/complexities, and their existing route validation. Thinking steps are stored with approach metadata in SQLite. No real AI generation is introduced.
 
@@ -82,6 +82,7 @@ Future PostgreSQL path: add the PostgreSQL driver/configuration in a separate mi
 
 ## Completed
 
+- Exact-sync seeding (October 1, 2026): stale approaches and related cards are now deleted within each seeded problem, while retained DB IDs and unrelated problem rows/children are preserved. Regression tests cover repeat seeding, source-content updates, category moves, partial/empty related lists, stale recognition cleanup, and removed child rows. No API or frontend changes.
 - SQLite stable-data migration (September 30, 2026): migrated all three supported problems, seven approaches, seven recognition signal sets with 16 ordered bullets, and nine related-problem cards. Analysis and related-problem GET endpoints now read SQLite with unchanged API shapes; canonical `approach.id` remains a string, never an internal DB key. The original fixtures are retained for seeding and mock guidance.
 - Recognition Signals (September 21, 2026): placed inside Solutions between Summary and Generate Answer, visible only for an explicitly selected canonical approach. It uses the existing section divider, a small green lightbulb icon, and a neutral Reveal recognition signals button, without an approach badge.
 - Each of the seven seeded approaches owns structured `recognitionSignals: { quote?, bullets }` metadata: two or three beginner-friendly cues about recognizing the approach from the statement, plus a short statement excerpt. Metadata is included in the existing problem-analysis response; revealing/hiding it makes no new request.
@@ -168,7 +169,7 @@ Future PostgreSQL path: add the PostgreSQL driver/configuration in a separate mi
 - `backend/app/main.py`: FastAPI routes; analysis/related endpoints use the SQLAlchemy session dependency, while guidance routes retain mock services.
 - `backend/app/database.py`: shared URL configuration, engine, SQLite foreign-key settings, and request-scoped sessions.
 - `backend/app/models.py`: stable metadata schema with canonical approach keys separate from internal IDs.
-- `backend/app/seed.py`: transactional repeatable curated-data upserts.
+- `backend/app/seed.py`: transactional repeatable exact-sync of curated children within seeded problems.
 - `backend/app/mock_data.py`: retained original problem fixtures, mock hints, and seed validation.
 - `backend/app/services/problem_repository.py`: DB lookups and API serialization.
 - `backend/alembic.ini` and `backend/alembic/`: schema migration environment and first revision.
@@ -287,7 +288,7 @@ Generated Answer Flow
 
 - September 30 database milestone: backend coverage verifies migration upgrade/downgrade, model consistency, all seeded API payloads, lookups independent of fixtures, persistence after reopening SQLite, seed idempotency/internal ID stability, transaction rollback, uniqueness, foreign keys, cascading deletion, and unchanged mock guidance responses.
 - `npm test`: 68 frontend regression tests passed, including Recognition Signals, same-problem section/workspace restoration, Coach, Starter Code, navigation, and Practice coverage.
-- `py -B -m unittest discover -s backend/tests`: all 23 backend tests passed, including database migrations, repeatable seeding, stable-data API parity, recognition metadata for all seven approaches, related-problem data/endpoints, all 84 starter responses, and compilation of every Python full-answer and starter example.
+- `py -B -m unittest discover -s backend/tests`: all 26 backend tests passed, including database migrations, exact-sync/repeatable seeding, stable-data API parity, recognition metadata for all seven approaches, related-problem data/endpoints, all 84 starter responses, and compilation of every Python full-answer and starter example.
 - Local `alembic upgrade head` and two consecutive `app.seed` runs succeeded: 3 problems, 7 approaches, 7 signal sets / 16 bullets, and 9 related cards. Both DB-backed endpoints returned 200 for every supported slug using the default local database.
 - All 21 JavaScript starter snippets passed Node syntax checks.
 - Built-app browser preview against the real starter endpoint verified Java Level 3, separate card placement, and light/dark layouts at 420px and 320px. Narrow layouts keep code overflow inside its scrollable block.
