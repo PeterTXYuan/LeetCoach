@@ -10,7 +10,7 @@
     "service_worker": "background.js",
     "type": "module"
   },
-  "permissions": ["sidePanel", "tabs"],
+  "permissions": ["sidePanel", "tabs", "storage"],
   "host_permissions": [
     "https://leetcode.com/problems/*",
     "http://localhost:8000/*"

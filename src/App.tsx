@@ -12,8 +12,9 @@ import { StarterCode } from "./components/StarterCode";
 import { ThinkingProcess } from "./components/ThinkingProcess";
 import { useApproachHints } from "./hooks/useApproachHints";
 import { useApproachSolution } from "./hooks/useApproachSolution";
+import { useCoachWorkspaces } from "./hooks/useCoachWorkspaces";
 import { useActiveProblem, type ActiveProblemState } from "./useActiveProblem";
-import { useProblemAnalysis } from "./useProblemAnalysis";
+import { useProblemAnalysis, type ProblemAnalysisState } from "./useProblemAnalysis";
 
 const leetCodeProblemsUrl = "https://leetcode.com/problemset/";
 const themeStorageKey = "leetcoach-theme";
@@ -30,10 +31,6 @@ const problemSections: SectionOption[] = [
 
 type Theme = "light" | "dark";
 type DetectedProblem = Extract<ActiveProblemState, { status: "detected" }>;
-type NavigationPreference = {
-  slug: string | null;
-  section: SectionId;
-};
 
 function getInitialTheme(): Theme {
   const savedTheme = window.localStorage.getItem(themeStorageKey);
@@ -58,57 +55,68 @@ function openLeetCode() {
 
 export default function App() {
   const [theme, setTheme] = useState<Theme>(getInitialTheme);
-  const [selectedApproachId, setSelectedApproachId] = useState<string | null>(
-    null
-  );
-  const [isThinkingExpanded, setIsThinkingExpanded] = useState(false);
   const activeProblem = useActiveProblem();
   const hasProblem = activeProblem.status === "detected";
   const [lastDetectedProblem, setLastDetectedProblem] = useState<DetectedProblem | null>(null);
-  const [navigationPreference, setNavigationPreference] = useState<NavigationPreference>({
-    slug: null,
-    section: "progress"
-  });
+  const [awaySection, setAwaySection] = useState<"progress" | "about" | null>(null);
+  const { ready: workspaceReady, workspaceFor, updateWorkspace, updateHints } = useCoachWorkspaces();
 
   useEffect(() => {
     if (activeProblem.status !== "detected") return;
     setLastDetectedProblem(activeProblem);
-    setNavigationPreference((current) => current.slug === activeProblem.slug
-      ? current
-      : { slug: activeProblem.slug, section: "coach" });
+    setAwaySection(null);
   }, [activeProblem]);
 
   const workspaceProblem = activeProblem.status === "detected"
     ? activeProblem
     : lastDetectedProblem;
   const workspaceSlug = workspaceProblem?.slug;
+  const workspace = workspaceFor(workspaceSlug);
   const activeSection: SectionId = hasProblem
-    ? navigationPreference.slug === activeProblem.slug
-      ? navigationPreference.section
-      : "coach"
-    : navigationPreference.section === "progress" || navigationPreference.section === "about"
-      ? navigationPreference.section
-      : "progress";
+    ? workspace?.activeSection ?? "coach"
+    : awaySection ?? (workspace?.activeSection === "about" ? "about" : "progress");
+  const showSections = activeProblem.status !== "checking" && (!hasProblem || workspaceReady);
 
   const handleSelectSection = (section: SectionId) => {
-    setNavigationPreference({
-      slug: activeProblem.status === "detected"
-        ? activeProblem.slug
-        : lastDetectedProblem?.slug ?? null,
-      section
-    });
+    if (workspaceSlug && workspaceReady) {
+      updateWorkspace(workspaceSlug, (current) => ({ ...current, activeSection: section }));
+    }
+    if (!hasProblem && (section === "progress" || section === "about")) {
+      setAwaySection(section);
+    }
   };
 
   const { analysisState: problemAnalysis, retry: retryProblemAnalysis } =
     useProblemAnalysis(workspaceSlug);
-  const approaches = problemAnalysis.status === "success"
-    ? problemAnalysis.analysis.approaches
+  const visibleProblemAnalysis: ProblemAnalysisState =
+    problemAnalysis.status === "success" && problemAnalysis.analysis.slug !== workspaceSlug
+      ? { status: "loading" }
+      : problemAnalysis;
+  const approaches = visibleProblemAnalysis.status === "success"
+    ? visibleProblemAnalysis.analysis.approaches
     : [];
+  const storedSelectedApproachId = workspace?.selectedApproachId ?? null;
+  const selectedApproachId = approaches.some((approach) => approach.id === storedSelectedApproachId)
+    ? storedSelectedApproachId
+    : null;
+  const isThinkingExpanded = workspace?.isThinkingExpanded ?? false;
+
+  useEffect(() => {
+    if (!workspaceReady || !workspaceSlug || visibleProblemAnalysis.status !== "success" ||
+        !storedSelectedApproachId || selectedApproachId) return;
+    updateWorkspace(workspaceSlug, (current) => current.selectedApproachId === storedSelectedApproachId
+      ? { ...current, selectedApproachId: null, isThinkingExpanded: false }
+      : current);
+  }, [workspaceReady, workspaceSlug, visibleProblemAnalysis.status,
+    storedSelectedApproachId, selectedApproachId, updateWorkspace]);
+
   const primaryApproachId = approaches.find((approach) => approach.isPrimary)?.id ?? null;
   const approachHints = useApproachHints({
-    slug: problemAnalysis.status === "success" ? workspaceSlug : undefined,
+    slug: workspaceReady && visibleProblemAnalysis.status === "success" ? workspaceSlug : undefined,
     selectedApproachId,
-    primaryApproachId
+    primaryApproachId,
+    hintsByApproach: workspace?.hintsByApproach,
+    updateHints
   });
   const hintApproachId = approachHints.hintState.status === "success"
     ? approachHints.hintState.response.approachId
@@ -117,35 +125,31 @@ export default function App() {
   const starterApproachId = selectedApproachId ?? primaryApproachId;
   const starterApproachNumber = approaches.findIndex((approach) => approach.id === starterApproachId) + 1;
   const approachSolution = useApproachSolution({
-    slug: problemAnalysis.status === "success" ? workspaceSlug : undefined,
+    slug: workspaceReady && visibleProblemAnalysis.status === "success" ? workspaceSlug : undefined,
     approachId: selectedApproachId
   });
 
   const selectedApproach = useMemo(() => {
-    if (problemAnalysis.status !== "success" || !selectedApproachId) {
+    if (visibleProblemAnalysis.status !== "success" || !selectedApproachId) {
       return null;
     }
 
     return (
-      problemAnalysis.analysis.approaches.find(
+      visibleProblemAnalysis.analysis.approaches.find(
         (approach) => approach.id === selectedApproachId
       ) ?? null
     );
-  }, [problemAnalysis, selectedApproachId]);
+  }, [visibleProblemAnalysis, selectedApproachId]);
 
   useEffect(() => {
     window.localStorage.setItem(themeStorageKey, theme);
   }, [theme]);
 
-  useEffect(() => {
-    setSelectedApproachId(null);
-    setIsThinkingExpanded(false);
-  }, [workspaceSlug]);
-
   const clearSelectedApproach = () => {
-    setSelectedApproachId(null);
-    setIsThinkingExpanded(false);
     approachHints.resetHints();
+    if (workspaceSlug) updateWorkspace(workspaceSlug, (current) => ({
+      ...current, selectedApproachId: null, isThinkingExpanded: false
+    }));
   };
 
   const handleSelectApproach = (approachId: string) => {
@@ -154,8 +158,9 @@ export default function App() {
       return;
     }
 
-    setSelectedApproachId(approachId);
-    setIsThinkingExpanded(false);
+    if (workspaceSlug) updateWorkspace(workspaceSlug, (current) => ({
+      ...current, selectedApproachId: approachId, isThinkingExpanded: false
+    }));
   };
 
   return (
@@ -180,30 +185,34 @@ export default function App() {
         </div>
       </header>
 
-      <SectionNav
-        sections={hasProblem ? problemSections : globalSections}
-        activeSection={activeSection}
-        onSelect={handleSelectSection}
-      />
+      {(activeProblem.status === "checking" || (hasProblem && !workspaceReady))
+        ? <p className="analysis-message" role="status">
+            {hasProblem ? "Restoring Coach workspace..." : "Checking the active tab..."}
+          </p>
+        : <SectionNav
+            sections={hasProblem ? problemSections : globalSections}
+            activeSection={activeSection}
+            onSelect={handleSelectSection}
+          />}
 
       {/* Keep the last problem workspace mounted while another browser tab is active. */}
-      {workspaceProblem && (
+      {workspaceReady && workspaceProblem && (
         <div className="coach-page" role="tabpanel" id="section-panel-coach"
           aria-labelledby="section-tab-coach" hidden={!hasProblem || activeSection !== "coach"} tabIndex={0}>
           <ProblemHeader title={workspaceProblem.title} />
           <section
             className={
-              problemAnalysis.status === "success"
+              visibleProblemAnalysis.status === "success"
                 ? "guide-content"
                 : "guide-card"
             }
             aria-label="Problem guidance"
           >
             <AnalysisStatus
-              analysisState={problemAnalysis}
+              analysisState={visibleProblemAnalysis}
               onRetry={retryProblemAnalysis}
             >
-              {problemAnalysis.status === "success" && (
+              {visibleProblemAnalysis.status === "success" && (
                 <div className="analysis-stack">
                   <HintPanel
                     approachNumber={hintApproachNumber || undefined}
@@ -214,17 +223,17 @@ export default function App() {
                     onShowNextHint={approachHints.showNextHint}
                     visibleHintCount={approachHints.visibleHintCount}
                   />
-                  {problemAnalysis.analysis.slug === workspaceSlug && (
+                  {visibleProblemAnalysis.analysis.slug === workspaceSlug && (
                     <StarterCode
                       key={JSON.stringify([workspaceSlug, selectedApproachId])}
-                      slug={problemAnalysis.analysis.slug}
+                      slug={visibleProblemAnalysis.analysis.slug}
                       approachId={starterApproachId}
                       approachNumber={starterApproachNumber || undefined}
                     />
                   )}
                   <section className="strategy-card" aria-label="Solution strategies">
                     <ApproachSelector
-                      approaches={problemAnalysis.analysis.approaches}
+                      approaches={visibleProblemAnalysis.analysis.approaches}
                       onSelectApproach={handleSelectApproach}
                       selectedApproachId={selectedApproachId}
                     />
@@ -234,10 +243,10 @@ export default function App() {
                           approach={selectedApproach}
                           onClose={clearSelectedApproach}
                         />
-                        {selectedApproach.recognitionSignals && problemAnalysis.analysis.slug === workspaceSlug && (
+                        {selectedApproach.recognitionSignals && visibleProblemAnalysis.analysis.slug === workspaceSlug && (
                           <RecognitionSignals
                             key={JSON.stringify(["recognition", workspaceSlug, selectedApproach.id])}
-                            slug={problemAnalysis.analysis.slug}
+                            slug={visibleProblemAnalysis.analysis.slug}
                             signals={selectedApproach.recognitionSignals}
                           />
                         )}
@@ -250,9 +259,10 @@ export default function App() {
                         <ThinkingProcess
                           approach={selectedApproach}
                           isExpanded={isThinkingExpanded}
-                          onToggle={() =>
-                            setIsThinkingExpanded((isExpanded) => !isExpanded)
-                          }
+                          onToggle={() => workspaceSlug && updateWorkspace(workspaceSlug,
+                            (current) => ({
+                              ...current, isThinkingExpanded: !current.isThinkingExpanded
+                            }))}
                         />
                       </>
                     )}
@@ -264,7 +274,7 @@ export default function App() {
         </div>
       )}
 
-      {workspaceProblem && (
+      {workspaceReady && workspaceProblem && (
         <section className="practice-page" role="tabpanel" id="section-panel-practice"
           aria-labelledby="section-tab-practice" hidden={!hasProblem || activeSection !== "practice"} tabIndex={0}>
           <ProblemHeader title={workspaceProblem.title} titleId="practice-problem-title" />
@@ -272,7 +282,7 @@ export default function App() {
         </section>
       )}
       <section className="guide-card section-page" role="tabpanel" id="section-panel-progress"
-        aria-labelledby="section-tab-progress" hidden={activeSection !== "progress"} tabIndex={0}>
+        aria-labelledby="section-tab-progress" hidden={!showSections || activeSection !== "progress"} tabIndex={0}>
         <h2>Progress</h2>
         <p>Your learning progress will appear here in a future update.</p>
         {!hasProblem && (
@@ -285,7 +295,7 @@ export default function App() {
         )}
       </section>
       <section className="guide-card section-page" role="tabpanel" id="section-panel-about"
-        aria-labelledby="section-tab-about" hidden={activeSection !== "about"} tabIndex={0}>
+        aria-labelledby="section-tab-about" hidden={!showSections || activeSection !== "about"} tabIndex={0}>
         <h2>About LeetCoach</h2>
         <p>Learn the pattern before the answer. LeetCoach helps you work through LeetCode problems with guidance you reveal at your own pace.</p>
         <ul>

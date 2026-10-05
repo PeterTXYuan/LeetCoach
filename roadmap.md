@@ -24,6 +24,7 @@ Frontend
 - Chrome Extension Manifest V3
 - Chrome Side Panel
 - Active-tab problem detection for `https://leetcode.com/problems/*`
+- Versioned per-problem Coach workspaces in `chrome.storage.local`
 
 Backend
 - FastAPI
@@ -45,6 +46,16 @@ AI
 - Current: deterministic offline MockLLMProvider or live GroqLLMProvider for Hints
 - Current: Starter Code and Full Solution remain three-problem mock examples
 - Future providers may include OpenAI, Gemini, or OpenRouter
+
+---
+
+## Persistent Coach Workspaces (October 4, 2026)
+
+`chrome.storage.local` stores a versioned `leetcoach-workspaces-v1` map keyed by problem slug. Each workspace saves the selected canonical approach ID, thinking-process expansion, section preference, and a hint entry for each approach. A hint entry holds the generated batch separately from `visibleHintCount`; Reset Hints hides the cards without deleting the batch. Clicking Get First Hint afterward reuses the saved response with no backend or LLM request. Returning from another problem or reopening the side panel restores the selected approach, visible hint count, thinking state, and section. Closing an alternative hides that approach's hints while restoring any previously visible primary-approach hints.
+
+The extension waits for storage hydration before showing a detected problem's Coach controls or writing defaults, so a saved workspace is not overwritten during startup. Stored shapes and slug/approach keys are validated; missing, obsolete, corrupt, or unavailable storage falls back to a clean in-memory workspace. A failed storage read disables writes for that panel session so a temporary outage cannot erase previously saved data. Stale selected IDs are discarded after the current DB-backed analysis loads. Whole-map writes are serialized to keep later state from being overwritten by a slower earlier write. The Manifest V3 `storage` permission was added. Theme remains in its existing `localStorage` key.
+
+Starter Code choices/results, generated full answers, Recognition Signals reveal, and loaded Practice cards remain session-only because those components still own their state. The current same-problem non-LeetCode-tab behavior keeps them mounted while the side panel stays open; they are not restored after a different problem or panel reopen. Backend APIs and persistence are unchanged.
 
 ---
 
@@ -77,9 +88,9 @@ For schema changes, edit the models, run `python -m alembic revision --autogener
 
 Seed behavior: one transaction, lookups by stable natural keys, updates existing rows without replacing their internal IDs, and inserts missing rows. Each problem present in `app/stable_data.py` exactly syncs its constraints, examples, submission templates, approaches, recognition signals, and related cards. Children absent from the source are deleted. Ordered rows retain IDs by display position; templates retain IDs by language; related cards retain IDs by slug even when moved between categories. Repeating the command adds no duplicates and refreshes curated fields. Problem rows outside the current seeded dataset and their children remain untouched. The separate `app/mock_data.py` remains the guidance source for the original three fully mocked problems.
 
-Still mocked: hint text, starter templates, full-answer code/explanations/complexities, and their existing route validation. Thinking steps are stored with approach metadata in SQLite. No real AI generation is introduced.
+At that September 30 milestone, hint text, starter templates, and full answers were mocked. Thinking steps were stored with approach metadata in SQLite. The later hint-provider milestone replaced the hint route's mock text and fixture-based validation; Starter Code and Full Solution are still mocked.
 
-Problem Specification exists so a future LLM receives factual, local grounding rather than opening a LeetCode URL, relying on memory, guessing constraints, or inventing a function signature. The database owns problem facts, submission shells, and canonical approach identity. A future LLM will own dynamic teaching output: progressive hints, level-specific Starter Code, full solutions, explanations, and complexity discussion. The internal `find_problem_context` repository helper assembles this future prompt context without exposing a new API or integrating an LLM now.
+Problem Specification gives the hint provider factual, local grounding rather than opening a LeetCode URL, relying on memory, guessing constraints, or inventing a function signature. The database owns problem facts, submission shells, and canonical approach identity. A future milestone may extend dynamic teaching to level-specific Starter Code, full solutions, explanations, and complexity discussion. The internal `find_problem_context` helper still assembles problem + language template + approach context for that future work; the hint routes use their language-free DB context loader now.
 
 Future PostgreSQL path: add the PostgreSQL driver/configuration in a separate milestone, apply and test the portable SQLAlchemy/Alembic schema against that dialect, and transfer local rows with foreign-key/sequence verification (or seed a fresh database). Public problem slugs and canonical approach keys stay unchanged. SQLite-specific connection settings are isolated in `database.py`; PostgreSQL is not installed or deployed now.
 
@@ -95,7 +106,7 @@ Future PostgreSQL path: add the PostgreSQL driver/configuration in a separate mi
 - Each of the seven seeded approaches owns structured `recognitionSignals: { quote?, bullets }` metadata: two or three beginner-friendly cues about recognizing the approach from the statement, plus a short statement excerpt. Metadata is included in the existing problem-analysis response; revealing/hiding it makes no new request.
 - Recognition disclosure resets on approach/problem changes and closing an approach; it stays intact across section switches and temporary visits to non-LeetCode tabs. Missing metadata from older backends hides the section without breaking Coach.
 - Added eight frontend recognition tests and backend coverage of all seven approach payloads. Tests verify placement inside Solutions and navigation state preservation. The initial built-app preview against FastAPI checked keyboard reveal/hide and light/dark styling at narrow sidebar width.
-- Same-problem tab restoration (September 21, 2026): temporarily visiting a non-LeetCode browser tab no longer destroys the problem workspace. Returning to the same slug restores Coach, Practice, Progress, or About and preserves approaches, hints, starter code, thinking, answers, and loaded related problems in the open side-panel session. A different slug still starts at Coach and resets problem-specific state; deliberate Progress/About selections made while away take precedence.
+- Same-problem tab restoration (September 21, 2026): temporarily visiting a non-LeetCode browser tab no longer destroys the problem workspace. Returning to the same slug restores Coach, Practice, Progress, or About and preserves approaches, hints, starter code, thinking, answers, and loaded related problems in the open side-panel session. That milestone started a different slug at Coach; the later persistent-workspace milestone restores a previously visited slug's saved section and Coach state. Deliberate Progress/About selections made while away take precedence for the last problem.
 - Practice now mirrors Coach's composition with the current problem title card above a separate Related problems card, containing Easier / Similar / Harder groups and leaving room for additional Practice sections.
 - Practice: Related Problems (September 19, 2026). `GET /api/problems/{slug}/related` returns `slug` and grouped `easier`, `similar`, and `harder` arrays; unknown problems return 404.
 - Added nine manually curated related-problem entries: one per group for each of the three seeded problems. Each has a canonical slug, title, LeetCode difficulty, and short reason. Groups reflect relative practice challenge, rather than a computed difficulty ranking.
@@ -295,6 +306,7 @@ Generated Answer Flow
 
 ## Verified This Milestone
 
+- October 4 persistent-workspace milestone: `npm test` passed 78 frontend tests, including ten new storage/hydration regressions for problem switches, panel remount, cached hint disclosure/reset, separate approach caches, non-LeetCode tab switching, stale in-flight responses, corrupt/unavailable storage, and stale canonical IDs. `npm run build` passed. Backend tests were not needed because API contracts and backend code did not change.
 - October 4 hint-quality refinement: Groq is instructed to return three one-idea questions, without naming a technique, providing a solution sequence, or copying approach metadata. Shared output handling keeps the first complete sentence and limits successive hints to 10/14/18 words and 75/100/120 characters; overlong single-sentence responses use a short fallback nudge. Groq hints that are commands, contain code formatting, or directly name the selected approach/pattern also use a short fallback question. Offline mock hints are shorter and no longer announce the approach pattern early. A manual Groq check for Two Sum returned short questions without code or a full algorithm. No frontend/API contract changed. Backend tests: 50 passed; frontend tests: 68 passed; build passed.
 - October 4 LLM hint milestone: `MockLLMProvider` and `GroqLLMProvider` share `generate_hints(context)`. The mock is deterministic and offline; Groq reads `GROQ_API_KEY` and `LEETCOACH_LLM_MODEL` only from environment or ignored `backend/.env` and is selected by `LEETCOACH_LLM_PROVIDER=groq` (default `mock`). No real Groq calls were run. Missing configuration returns sanitized 503, provider failure returns 503, and invalid output returns 502.
 - Hint grounding is SQLite Problem facts (slug, title, difficulty, summary, ordered constraints/examples) plus the selected canonical Approach (key, name, pattern, summary, thinking steps, recognition signals). It does not require a submission template, use fixture-based hint IDs, fetch LeetCode URLs, or send other approaches. The 17 newer DB-backed problems are eligible for hints through the same flow.

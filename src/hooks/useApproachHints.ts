@@ -4,6 +4,7 @@ import {
   fetchPrimaryApproachHints,
   fetchSpecificApproachHints
 } from "../api/approachHints";
+import type { SavedHints } from "../coachWorkspaceStorage";
 
 export type ApproachHintsState =
   | { status: "idle" }
@@ -16,106 +17,98 @@ type UseApproachHintsOptions = {
   slug?: string;
   selectedApproachId: string | null;
   primaryApproachId: string | null;
+  hintsByApproach?: Record<string, SavedHints>;
+  updateHints: (
+    slug: string, approachId: string,
+    update: (current: SavedHints | undefined) => SavedHints | undefined
+  ) => void;
 };
 
-type HintSnapshot = {
-  contextKey: string;
-  hintState: ApproachHintsState;
-  visibleHintCount: number;
-};
+type RequestState = { contextKey: string; status: "idle" | "loading" | "not_found" | "error" };
 
 export function useApproachHints({
   slug,
   selectedApproachId,
-  primaryApproachId
+  primaryApproachId,
+  hintsByApproach,
+  updateHints
 }: UseApproachHintsOptions) {
   const approachId = selectedApproachId ?? primaryApproachId;
   const contextKey = JSON.stringify([slug, approachId]);
-  const [snapshot, setSnapshot] = useState<HintSnapshot>({
-    contextKey,
-    hintState: { status: "idle" },
-    visibleHintCount: 0
+  const currentContextKey = useRef(contextKey);
+  currentContextKey.current = contextKey;
+  const [requestState, setRequestState] = useState<RequestState>({
+    contextKey, status: "idle"
   });
-  const cacheRef = useRef(new Map<string, ApproachHintsResponse>());
   const abortRef = useRef<AbortController | null>(null);
+  const saved = approachId ? hintsByApproach?.[approachId] : undefined;
 
   useEffect(() => {
-    cacheRef.current.clear();
-  }, [slug]);
-
-  // Default hints and explicitly selected primary hints share a canonical ID.
-  // A different ID resets disclosure and cancels even a pending/error request.
-  useEffect(() => {
-    setSnapshot({ contextKey, hintState: { status: "idle" }, visibleHintCount: 0 });
+    setRequestState({ contextKey, status: "idle" });
     return () => abortRef.current?.abort();
   }, [contextKey]);
 
-  const requestCurrentHints = useCallback(async () => {
+  const requestFirstHint = useCallback(async () => {
     if (!slug || !approachId) return;
+    if (saved) {
+      updateHints(slug, approachId, (current) => current
+        ? { ...current, visibleHintCount: 1 }
+        : current);
+      return;
+    }
 
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
-    const update = (hintState: ApproachHintsState, visibleHintCount = 0) => {
-      setSnapshot({ contextKey, hintState, visibleHintCount });
-    };
-    const cached = cacheRef.current.get(contextKey);
-    if (cached) {
-      update({ status: "success", response: cached }, Math.min(1, cached.hints.length));
-      return;
-    }
-
-    update({ status: "loading" });
+    setRequestState({ contextKey, status: "loading" });
     try {
       const response = selectedApproachId
         ? await fetchSpecificApproachHints(slug, selectedApproachId, controller.signal)
         : await fetchPrimaryApproachHints(slug, controller.signal);
-      if (controller.signal.aborted) return;
+      if (controller.signal.aborted || currentContextKey.current !== contextKey) return;
       if (!response) {
-        update({ status: "not_found" });
+        setRequestState({ contextKey, status: "not_found" });
         return;
       }
       if (response.slug !== slug || response.approachId !== approachId) {
         throw new Error("The hints do not match the requested canonical approach.");
       }
-      cacheRef.current.set(contextKey, response);
-      update({ status: "success", response }, Math.min(1, response.hints.length));
+      updateHints(slug, approachId, () => ({ response, visibleHintCount: 1 }));
+      setRequestState({ contextKey, status: "idle" });
     } catch {
-      if (!controller.signal.aborted) update({ status: "error" });
+      if (!controller.signal.aborted && currentContextKey.current === contextKey) {
+        setRequestState({ contextKey, status: "error" });
+      }
     }
-  }, [slug, approachId, selectedApproachId, contextKey]);
+  }, [slug, approachId, saved, selectedApproachId, contextKey, updateHints]);
 
   const showNextHint = useCallback(() => {
-    setSnapshot((current) => {
-      if (
-        current.contextKey !== contextKey ||
-        current.hintState.status !== "success" ||
-        current.visibleHintCount === 0
-      ) return current;
-      return {
-        ...current,
-        visibleHintCount: Math.min(
-          current.visibleHintCount + 1,
-          current.hintState.response.hints.length
-        )
-      };
-    });
-  }, [contextKey]);
+    if (!slug || !approachId) return;
+    updateHints(slug, approachId, (current) => current && current.visibleHintCount > 0
+      ? { ...current, visibleHintCount: Math.min(
+          current.visibleHintCount + 1, current.response.hints.length
+        ) }
+      : current);
+  }, [slug, approachId, updateHints]);
 
   const resetHints = useCallback(() => {
-    setSnapshot((current) => ({ ...current, visibleHintCount: 0 }));
-  }, []);
+    if (!slug || !approachId) return;
+    updateHints(slug, approachId, (current) => current
+      ? { ...current, visibleHintCount: 0 }
+      : current);
+  }, [slug, approachId, updateHints]);
 
-  // Hide the old context immediately, before the context-change effect runs.
-  const current: HintSnapshot = snapshot.contextKey === contextKey
-    ? snapshot
-    : { contextKey, hintState: { status: "idle" }, visibleHintCount: 0 };
+  const hintState: ApproachHintsState = saved
+    ? { status: "success", response: saved.response }
+    : requestState.contextKey === contextKey
+      ? { status: requestState.status }
+      : { status: "idle" };
 
   return {
-    hintState: current.hintState,
-    visibleHintCount: current.visibleHintCount,
-    requestFirstHint: requestCurrentHints,
-    retryHints: requestCurrentHints,
+    hintState,
+    visibleHintCount: saved?.visibleHintCount ?? 0,
+    requestFirstHint,
+    retryHints: requestFirstHint,
     showNextHint,
     resetHints
   };
