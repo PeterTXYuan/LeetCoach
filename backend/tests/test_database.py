@@ -11,12 +11,18 @@ from sqlalchemy.orm import Session
 from app.database import BACKEND_DIR, create_database_engine, get_database_url
 from app.main import UNAVAILABLE_DETAIL
 from app.mock_data import PROBLEM_ANALYSES
-from app.models import Approach, Problem, RecognitionSignalBullet, RecognitionSignals, RelatedProblem
+from app.models import (
+    Approach, Problem, ProblemConstraint, ProblemExample, ProblemSubmissionTemplate,
+    RecognitionSignalBullet, RecognitionSignals, RelatedProblem,
+)
 from app.seed import seed_data
 from app.services.problem_repository import find_problem_analysis
 from app.stable_data import CURATED_PROBLEMS, CURATED_RELATED_PROBLEMS
 
-TABLE_MODELS = (Problem, Approach, RecognitionSignals, RecognitionSignalBullet, RelatedProblem)
+TABLE_MODELS = (
+    Problem, Approach, RecognitionSignals, RecognitionSignalBullet, RelatedProblem,
+    ProblemConstraint, ProblemExample, ProblemSubmissionTemplate,
+)
 
 
 def public_problem_analysis(problem):
@@ -53,7 +59,7 @@ class DatabaseTests(DatabaseTestCase):
             session.scalar(select(RelatedProblem)).title = "Changed related title"
             signals = session.scalar(select(RecognitionSignals))
             signals.bullets.append(RecognitionSignalBullet(display_order=99, text="Obsolete bullet"))
-            session.add(Problem(slug="unrelated-local-record"))
+            session.add(Problem(slug="unrelated-local-record", title="Local", difficulty="Easy", summary="Local record."))
         for _ in range(2):
             with Session(self.engine) as session, session.begin():
                 seed_data(session)
@@ -67,7 +73,7 @@ class DatabaseTests(DatabaseTestCase):
     def test_database_records_drive_lookups_and_canonical_order(self):
         # Use records not present in the fixtures, deliberately inserted out of order.
         with Session(self.engine) as session, session.begin():
-            problem = Problem(slug="database-only")
+            problem = Problem(slug="database-only", title="Database Only", difficulty="Easy", summary="Database-only test record.")
             for key, order in [("second", 2), ("hash-map", 1)]:
                 problem.approaches.append(Approach(
                     approach_key=key, name=key, pattern="DB pattern", summary="DB summary",
@@ -119,7 +125,7 @@ class DatabaseTests(DatabaseTestCase):
             with Session(self.engine) as session, session.begin():
                 session.execute(delete(Problem))
                 seed_data(session)
-                session.add(Problem(slug="two-sum"))
+                session.add(Problem(slug="two-sum", title="Duplicate", difficulty="Easy", summary="Duplicate."))
         self.assertEqual(self.snapshot_ids(), before)
         self.test_existing_api_payloads_are_unchanged()
 
@@ -180,20 +186,23 @@ class DatabaseTests(DatabaseTestCase):
             attributes = {column.name: getattr(approach, column.name)
                           for column in Approach.__table__.columns if column.name != "id"}
         for record in (
-            Problem(slug="two-sum"),
+            Problem(slug="two-sum", title="Duplicate", difficulty="Easy", summary="Duplicate."),
             Approach(**attributes),
             Approach(**{**attributes, "problem_id": -1}),
             RecognitionSignals(approach_id=-1),
             RecognitionSignalBullet(signal_set_id=-1, text="Orphan", display_order=1),
             RelatedProblem(problem_id=-1, slug="orphan", title="Orphan", difficulty="Easy",
                            category="easier", display_order=1),
+            ProblemConstraint(problem_id=-1, text="Orphan", display_order=1),
+            ProblemExample(problem_id=-1, input_text="x", output_text="y", display_order=1),
+            ProblemSubmissionTemplate(problem_id=-1, language="python", code="pass"),
         ):
             with self.subTest(record=type(record).__name__), self.assertRaises(IntegrityError):
                 with Session(self.engine) as session, session.begin():
                     session.add(record)
         # The same canonical key is legal on a different problem.
         with Session(self.engine) as session, session.begin():
-            problem = Problem(slug="another-problem")
+            problem = Problem(slug="another-problem", title="Another", difficulty="Easy", summary="Another problem.")
             session.add(problem)
             session.flush()
             session.add(Approach(**{**attributes, "problem_id": problem.id}))

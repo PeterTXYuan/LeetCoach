@@ -6,7 +6,9 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app.mock_data import PROBLEM_ANALYSES
-from app.stable_data import CURATED_PROBLEMS, CURATED_RELATED_PROBLEMS, validate_curated_data
+from app.stable_data import (
+    CURATED_PROBLEMS, CURATED_PROBLEM_SPECS, CURATED_RELATED_PROBLEMS, validate_curated_data,
+)
 
 
 EXPECTED_SLUGS = {
@@ -24,6 +26,7 @@ class CuratedDataTests(unittest.TestCase):
     def test_catalog_has_the_requested_twenty_problems_and_valid_approaches(self):
         validate_curated_data()
         self.assertEqual(set(CURATED_PROBLEMS), EXPECTED_SLUGS)
+        self.assertEqual(set(CURATED_PROBLEM_SPECS), EXPECTED_SLUGS)
         self.assertEqual(set(CURATED_RELATED_PROBLEMS), EXPECTED_SLUGS)
         self.assertEqual(sum(len(p["approaches"]) for p in CURATED_PROBLEMS.values()), 41)
         self.assertEqual(sum(
@@ -33,6 +36,14 @@ class CuratedDataTests(unittest.TestCase):
         self.assertEqual(sum(
             len(cards) for groups in CURATED_RELATED_PROBLEMS.values() for cards in groups.values()
         ), 68)
+        for slug, spec in CURATED_PROBLEM_SPECS.items():
+            with self.subTest(problem_spec=slug):
+                self.assertIn(spec["difficulty"], {"Easy", "Medium", "Hard"})
+                self.assertTrue(spec["title"].strip())
+                self.assertTrue(spec["summary"].strip())
+                self.assertGreaterEqual(len(spec["constraints"]), 1)
+                self.assertGreaterEqual(len(spec["examples"]), 1)
+                self.assertEqual(set(spec["submissionTemplates"]), {"python", "java", "javascript", "cpp"})
         key_pattern = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
         for slug, problem in CURATED_PROBLEMS.items():
             with self.subTest(slug=slug):

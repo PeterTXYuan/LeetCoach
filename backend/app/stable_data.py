@@ -23,6 +23,20 @@ def related(slug, title, difficulty, reason):
     return {"slug": slug, "title": title, "difficulty": difficulty, "reason": reason}
 
 
+def example(input_text, output_text, explanation=None):
+    return {"input": input_text, "output": output_text, "explanation": explanation}
+
+
+def method_templates(python_signature, java_signature, javascript_signature, cpp_signature):
+    """Curated LeetCode-style shells; these are not progressive Starter Code."""
+    return {
+        "python": f"class Solution:\n    def {python_signature}:\n        pass",
+        "java": f"class Solution {{\n    public {java_signature} {{\n\n    }}\n}}",
+        "javascript": f"var {javascript_signature} {{\n\n}};",
+        "cpp": f"class Solution {{\npublic:\n    {cpp_signature} {{\n\n    }}\n}};",
+    }
+
+
 CURATED_PROBLEMS = {
     "two-sum": problem(
         "two-sum",
@@ -337,6 +351,231 @@ CURATED_PROBLEMS = {
 }
 
 
+CURATED_PROBLEM_SPECS = {
+    "two-sum": {
+        "title": "Two Sum", "difficulty": "Easy",
+        "summary": "Given an integer array and a target, return the indices of two distinct elements whose values add up to the target.",
+        "constraints": ["Exactly one valid answer exists.", "The same array element cannot be used twice."],
+        "examples": [example("nums = [2,7,11,15], target = 9", "[0,1]", "nums[0] + nums[1] equals 9.")],
+        "submissionTemplates": method_templates(
+            "twoSum(self, nums: List[int], target: int) -> List[int]",
+            "int[] twoSum(int[] nums, int target)",
+            "twoSum = function(nums, target)",
+            "vector<int> twoSum(vector<int>& nums, int target)"),
+    },
+    "contains-duplicate": {
+        "title": "Contains Duplicate", "difficulty": "Easy",
+        "summary": "Given an integer array, return whether any value occurs at least twice.",
+        "constraints": ["Return false when every element is distinct.", "Duplicate values may appear at any positions."],
+        "examples": [example("nums = [1,2,3,1]", "true"), example("nums = [1,2,3,4]", "false")],
+        "submissionTemplates": method_templates(
+            "containsDuplicate(self, nums: List[int]) -> bool",
+            "boolean containsDuplicate(int[] nums)",
+            "containsDuplicate = function(nums)",
+            "bool containsDuplicate(vector<int>& nums)"),
+    },
+    "valid-anagram": {
+        "title": "Valid Anagram", "difficulty": "Easy",
+        "summary": "Given two strings, return whether one can be formed by rearranging all characters of the other.",
+        "constraints": ["Every character occurrence must be used exactly once.", "Strings with different lengths cannot be anagrams."],
+        "examples": [example('s = "anagram", t = "nagaram"', "true"), example('s = "rat", t = "car"', "false")],
+        "submissionTemplates": method_templates(
+            "isAnagram(self, s: str, t: str) -> bool",
+            "boolean isAnagram(String s, String t)",
+            "isAnagram = function(s, t)",
+            "bool isAnagram(string s, string t)"),
+    },
+    "group-anagrams": {
+        "title": "Group Anagrams", "difficulty": "Medium",
+        "summary": "Given a list of strings, group together strings that are anagrams of one another.",
+        "constraints": ["Each input string must appear in exactly one output group.", "The groups may be returned in any order."],
+        "examples": [example('strs = ["eat","tea","tan","ate","nat","bat"]', '[["bat"],["nat","tan"],["ate","eat","tea"]]', "Group ordering and ordering within groups may vary.")],
+        "submissionTemplates": method_templates(
+            "groupAnagrams(self, strs: List[str]) -> List[List[str]]",
+            "List<List<String>> groupAnagrams(String[] strs)",
+            "groupAnagrams = function(strs)",
+            "vector<vector<string>> groupAnagrams(vector<string>& strs)"),
+    },
+    "valid-palindrome": {
+        "title": "Valid Palindrome", "difficulty": "Easy",
+        "summary": "Determine whether a string reads the same in both directions after ignoring non-alphanumeric characters and letter case.",
+        "constraints": ["Only letters and digits participate in the comparison.", "Letter case does not affect equality."],
+        "examples": [example('s = "A man, a plan, a canal: Panama"', "true"), example('s = "race a car"', "false")],
+        "submissionTemplates": method_templates(
+            "isPalindrome(self, s: str) -> bool",
+            "boolean isPalindrome(String s)",
+            "isPalindrome = function(s)",
+            "bool isPalindrome(string s)"),
+    },
+    "two-sum-ii-input-array-is-sorted": {
+        "title": "Two Sum II - Input Array Is Sorted", "difficulty": "Medium",
+        "summary": "Given a non-decreasing integer array and a target, return the one-based indices of two distinct elements whose values add up to the target.",
+        "constraints": ["The array is sorted in non-decreasing order.", "Exactly one valid answer exists.", "Returned indices are one-based and refer to different elements.", "Only constant extra space may be used."],
+        "examples": [example("numbers = [2,7,11,15], target = 9", "[1,2]")],
+        "submissionTemplates": method_templates(
+            "twoSum(self, numbers: List[int], target: int) -> List[int]",
+            "int[] twoSum(int[] numbers, int target)",
+            "twoSum = function(numbers, target)",
+            "vector<int> twoSum(vector<int>& numbers, int target)"),
+    },
+    "3sum": {
+        "title": "3Sum", "difficulty": "Medium",
+        "summary": "Given an integer array, return all unique value triplets whose sum is zero.",
+        "constraints": ["Each triplet uses three distinct indices.", "The result must not contain duplicate triplets.", "Triplets and the result may be returned in any order."],
+        "examples": [example("nums = [-1,0,1,2,-1,-4]", "[[-1,-1,2],[-1,0,1]]")],
+        "submissionTemplates": method_templates(
+            "threeSum(self, nums: List[int]) -> List[List[int]]",
+            "List<List<Integer>> threeSum(int[] nums)",
+            "threeSum = function(nums)",
+            "vector<vector<int>> threeSum(vector<int>& nums)"),
+    },
+    "best-time-to-buy-and-sell-stock": {
+        "title": "Best Time to Buy and Sell Stock", "difficulty": "Easy",
+        "summary": "Given daily stock prices, return the largest profit from one buy followed by one later sale, or zero if no profit is possible.",
+        "constraints": ["At most one buy and one sale are allowed.", "The sale must occur after the buy.", "Return zero when every possible transaction loses money."],
+        "examples": [example("prices = [7,1,5,3,6,4]", "5", "Buy at 1 and sell later at 6.")],
+        "submissionTemplates": method_templates(
+            "maxProfit(self, prices: List[int]) -> int",
+            "int maxProfit(int[] prices)",
+            "maxProfit = function(prices)",
+            "int maxProfit(vector<int>& prices)"),
+    },
+    "longest-substring-without-repeating-characters": {
+        "title": "Longest Substring Without Repeating Characters", "difficulty": "Medium",
+        "summary": "Given a string, return the length of its longest contiguous substring containing no repeated characters.",
+        "constraints": ["A substring is contiguous.", "Character occurrences are compared exactly, including spaces and symbols."],
+        "examples": [example('s = "abcabcbb"', "3", 'One longest valid substring is "abc".'), example('s = "bbbbb"', "1")],
+        "submissionTemplates": method_templates(
+            "lengthOfLongestSubstring(self, s: str) -> int",
+            "int lengthOfLongestSubstring(String s)",
+            "lengthOfLongestSubstring = function(s)",
+            "int lengthOfLongestSubstring(string s)"),
+    },
+    "longest-repeating-character-replacement": {
+        "title": "Longest Repeating Character Replacement", "difficulty": "Medium",
+        "summary": "Given an uppercase string and a replacement limit, return the maximum length of a substring that can be made of one repeated letter using at most that many replacements.",
+        "constraints": ["Only characters inside one contiguous substring are considered.", "No more than k characters may be replaced.", "The input string contains uppercase English letters."],
+        "examples": [example('s = "ABAB", k = 2', "4"), example('s = "AABABBA", k = 1', "4")],
+        "submissionTemplates": method_templates(
+            "characterReplacement(self, s: str, k: int) -> int",
+            "int characterReplacement(String s, int k)",
+            "characterReplacement = function(s, k)",
+            "int characterReplacement(string s, int k)"),
+    },
+    "valid-parentheses": {
+        "title": "Valid Parentheses", "difficulty": "Easy",
+        "summary": "Determine whether a bracket string is correctly matched and nested.",
+        "constraints": ["The string contains only parentheses, square brackets, and curly braces.", "Every opening bracket must close with the same type in the correct order."],
+        "examples": [example('s = "()[]{}"', "true"), example('s = "(]"', "false")],
+        "submissionTemplates": method_templates(
+            "isValid(self, s: str) -> bool",
+            "boolean isValid(String s)",
+            "isValid = function(s)",
+            "bool isValid(string s)"),
+    },
+    "min-stack": {
+        "title": "Min Stack", "difficulty": "Medium",
+        "summary": "Design a stack supporting push, pop, top, and retrieval of the current minimum element, with each operation running in constant time.",
+        "constraints": ["pop, top, and getMin are called only when the stack is non-empty.", "All four operations must run in constant time."],
+        "examples": [example('["MinStack","push","push","push","getMin","pop","top","getMin"]\n[[],[-2],[0],[-3],[],[],[],[]]', "[null,null,null,null,-3,null,0,-2]")],
+        "submissionTemplates": {
+            "python": "class MinStack:\n    def __init__(self):\n        pass\n\n    def push(self, val: int) -> None:\n        pass\n\n    def pop(self) -> None:\n        pass\n\n    def top(self) -> int:\n        pass\n\n    def getMin(self) -> int:\n        pass",
+            "java": "class MinStack {\n    public MinStack() {\n\n    }\n\n    public void push(int val) {\n\n    }\n\n    public void pop() {\n\n    }\n\n    public int top() {\n\n    }\n\n    public int getMin() {\n\n    }\n}",
+            "javascript": "var MinStack = function() {\n\n};\n\nMinStack.prototype.push = function(val) {\n\n};\n\nMinStack.prototype.pop = function() {\n\n};\n\nMinStack.prototype.top = function() {\n\n};\n\nMinStack.prototype.getMin = function() {\n\n};",
+            "cpp": "class MinStack {\npublic:\n    MinStack() {\n\n    }\n\n    void push(int val) {\n\n    }\n\n    void pop() {\n\n    }\n\n    int top() {\n\n    }\n\n    int getMin() {\n\n    }\n};",
+        },
+    },
+    "daily-temperatures": {
+        "title": "Daily Temperatures", "difficulty": "Medium",
+        "summary": "For each daily temperature, return how many days must pass before a warmer temperature occurs, using zero when none occurs.",
+        "constraints": ["Each output position corresponds to the same input day.", "A qualifying future day must have a strictly higher temperature."],
+        "examples": [example("temperatures = [73,74,75,71,69,72,76,73]", "[1,1,4,2,1,1,0,0]")],
+        "submissionTemplates": method_templates(
+            "dailyTemperatures(self, temperatures: List[int]) -> List[int]",
+            "int[] dailyTemperatures(int[] temperatures)",
+            "dailyTemperatures = function(temperatures)",
+            "vector<int> dailyTemperatures(vector<int>& temperatures)"),
+    },
+    "binary-search": {
+        "title": "Binary Search", "difficulty": "Easy",
+        "summary": "Given a sorted array of distinct integers and a target, return its index or -1 when it is absent.",
+        "constraints": ["The array is sorted in ascending order.", "All array values are distinct.", "The expected running time is logarithmic in the array length."],
+        "examples": [example("nums = [-1,0,3,5,9,12], target = 9", "4"), example("nums = [-1,0,3,5,9,12], target = 2", "-1")],
+        "submissionTemplates": method_templates(
+            "search(self, nums: List[int], target: int) -> int",
+            "int search(int[] nums, int target)",
+            "search = function(nums, target)",
+            "int search(vector<int>& nums, int target)"),
+    },
+    "search-in-rotated-sorted-array": {
+        "title": "Search in Rotated Sorted Array", "difficulty": "Medium",
+        "summary": "Given a distinct ascending array that may have been rotated and a target, return the target index or -1 if absent.",
+        "constraints": ["All array values are distinct.", "The array was originally sorted in ascending order and rotated at an unknown position.", "The expected running time is logarithmic."],
+        "examples": [example("nums = [4,5,6,7,0,1,2], target = 0", "4"), example("nums = [4,5,6,7,0,1,2], target = 3", "-1")],
+        "submissionTemplates": method_templates(
+            "search(self, nums: List[int], target: int) -> int",
+            "int search(int[] nums, int target)",
+            "search = function(nums, target)",
+            "int search(vector<int>& nums, int target)"),
+    },
+    "reverse-linked-list": {
+        "title": "Reverse Linked List", "difficulty": "Easy",
+        "summary": "Given the head of a singly linked list, reverse the list and return its new head.",
+        "constraints": ["The input may be an empty list.", "Node values must be preserved while links are reversed."],
+        "examples": [example("head = [1,2,3,4,5]", "[5,4,3,2,1]"), example("head = []", "[]")],
+        "submissionTemplates": method_templates(
+            "reverseList(self, head: Optional[ListNode]) -> Optional[ListNode]",
+            "ListNode reverseList(ListNode head)",
+            "reverseList = function(head)",
+            "ListNode* reverseList(ListNode* head)"),
+    },
+    "merge-two-sorted-lists": {
+        "title": "Merge Two Sorted Lists", "difficulty": "Easy",
+        "summary": "Merge two non-decreasing singly linked lists by reusing their nodes and return the head of the merged sorted list.",
+        "constraints": ["Either input list may be empty.", "Both input lists are sorted in non-decreasing order.", "The result must contain all nodes from both inputs."],
+        "examples": [example("list1 = [1,2,4], list2 = [1,3,4]", "[1,1,2,3,4,4]"), example("list1 = [], list2 = []", "[]")],
+        "submissionTemplates": method_templates(
+            "mergeTwoLists(self, list1: Optional[ListNode], list2: Optional[ListNode]) -> Optional[ListNode]",
+            "ListNode mergeTwoLists(ListNode list1, ListNode list2)",
+            "mergeTwoLists = function(list1, list2)",
+            "ListNode* mergeTwoLists(ListNode* list1, ListNode* list2)"),
+    },
+    "maximum-depth-of-binary-tree": {
+        "title": "Maximum Depth of Binary Tree", "difficulty": "Easy",
+        "summary": "Given a binary tree root, return the number of nodes on the longest path from the root to a leaf.",
+        "constraints": ["An empty tree has depth zero.", "A tree containing only the root has depth one."],
+        "examples": [example("root = [3,9,20,null,null,15,7]", "3"), example("root = [1,null,2]", "2")],
+        "submissionTemplates": method_templates(
+            "maxDepth(self, root: Optional[TreeNode]) -> int",
+            "int maxDepth(TreeNode root)",
+            "maxDepth = function(root)",
+            "int maxDepth(TreeNode* root)"),
+    },
+    "number-of-islands": {
+        "title": "Number of Islands", "difficulty": "Medium",
+        "summary": "Given a rectangular grid of land and water cells, return the number of separate land regions connected horizontally or vertically.",
+        "constraints": ["Land is represented by '1' and water by '0'.", "Diagonal cells are not connected.", "The grid is rectangular and non-empty."],
+        "examples": [example('grid = [["1","1","1","1","0"],["1","1","0","1","0"],["1","1","0","0","0"],["0","0","0","0","0"]]', "1")],
+        "submissionTemplates": method_templates(
+            "numIslands(self, grid: List[List[str]]) -> int",
+            "int numIslands(char[][] grid)",
+            "numIslands = function(grid)",
+            "int numIslands(vector<vector<char>>& grid)"),
+    },
+    "climbing-stairs": {
+        "title": "Climbing Stairs", "difficulty": "Easy",
+        "summary": "Given a staircase height, return the number of distinct ways to reach the top by taking one or two steps at a time.",
+        "constraints": ["The staircase has at least one step.", "Two ways are distinct when their sequences of one-step and two-step moves differ."],
+        "examples": [example("n = 2", "2"), example("n = 3", "3")],
+        "submissionTemplates": method_templates(
+            "climbStairs(self, n: int) -> int",
+            "int climbStairs(int n)",
+            "climbStairs = function(n)",
+            "int climbStairs(int n)"),
+    },
+}
+
+
 CURATED_RELATED_PROBLEMS = {
     "two-sum": {
         "easier": [related("running-sum-of-1d-array", "Running Sum of 1d Array", "Easy", "Warm up with array traversal and a running total.")],
@@ -452,10 +691,30 @@ CURATED_RELATED_PROBLEMS = {
 }
 
 
-def validate_curated_data(problems=CURATED_PROBLEMS, related_problems=CURATED_RELATED_PROBLEMS):
-    if set(problems) != set(related_problems):
-        raise ValueError("Every curated problem must have a related-problem grouping.")
+def validate_curated_data(
+    problems=CURATED_PROBLEMS,
+    related_problems=CURATED_RELATED_PROBLEMS,
+    problem_specs=CURATED_PROBLEM_SPECS,
+):
+    if set(problems) != set(related_problems) or set(problems) != set(problem_specs):
+        raise ValueError("Every curated problem must have specification and related-problem data.")
     for slug, data in problems.items():
+        spec = problem_specs[slug]
+        if spec["difficulty"] not in {"Easy", "Medium", "Hard"}:
+            raise ValueError(f"Problem '{slug}' has an invalid difficulty.")
+        if not all(spec[field].strip() for field in ("title", "summary")):
+            raise ValueError(f"Problem '{slug}' needs a title and factual summary.")
+        if not spec["constraints"] or not all(text.strip() for text in spec["constraints"]):
+            raise ValueError(f"Problem '{slug}' needs ordered constraints.")
+        if not spec["examples"] or any(
+            not item["input"].strip() or not item["output"].strip() for item in spec["examples"]
+        ):
+            raise ValueError(f"Problem '{slug}' needs structured examples.")
+        template_languages = set(spec["submissionTemplates"])
+        if not template_languages or not template_languages <= {"python", "java", "javascript", "cpp"}:
+            raise ValueError(f"Problem '{slug}' has invalid submission-template languages.")
+        if not all(code.strip() for code in spec["submissionTemplates"].values()):
+            raise ValueError(f"Problem '{slug}' has an empty submission template.")
         if data["slug"] != slug or not 1 <= len(data["approaches"]) <= 3:
             raise ValueError(f"Problem '{slug}' has invalid identity or approach count.")
         keys = [item["id"] for item in data["approaches"]]

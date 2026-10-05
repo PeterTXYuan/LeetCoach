@@ -9,21 +9,66 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.database import engine
-from app.models import Approach, Problem, RecognitionSignalBullet, RecognitionSignals, RelatedProblem
-from app.stable_data import CURATED_PROBLEMS, CURATED_RELATED_PROBLEMS, validate_curated_data
+from app.models import (
+    Approach, Problem, ProblemConstraint, ProblemExample, ProblemSubmissionTemplate,
+    RecognitionSignalBullet, RecognitionSignals, RelatedProblem,
+)
+from app.stable_data import (
+    CURATED_PROBLEMS, CURATED_PROBLEM_SPECS, CURATED_RELATED_PROBLEMS, validate_curated_data,
+)
 
 
-def seed_data(session: Session, problems=None, related_problems=None):
+def seed_data(session: Session, problems=None, related_problems=None, problem_specs=None):
     """The caller owns the transaction; no schema creation or implicit commit."""
     problems = CURATED_PROBLEMS if problems is None else problems
     related_problems = CURATED_RELATED_PROBLEMS if related_problems is None else related_problems
-    validate_curated_data(problems, related_problems)
+    problem_specs = CURATED_PROBLEM_SPECS if problem_specs is None else problem_specs
+    validate_curated_data(problems, related_problems, problem_specs)
     for slug, data in problems.items():
+        spec = problem_specs[slug]
         problem = session.scalar(select(Problem).where(Problem.slug == slug))
         if problem is None:
-            problem = Problem(slug=slug)
+            problem = Problem(slug=slug, title=spec["title"], difficulty=spec["difficulty"], summary=spec["summary"])
             session.add(problem)
             session.flush()
+        problem.title = spec["title"]
+        problem.difficulty = spec["difficulty"]
+        problem.summary = spec["summary"]
+
+        existing_constraints = {item.display_order: item for item in problem.constraints}
+        for order, text in enumerate(spec["constraints"], start=1):
+            item = existing_constraints.get(order)
+            if item is None:
+                item = ProblemConstraint(display_order=order)
+                problem.constraints.append(item)
+            item.text = text
+        for order, item in existing_constraints.items():
+            if order > len(spec["constraints"]):
+                problem.constraints.remove(item)
+
+        existing_examples = {item.display_order: item for item in problem.examples}
+        for order, source in enumerate(spec["examples"], start=1):
+            item = existing_examples.get(order)
+            if item is None:
+                item = ProblemExample(display_order=order)
+                problem.examples.append(item)
+            item.input_text = source["input"]
+            item.output_text = source["output"]
+            item.explanation = source.get("explanation")
+        for order, item in existing_examples.items():
+            if order > len(spec["examples"]):
+                problem.examples.remove(item)
+
+        existing_templates = {item.language: item for item in problem.submission_templates}
+        for language, code in spec["submissionTemplates"].items():
+            item = existing_templates.get(language)
+            if item is None:
+                item = ProblemSubmissionTemplate(language=language)
+                problem.submission_templates.append(item)
+            item.code = code
+        for language, item in existing_templates.items():
+            if language not in spec["submissionTemplates"]:
+                problem.submission_templates.remove(item)
         existing_approaches = {a.approach_key: a for a in problem.approaches}
         source_approach_keys = {a["id"] for a in data["approaches"]}
         for key, approach in existing_approaches.items():

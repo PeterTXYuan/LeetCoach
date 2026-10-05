@@ -37,7 +37,7 @@ py -m uvicorn app.main:app --reload
 
 Relative SQLite paths resolve from `backend/`; an absolute URL such as `sqlite:///C:/path/to/leetcoach.db` also works. Parent directories must already exist. Restart the server after changing the URL. On Windows, `py` can replace `python` in all commands.
 
-The seed command runs in one transaction and currently syncs 20 problems, 41 approaches, 41 recognition signal sets (84 ordered bullets), and 68 related cards. Stable editorial data lives in `app/stable_data.py`, independently of the three-problem mock guidance fixtures. For each problem present in the curated source, approaches and related cards exactly match that source: missing children are inserted, existing children are updated, and stale children are deleted. Approach deletion also removes its recognition metadata; obsolete bullet positions are still cleaned up. Retained records keep their internal IDs, including related cards moved between categories, and repeated runs create no duplicates. Problem rows outside the current seeded dataset and all their children are left untouched. This is a local editorial bootstrap, not a concurrent import service.
+The seed command runs in one transaction and currently syncs 20 problem specifications, 41 approaches, 41 recognition signal sets (84 ordered bullets), and 68 related cards. Stable editorial data lives in `app/stable_data.py`, independently of the three-problem mock guidance fixtures. For each problem present in the curated source, constraints, examples, submission templates, approaches, and related cards exactly match that source: missing children are inserted, existing children are updated, and stale children are deleted. Approach deletion also removes its recognition metadata; obsolete ordered rows are cleaned up. Retained records keep their internal IDs, including related cards moved between categories, and repeated runs create no duplicates. Problem rows outside the current seeded dataset and all their children are left untouched. This is a local editorial bootstrap, not a concurrent import service.
 
 For schema changes, edit `app/models.py`, then run:
 
@@ -48,17 +48,22 @@ python -m alembic upgrade head
 python -m alembic check
 ```
 
-`python -m alembic current` reports the applied revision. The first revision is `0001`. A downgrade to `base` drops these tables and their data; upgrade/downgrade round trips are tested only on disposable test databases. Back up local data before destructive schema work.
+`python -m alembic current` reports the applied revision. `0001` creates stable approach metadata; `0002` adds Problem Specification / LLM-grounding data. A downgrade to `base` drops these tables and their data; upgrade/downgrade round trips are tested only on disposable test databases. Back up local data before destructive schema work.
 
 ## Schema
 
-- `problems`: internal integer `id`, unique `slug`.
+- `problems`: internal integer `id`, unique `slug`, human title, constrained difficulty, and concise algorithm-neutral summary.
+- `problem_constraints`: ordered factual constraints, unique by `(problem_id, display_order)`.
+- `problem_examples`: ordered input/output examples with optional explanations, unique by `(problem_id, display_order)`.
+- `problem_submission_templates`: one LeetCode-style base template per problem/language, constrained to `python`, `java`, `javascript`, and `cpp`. These are factual function/class shells, separate from progressive Starter Code.
 - `approaches`: internal integer `id`, problem foreign key, canonical `approach_key`, name, pattern, summary, primary flag, display order, and JSON thinking steps. `(problem_id, approach_key)` is unique; public `approach.id` is always the string key. Seed validation enforces exactly one primary approach per seeded problem.
 - `recognition_signal_sets`: one per approach, with an optional quote.
 - `recognition_signal_bullets`: signal-set foreign key, text, and positive display order unique within that set.
 - `related_problems`: source problem foreign key, external target slug/title/difficulty, optional reason, `easier / similar / harder` category, and display order. A target slug is unique per source problem and need not be a supported Coach problem.
 
-SQLite foreign keys are enabled on every connection, with cascading deletion of owned metadata. Request-scoped SQLAlchemy sessions close after each response. Recognition and related entries are serialized in stored display order.
+SQLite foreign keys are enabled on every connection, with cascading deletion of owned metadata. Request-scoped SQLAlchemy sessions close after each response. Ordered problem facts and recognition/related entries are loaded in stored display order.
+
+`app.services.problem_repository.find_problem_context(...)` is an internal future-LLM boundary. It loads the problem specification, ordered constraints/examples, one requested-language submission template, and one canonical approach. It does not call an LLM or add a public endpoint.
 
 ## Endpoints
 
@@ -70,7 +75,7 @@ SQLite foreign keys are enabled on every connection, with cascading deletion of 
 - `POST /api/problems/{slug}/approaches/{approach_id}/solution` with `{"language":"python"}`
 - `POST /api/problems/{slug}/approaches/{approach_id}/starter-code` with `{"language":"java","level":2}`
 
-Only `GET /api/problems/{slug}` and `GET /api/problems/{slug}/related` read SQLite in this milestone. They preserve their previous JSON shapes and unknown-problem 404 responses, with no fallback to the dictionaries. Analysis includes approaches, thinking steps, and recognition signals; it excludes hints and internal database IDs.
+`GET /api/problems/{slug}` and `GET /api/problems/{slug}/related` preserve their previous JSON shapes and unknown-problem 404 responses. Problem Specification rows remain internal for future grounding and are not added to the frontend payloads in this milestone.
 
 Both hint routes and the starter-code/full-solution POST routes remain in their current mock services, including their fixture-based problem/approach validation. Their content is not stored in SQLite. Adding a problem only to the DB does not yet add guidance templates. `/health` remains a process health check, not a database readiness check.
 
@@ -91,7 +96,7 @@ python -m pip install -r backend/requirements-dev.txt
 python -B -m unittest discover -s backend/tests
 ```
 
-On Windows, use `py` if `python` is not on PATH. The suite checks the 20-problem catalog, full-answer snippets, all 84 starter-code combinations for the original three problems, request validation, and approach-specific progressive structure. Database tests create temporary file-backed SQLite databases through the real Alembic migration, seed them, override the API session dependency, and dispose of them afterward. They do not require or alter your local database. Coverage includes payload parity, DB-only lookups, persistence, canonical ID uniqueness, foreign keys/cascades, rollback, exact-sync seeding, and migration/model consistency.
+On Windows, use `py` if `python` is not on PATH. The suite checks the 20-problem catalog and specifications, all 80 language templates, full-answer snippets, all 84 starter-code combinations for the original three problems, request validation, and approach-specific progressive structure. Database tests create temporary file-backed SQLite databases through the real Alembic migrations, seed them, override the API session dependency, and dispose of them afterward. They do not require or alter your local database. Coverage includes `0001 ↔ 0002` migration behavior, ordered facts, payload parity, internal context loading, persistence, uniqueness, foreign keys/cascades, rollback, exact-sync seeding, retained IDs, and migration/model consistency.
 
 ## Future PostgreSQL path
 
