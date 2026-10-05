@@ -4,12 +4,14 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.database import get_session
+from app.llm.base import (
+    ProviderConfigurationError, ProviderOutputError, ProviderUnavailableError,
+    validate_hints,
+)
+from app.llm.provider_factory import get_llm_provider
 from app.mock_data import PROBLEM_ANALYSES
-from app.services.problem_repository import find_problem_analysis, find_related_problems
-
-from app.services.hint_service import (
-    get_approach_hints,
-    get_primary_approach_hints,
+from app.services.problem_repository import (
+    find_hint_problem_context, find_problem_analysis, find_related_problems,
 )
 from app.services.solution_service import (
     UnsupportedLanguageError,
@@ -76,16 +78,34 @@ def get_problem_analysis(slug: str, session: Session = Depends(get_session)):
     return analysis
 
 
-@app.get("/api/problems/{slug}/hints")
-def get_problem_hints(slug: str):
-    problem = get_problem_or_404(slug)
-    approach_id, hints = get_primary_approach_hints(problem)
-
+def generate_db_hints(problem_context: dict, approach: dict):
+    context = {"problem": problem_context["problem"], "approach": approach}
+    try:
+        hints = validate_hints(get_llm_provider().generate_hints(context))
+    except ProviderConfigurationError:
+        raise HTTPException(status_code=503, detail="Hint provider is not configured.")
+    except ProviderUnavailableError:
+        raise HTTPException(status_code=503, detail="Hint provider is temporarily unavailable.")
+    except ProviderOutputError:
+        raise HTTPException(status_code=502, detail="Hint provider returned invalid hints.")
     return {
-        "slug": problem["slug"],
-        "approachId": approach_id,
+        "slug": problem_context["problem"]["slug"],
+        "approachId": approach["id"],
         "hints": hints,
     }
+
+
+@app.get("/api/problems/{slug}/hints")
+def get_problem_hints(slug: str, session: Session = Depends(get_session)):
+    problem_context = find_hint_problem_context(session, slug)
+    if problem_context is None:
+        raise HTTPException(status_code=404, detail=UNAVAILABLE_DETAIL)
+    approach = next(
+        (item for item in problem_context["approaches"] if item["isPrimary"]), None
+    )
+    if approach is None:
+        raise HTTPException(status_code=404, detail=APPROACH_UNAVAILABLE_DETAIL)
+    return generate_db_hints(problem_context, approach)
 
 
 @app.get("/api/problems/{slug}/related")
@@ -97,19 +117,18 @@ def get_problem_related(slug: str, session: Session = Depends(get_session)):
 
 
 @app.get("/api/problems/{slug}/approaches/{approach_id}/hints")
-def get_problem_approach_hints(slug: str, approach_id: str):
-    problem = get_problem_or_404(slug)
-
-    try:
-        hints = get_approach_hints(problem, approach_id)
-    except KeyError:
+def get_problem_approach_hints(
+    slug: str, approach_id: str, session: Session = Depends(get_session)
+):
+    problem_context = find_hint_problem_context(session, slug)
+    if problem_context is None:
+        raise HTTPException(status_code=404, detail=UNAVAILABLE_DETAIL)
+    approach = next(
+        (item for item in problem_context["approaches"] if item["id"] == approach_id), None
+    )
+    if approach is None:
         raise HTTPException(status_code=404, detail=APPROACH_UNAVAILABLE_DETAIL)
-
-    return {
-        "slug": problem["slug"],
-        "approachId": approach_id,
-        "hints": hints,
-    }
+    return generate_db_hints(problem_context, approach)
 
 
 @app.post("/api/problems/{slug}/approaches/{approach_id}/solution")

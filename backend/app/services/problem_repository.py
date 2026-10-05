@@ -84,3 +84,31 @@ def find_problem_context(session: Session, slug: str, approach_id: str, language
         },
         "approach": serialize_approach(approach),
     }
+
+
+def find_hint_problem_context(session: Session, slug: str):
+    """Load DB facts for hints without requiring a language or code template."""
+    problem = session.scalar(select(Problem).where(Problem.slug == slug).options(
+        selectinload(Problem.constraints),
+        selectinload(Problem.examples),
+        selectinload(Problem.approaches)
+        .selectinload(Approach.recognition_signals)
+        .selectinload(RecognitionSignals.bullets),
+    ))
+    if problem is None:
+        return None
+    return {
+        "problem": {
+            "slug": problem.slug,
+            "title": problem.title,
+            "difficulty": problem.difficulty,
+            "summary": problem.summary,
+            "constraints": [item.text for item in problem.constraints],
+            "examples": [
+                {"input": item.input_text, "output": item.output_text,
+                 "explanation": item.explanation}
+                for item in problem.examples
+            ],
+        },
+        "approaches": [serialize_approach(approach) for approach in problem.approaches],
+    }

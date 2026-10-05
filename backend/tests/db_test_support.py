@@ -3,6 +3,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(BACKEND_DIR))
@@ -15,6 +16,7 @@ from sqlalchemy.orm import Session
 
 from app.database import create_database_engine, get_session
 from app.main import app
+from app.llm.mock_provider import MockLLMProvider
 from app.seed import seed_data
 
 
@@ -35,6 +37,9 @@ class DatabaseTestCase(unittest.TestCase):
 
         app.dependency_overrides[get_session] = test_session
         self.addCleanup(app.dependency_overrides.pop, get_session)
+        provider_patch = patch("app.main.get_llm_provider", return_value=MockLLMProvider())
+        provider_patch.start()
+        self.addCleanup(provider_patch.stop)
         self.client = TestClient(app)
         self.addCleanup(self.client.close)
 

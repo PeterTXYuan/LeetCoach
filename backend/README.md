@@ -50,6 +50,20 @@ python -m alembic check
 
 `python -m alembic current` reports the applied revision. `0001` creates stable approach metadata; `0002` adds Problem Specification / LLM-grounding data. A downgrade to `base` drops these tables and their data; upgrade/downgrade round trips are tested only on disposable test databases. Back up local data before destructive schema work.
 
+## Hint provider
+
+Both hint GET routes now load the problem facts and canonical selected approach from SQLite, then ask one `LLMProvider` call for all three progressive hints. The primary route uses the DB primary flag; the approach route uses the exact public `approach.id` key. The hint context contains title, difficulty, summary, ordered constraints/examples, approach name/pattern/summary, thinking steps, and recognition signals. It does not require a language or submission template, and it sends no LeetCode URL. The response remains `{slug, approachId, hints}`; the frontend reveals the three returned hints one at a time.
+
+Copy `.env.example` to `backend/.env` for local configuration. Environment variables already set in the shell take precedence over this file. `backend/.env` is ignored by Git.
+
+| Variable | Purpose |
+| --- | --- |
+| `LEETCOACH_LLM_PROVIDER` | `mock` (default) for offline deterministic hints, or `groq` for live hints. |
+| `LEETCOACH_LLM_MODEL` | Groq model ID, required when `groq` is selected. |
+| `GROQ_API_KEY` | Groq API key, required when `groq` is selected. Leave blank for mock mode. |
+
+`app/llm/base.py` defines the provider operation and strict three-hint validation. Each displayed hint is limited to one sentence; the three levels allow at most 10/14/18 words and 75/100/120 characters. An overlong explanation is replaced with a short safe nudge if its first sentence is also too long. `MockLLMProvider` uses only the supplied DB context and makes no network calls. `GroqLLMProvider` sends one structured JSON request with a selected-approach-only teaching instruction, asks for three short questions rather than solution steps, and uses a 20-second timeout without SDK retries. If Groq still returns a command, code formatting, or the selected approach's name/pattern, that hint is replaced with a short question. Missing configuration returns HTTP 503; provider outages return 503; malformed output returns 502. Errors exposed to the extension do not contain prompts, raw provider responses, or the API key. Starter Code and Full Solution still use the original three-problem mock services.
+
 ## Schema
 
 - `problems`: internal integer `id`, unique `slug`, human title, constrained difficulty, and concise algorithm-neutral summary.
@@ -77,7 +91,7 @@ SQLite foreign keys are enabled on every connection, with cascading deletion of 
 
 `GET /api/problems/{slug}` and `GET /api/problems/{slug}/related` preserve their previous JSON shapes and unknown-problem 404 responses. Problem Specification rows remain internal for future grounding and are not added to the frontend payloads in this milestone.
 
-Both hint routes and the starter-code/full-solution POST routes remain in their current mock services, including their fixture-based problem/approach validation. Their content is not stored in SQLite. Adding a problem only to the DB does not yet add guidance templates. `/health` remains a process health check, not a database readiness check.
+Both hint routes resolve problem/approach IDs from SQLite and use the configured provider. The starter-code/full-solution POST routes retain fixture-based problem/approach validation and mock templates; adding a problem only to the DB does not add code templates. `/health` remains a process health check, not a database readiness check.
 
 The analysis response includes `recognitionSignals` on each canonical approach: an optional `quote` string and a `bullets` string array. All 41 seeded approaches have two or three short recognition cues. This metadata is stored directly with its approach and revealed locally in Coach, without an additional endpoint or request.
 
@@ -96,8 +110,8 @@ python -m pip install -r backend/requirements-dev.txt
 python -B -m unittest discover -s backend/tests
 ```
 
-On Windows, use `py` if `python` is not on PATH. The suite checks the 20-problem catalog and specifications, all 80 language templates, full-answer snippets, all 84 starter-code combinations for the original three problems, request validation, and approach-specific progressive structure. Database tests create temporary file-backed SQLite databases through the real Alembic migrations, seed them, override the API session dependency, and dispose of them afterward. They do not require or alter your local database. Coverage includes `0001 ↔ 0002` migration behavior, ordered facts, payload parity, internal context loading, persistence, uniqueness, foreign keys/cascades, rollback, exact-sync seeding, retained IDs, and migration/model consistency.
+On Windows, use `py` if `python` is not on PATH. The suite checks the 20-problem catalog and specifications, all 80 language templates, full-answer snippets, all 84 starter-code combinations for the original three problems, request validation, and approach-specific progressive structure. Database tests create temporary file-backed SQLite databases through the real Alembic migrations, seed them, override the API session dependency and hint provider, and dispose of them afterward. They do not require or alter your local database. Hint tests use only mock/fake providers and never call Groq or require `GROQ_API_KEY`. Coverage includes `0001 ↔ 0002` migration behavior, ordered facts, payload parity, internal context loading, persistence, uniqueness, foreign keys/cascades, rollback, exact-sync seeding, retained IDs, and migration/model consistency.
 
 ## Future PostgreSQL path
 
-The SQLAlchemy models use portable relational types and keep SQLite connection settings isolated in `database.py`. A later PostgreSQL milestone will add its driver, configure a PostgreSQL URL, run and verify Alembic migrations against that dialect, and transfer existing rows with foreign keys and sequences checked (or seed a fresh dataset). Preserve the public slugs and approach keys throughout. PostgreSQL, authentication, cloud deployment, and real LLM providers are not part of this milestone.
+The SQLAlchemy models use portable relational types and keep SQLite connection settings isolated in `database.py`. A later PostgreSQL milestone will add its driver, configure a PostgreSQL URL, run and verify Alembic migrations against that dialect, and transfer existing rows with foreign keys and sequences checked (or seed a fresh dataset). Preserve the public slugs and approach keys throughout. PostgreSQL, authentication, and cloud deployment remain outside this milestone.

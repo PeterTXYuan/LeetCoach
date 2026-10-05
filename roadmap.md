@@ -30,7 +30,7 @@ Backend
 - SQLAlchemy 2.x repositories for stable problem and approach metadata
 - Local CORS for Chrome extension and localhost development
 - Canonical approach metadata with stable approach IDs
-- Hint service abstraction reading mock approach-owned hints
+- DB-grounded hint routes using a small LLMProvider boundary
 - Solution service abstraction returning approach-specific mock answers
 - Independent starter-code service with curated progressive scaffolds
 - Manually curated related-problem rows per seeded problem
@@ -42,15 +42,15 @@ Database
 - Future PostgreSQL migration remains a separate milestone
 
 AI
-- Current: static mock guidance only
-- Planned: mock AI provider interface before any real LLM integration
+- Current: deterministic offline MockLLMProvider or live GroqLLMProvider for Hints
+- Current: Starter Code and Full Solution remain three-problem mock examples
 - Future providers may include OpenAI, Gemini, or OpenRouter
 
 ---
 
 ## SQLite Schema And Workflows (September 30, 2026)
 
-Architecture: FastAPI routes → SQLAlchemy repositories and request-scoped sessions → local SQLite. Only `GET /api/problems/{slug}` and `GET /api/problems/{slug}/related` use the database in this milestone. There is no automatic fixture fallback or startup migration/seeding.
+Architecture at the September 30 database milestone: FastAPI routes → SQLAlchemy repositories and request-scoped sessions → local SQLite. The later hint-provider milestone also uses SQLite for both hint routes. There is no automatic fixture fallback or startup migration/seeding.
 
 Schema:
 - `problems`: internal integer primary key, unique slug, title, constrained difficulty, and concise factual summary.
@@ -173,7 +173,7 @@ Future PostgreSQL path: add the PostgreSQL driver/configuration in a separate mi
 ## Important Files Changed
 
 - `.gitignore`: ignores generated log files, virtual environments, and SQLite DB/journal files.
-- `backend/app/main.py`: FastAPI routes; analysis/related endpoints use the SQLAlchemy session dependency, while guidance routes retain mock services.
+- `backend/app/main.py`: FastAPI routes; analysis, related, and hint endpoints use the SQLAlchemy session dependency; code-generation routes retain mock services.
 - `backend/app/database.py`: shared URL configuration, engine, SQLite foreign-key settings, and request-scoped sessions.
 - `backend/app/models.py`: stable metadata schema with canonical approach keys separate from internal IDs.
 - `backend/app/seed.py`: transactional repeatable exact-sync of curated children within seeded problems.
@@ -182,7 +182,8 @@ Future PostgreSQL path: add the PostgreSQL driver/configuration in a separate mi
 - `backend/app/services/problem_repository.py`: DB lookups and API serialization.
 - `backend/alembic.ini` and `backend/alembic/`: schema migration environment and first revision.
 - `backend/tests/test_database.py`: isolated migrated-database regression coverage.
-- `backend/app/services/hint_service.py`: focused hint lookup service that operates on canonical approach objects.
+- `backend/app/llm/`: provider contract, output validation, deterministic mock, Groq implementation, and environment-based factory for hints.
+- `backend/app/services/hint_service.py`: retained legacy mock hint lookup, no longer used by the hint routes.
 - `backend/app/services/solution_service.py`: approach-specific mock solution service with supported-language validation.
 - `backend/app/services/__init__.py`: service package marker.
 - `src/api/problemAnalysis.ts`: frontend analysis response types and validation for `isPrimary` and `displayOrder`.
@@ -213,10 +214,10 @@ Backend
 - Each DB approach has an internal numeric ID and a canonical string key unique within its problem. The API exposes the canonical key as `id`, plus `isPrimary`, `displayOrder`, and `thinkingSteps`.
 - `GET /api/problems/{slug}` reads SQLite and returns sorted approach metadata and recognition signals without hint arrays or internal IDs.
 - `GET /api/problems/{slug}/related` reads the curated SQLite card rows, grouped by `easier / similar / harder`.
-- Hints and their primary-approach selection still use retained mock fixtures during this milestone; starter/full-answer templates remain in their existing services. A database-only approach does not gain guidance templates automatically.
+- Both hint routes now load problem facts and canonical approaches from SQLite. Starter/full-answer templates remain in their existing mock services. A database-only approach can receive hints, but not mock code templates.
 - `GET /api/problems/{slug}/hints` resolves the one canonical primary approach and returns only its `approachId` and hints.
 - `GET /api/problems/{slug}/approaches/{approach_id}/hints` verifies the approach belongs to that exact problem before returning hints.
-- The hint service receives the canonical problem and approach context; it does not choose or infer an approach independently.
+- The route passes only the selected canonical approach and DB facts to `LLMProvider`; the provider does not choose or infer an approach independently. It generates all three hints in one call, validates exactly three nonempty strings, and the frontend reveals them individually.
 
 Frontend
 - `useActiveProblem` detects the active LeetCode problem and provides the slug and display title.
@@ -294,6 +295,10 @@ Generated Answer Flow
 
 ## Verified This Milestone
 
+- October 4 hint-quality refinement: Groq is instructed to return three one-idea questions, without naming a technique, providing a solution sequence, or copying approach metadata. Shared output handling keeps the first complete sentence and limits successive hints to 10/14/18 words and 75/100/120 characters; overlong single-sentence responses use a short fallback nudge. Groq hints that are commands, contain code formatting, or directly name the selected approach/pattern also use a short fallback question. Offline mock hints are shorter and no longer announce the approach pattern early. A manual Groq check for Two Sum returned short questions without code or a full algorithm. No frontend/API contract changed. Backend tests: 50 passed; frontend tests: 68 passed; build passed.
+- October 4 LLM hint milestone: `MockLLMProvider` and `GroqLLMProvider` share `generate_hints(context)`. The mock is deterministic and offline; Groq reads `GROQ_API_KEY` and `LEETCOACH_LLM_MODEL` only from environment or ignored `backend/.env` and is selected by `LEETCOACH_LLM_PROVIDER=groq` (default `mock`). No real Groq calls were run. Missing configuration returns sanitized 503, provider failure returns 503, and invalid output returns 502.
+- Hint grounding is SQLite Problem facts (slug, title, difficulty, summary, ordered constraints/examples) plus the selected canonical Approach (key, name, pattern, summary, thinking steps, recognition signals). It does not require a submission template, use fixture-based hint IDs, fetch LeetCode URLs, or send other approaches. The 17 newer DB-backed problems are eligible for hints through the same flow.
+- `py -B -m unittest discover -s backend/tests`: 47 backend tests passed. `npm test`: 68 frontend tests passed. `npm run build`: passed. Provider tests fake Groq calls, verify one request, strict output and timeout handling, and use no API key.
 - September 30 database milestone: backend coverage verifies migration upgrade/downgrade, model consistency, all seeded API payloads, lookups independent of fixtures, persistence after reopening SQLite, seed idempotency/internal ID stability, transaction rollback, uniqueness, foreign keys, cascading deletion, and unchanged mock guidance responses.
 - `npm test`: 68 frontend regression tests passed, including Recognition Signals, same-problem section/workspace restoration, Coach, Starter Code, navigation, and Practice coverage.
 - `py -B -m unittest discover -s backend/tests`: all 35 backend tests passed, including `0001 ↔ 0002` migration coverage, all 20 Problem Specifications, ordered constraints/examples, 80 submission templates, exact-sync/repeat seeding with stable IDs, schema constraints, internal context loading, stable-data API parity, recognition metadata, related-problem endpoints, guidance boundaries, all 84 existing starter responses, and existing Python answer/starter compilation.
@@ -325,25 +330,25 @@ Generated Answer Flow
 
 - Practice offers manually curated related problems stored in SQLite for all 20 seeded problems. Opening a related problem does not imply full mock guidance is available for it. Progress remains a placeholder; no learning-history persistence is implemented yet.
 - Chrome side-panel interactions still need manual browser verification after reloading the unpacked extension.
-- Stable metadata uses SQLite. Guidance routes still use in-memory templates and fixture-based problem/approach validation.
-- Hints are static mock strings, not generated by an AI provider.
+- Stable metadata and hint grounding use SQLite. Starter Code and Full Solution still use in-memory templates and fixture-based problem/approach validation.
+- Hints use a deterministic mock provider by default; live generation requires Groq configuration and a working network connection. Model text is validated for shape and nonempty content, but semantic quality still needs human review.
 - Generated answers are static mock strings, not generated by an AI provider.
-- Hints, Starter Code, and Full Solutions remain fully mocked only for Two Sum, Valid Parentheses, and Longest Substring Without Repeating Characters (seven approaches total). The other 17 problems provide stable analysis, thinking steps, recognition signals, and related cards without fabricated code templates.
-- No PostgreSQL, authentication, cloud deployment, real LLM, or user history yet.
+- Starter Code and Full Solutions remain fully mocked only for Two Sum, Valid Parentheses, and Longest Substring Without Repeating Characters (seven approaches total). All 20 DB problems support the hint provider; the other 17 have no fabricated code templates.
+- No PostgreSQL, authentication, cloud deployment, or user history yet.
 - The extension assumes the local backend is available at `http://localhost:8000`.
 
 ---
 
 ## Next Recommended Milestone
 
-- Consider a separate milestone for mock guidance storage/provider boundaries, keeping hint, starter, and full-answer behavior explicit and approach-specific.
+- Evaluate live hint quality and safety with a manually reviewed Groq run after configuring a key; keep the mock provider for offline development and tests.
 - Expand curated coverage only with matching guidance templates; preserve canonical approach keys and the existing API contracts.
 
 ---
 
 ## Future Features
 
-- Mock AI provider abstraction
+- LLM Starter Code and Full Solution integration when their mock-to-provider transition is explicitly scoped
 - Interview follow-up questions
 - OpenAI, Gemini, or OpenRouter provider integration
 - PostgreSQL migration

@@ -147,37 +147,34 @@ class DatabaseTests(DatabaseTestCase):
                 with Session(self.engine) as session, session.begin():
                     session.add(record)
 
-    def test_mock_guidance_routes_keep_their_existing_payloads(self):
+    def test_mock_solution_routes_keep_their_existing_payloads(self):
         from app.services.solution_service import generate_approach_solution
 
         for slug, problem in PROBLEM_ANALYSES.items():
-            primary = next(a for a in problem["approaches"] if a["isPrimary"])
-            self.assertEqual(self.client.get(f"/api/problems/{slug}/hints").json(), {
-                "slug": slug, "approachId": primary["id"], "hints": primary["hints"]
-            })
             for approach in problem["approaches"]:
                 endpoint = f"/api/problems/{slug}/approaches/{approach['id']}"
-                self.assertEqual(self.client.get(f"{endpoint}/hints").json(), {
-                    "slug": slug, "approachId": approach["id"], "hints": approach["hints"]
-                })
                 for language in ("python", "java", "javascript", "cpp"):
                     with self.subTest(slug=slug, approach=approach["id"], language=language):
                         response = self.client.post(f"{endpoint}/solution", json={"language": language})
                         self.assertEqual(response.status_code, 200)
                         self.assertEqual(response.json(), generate_approach_solution(problem, approach, language))
 
-    def test_expanded_database_problem_does_not_gain_mock_guidance(self):
+    def test_expanded_database_problem_gains_hints_but_not_mock_code(self):
         slug = "contains-duplicate"
         self.assertEqual(self.client.get(f"/api/problems/{slug}").status_code, 200)
         self.assertEqual(self.client.get(f"/api/problems/{slug}/related").status_code, 200)
-        self.assertEqual(self.client.get(f"/api/problems/{slug}/hints").status_code, 404)
+        self.assertEqual(self.client.get(f"/api/problems/{slug}/hints").status_code, 200)
+        approach_hints = self.client.get(
+            f"/api/problems/{slug}/approaches/hash-set/hints"
+        )
+        self.assertEqual(approach_hints.status_code, 200)
+        self.assertEqual(len(approach_hints.json()["hints"]), 3)
         for path, body in (
-            ("hash-set/hints", None),
             ("hash-set/starter-code", {"language": "python", "level": 1}),
             ("hash-set/solution", {"language": "python"}),
         ):
             endpoint = f"/api/problems/{slug}/approaches/{path}"
-            response = self.client.get(endpoint) if body is None else self.client.post(endpoint, json=body)
+            response = self.client.post(endpoint, json=body)
             self.assertEqual(response.status_code, 404)
 
     def test_database_enforces_uniqueness_and_foreign_keys(self):
