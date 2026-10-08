@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from app.database import get_session
 from app.llm.base import (
     ProviderConfigurationError, ProviderOutputError, ProviderUnavailableError,
-    STARTER_LEVEL_NAMES, SUPPORTED_STARTER_LANGUAGES,
+    STARTER_CODE_POLICY_VERSION, STARTER_LEVEL_NAMES, SUPPORTED_STARTER_LANGUAGES,
     validate_hints, validate_starter_code,
 )
 from app.llm.provider_factory import get_llm_provider
@@ -198,6 +198,7 @@ def get_problem_starter_code(
     result = {
         "slug": slug, "approachId": approach_id, "language": language,
         "level": request.level, "levelName": STARTER_LEVEL_NAMES[request.level],
+        "policyVersion": STARTER_CODE_POLICY_VERSION,
         "isAiGenerated": provider.is_ai_generated and not used_fallback,
         "code": code,
         "notice": (

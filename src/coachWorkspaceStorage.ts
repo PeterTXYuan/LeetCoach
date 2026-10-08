@@ -1,5 +1,5 @@
 import type { ApproachHintsResponse } from "./api/approachHints";
-import { normalizeStarterCode, type GuidanceLevel, type StarterCodeResponse } from "./api/starterCode";
+import { normalizeStarterCode, starterCodePolicyVersion, type GuidanceLevel, type StarterCodeResponse } from "./api/starterCode";
 import type { SolutionLanguage } from "./api/approachSolution";
 import type { SectionId } from "./components/SectionNav";
 
@@ -80,14 +80,18 @@ function parseSavedStarter(value: unknown, slug: string, approachId: string): Sa
   for (const [key, saved] of Object.entries(value.responses)) {
     try {
       const response = normalizeStarterCode(saved);
-      if (response.slug !== slug || response.approachId !== approachId ||
+      if (response.policyVersion !== starterCodePolicyVersion ||
+          response.slug !== slug || response.approachId !== approachId ||
           key !== starterResponseKey(response.language, response.level)) continue;
       responses[key] = response;
     } catch { /* Drop one corrupted cache entry, keep the rest of the workspace. */ }
   }
   return {
     language: value.language as SolutionLanguage, level: value.level as GuidanceLevel,
-    isExpanded: value.isExpanded, isVisible: value.isVisible, responses
+    isExpanded: value.isExpanded,
+    isVisible: value.isVisible && Boolean(responses[starterResponseKey(
+      value.language as SolutionLanguage, value.level as GuidanceLevel)]),
+    responses
   };
 }
 

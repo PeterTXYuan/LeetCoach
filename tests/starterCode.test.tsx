@@ -8,7 +8,8 @@ import { fetchStarterCode, normalizeStarterCode } from "../src/api/starterCode";
 
 const response = (overrides = {}) => ({
   slug: "two-sum", approachId: "hash-map", language: "python", level: 1,
-  levelName: "Minimal", isAiGenerated: false, code: "# TODO: starter", notice: "Complete the TODOs.", ...overrides
+  levelName: "Kickstart", isAiGenerated: false, policyVersion: 3,
+  code: "# TODO: starter", notice: "Complete the TODOs.", ...overrides
 });
 const json = (data: unknown, status = 200) => ({ ok: status === 200, status, json: async () => data } as Response);
 const fetchMock = vi.fn();
@@ -26,6 +27,17 @@ beforeEach(() => {
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
 describe("starter code generation", () => {
+  it("labels Level 1 as Kickstart and explains the three teaching depths", () => {
+    render(<StarterCode {...props} />);
+    click("Get starter code");
+    expect(screen.getByRole("button", { name: /Level 1 Kickstart/ })).toBeTruthy();
+    expect(screen.getByText(/useful first setup step/)).toBeTruthy();
+    click(/Level 2 Guided/);
+    expect(screen.getByText(/initial flow/)).toBeTruthy();
+    click(/Level 3 Strong Scaffold/);
+    expect(screen.getByText(/important decisions and result logic/)).toBeTruthy();
+  });
+
   it.each(["python", "java", "javascript", "cpp"])("requests %s at each level only after Generate", async (language) => {
     render(<StarterCode {...props} />);
     expect(screen.queryByRole("combobox")).toBeNull();
@@ -135,7 +147,7 @@ describe("starter API contract", () => {
     fetchMock.mockResolvedValueOnce(json(response(mismatch)));
     await expect(fetchStarterCode("two-sum", "hash-map", "python", 1)).rejects.toThrow("does not match");
   });
-  it.each([null, {}, response({ level: "1" }), response({ language: "ruby" }), response({ code: "" }), response({ usedFallback: "yes" })])("rejects malformed data %j", (data) => {
+  it.each([null, {}, response({ level: "1" }), response({ language: "ruby" }), response({ code: "" }), response({ usedFallback: "yes" }), response({ policyVersion: "2" })])("rejects malformed data %j", (data) => {
     expect(() => normalizeStarterCode(data)).toThrow("Invalid starter code");
   });
 });

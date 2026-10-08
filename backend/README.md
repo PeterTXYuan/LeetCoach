@@ -91,13 +91,13 @@ SQLite foreign keys are enabled on every connection, with cascading deletion of 
 
 `GET /api/problems/{slug}` and `GET /api/problems/{slug}/related` preserve their previous JSON shapes and unknown-problem 404 responses. Problem Specification rows remain internal for future grounding and are not added to the frontend payloads in this milestone.
 
-Both hint routes resolve problem/approach IDs from SQLite and use the configured provider. The starter-code/full-solution POST routes retain fixture-based problem/approach validation and mock templates; adding a problem only to the DB does not add code templates. `/health` remains a process health check, not a database readiness check.
+Both hint routes and the starter-code route resolve canonical problem/approach IDs from SQLite and use the configured provider. The full-solution POST route still uses its existing mock fixtures. `/health` remains a process health check, not a database readiness check.
 
 The analysis response includes `recognitionSignals` on each canonical approach: an optional `quote` string and a `bullets` string array. All 41 seeded approaches have two or three short recognition cues. This metadata is stored directly with its approach and revealed locally in Coach, without an additional endpoint or request.
 
-Starter code uses canonical approach IDs and independently curated templates, separate from full answers. Supported languages are `python`, `java`, `javascript`, and `cpp`. Levels are 1 (Minimal), 2 (Guided), and 3 (Strong Scaffold); every level retains TODOs and placeholder exceptions. All seven approaches across the three seeded problems are covered.
+Starter code uses canonical approach IDs and SQLite submission shells, separate from full answers. The offline provider builds deterministic unfinished scaffolds; Groq can generate them when configured. Supported languages are `python`, `java`, `javascript`, and `cpp`. Levels are 1 (Kickstart: useful approach-specific setup), 2 (Guided: initial flow), and 3 (Strong Scaffold: major structure with central decisions unfinished). All 41 approaches across the 20 seeded problems are covered. Each level retains TODOs and fail-loud unfinished behavior.
 
-Starter responses include `slug`, `approachId`, `language`, `level`, `levelName`, `code`, `notice`, and `isAiGenerated: false`. Unknown problems/approaches return 404, unsupported languages return 400, and malformed or out-of-range levels return 422.
+Starter responses include `slug`, `approachId`, `language`, `level`, `levelName`, `code`, `notice`, `policyVersion: 3`, and `isAiGenerated` according to the provider; fallback responses also include `usedFallback: true`. Unknown problems/approaches return 404, unsupported languages return 400, and malformed or out-of-range levels return 422.
 
 Related-problem responses include `slug` and three arrays: `easier`, `similar`, and `harder`. Each entry has `slug`, `title`, `difficulty` (`Easy`, `Medium`, or `Hard`), and an optional `reason`. All 20 seeded problems have manually curated SQLite rows from `app/stable_data.py`; an unknown source problem returns 404. A category may be empty when there is no useful recommendation. Group placement is editorial and does not compute prerequisites or learning paths. Related targets can be outside the Coach dataset.
 

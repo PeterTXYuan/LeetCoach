@@ -9,9 +9,9 @@ const languages: { value: SolutionLanguage; label: string }[] = [
   { value: "javascript", label: "JavaScript" }, { value: "cpp", label: "C++" }
 ];
 const levels: { value: GuidanceLevel; label: string; description: string }[] = [
-  { value: 1, label: "Minimal", description: "Function signature and a basic scaffold. You write the algorithm." },
-  { value: 2, label: "Guided", description: "Important variables and data structures, with the algorithm left to you." },
-  { value: 3, label: "Strong Scaffold", description: "Loop and control-flow structure, with key logic still left as TODOs." }
+  { value: 1, label: "Kickstart", description: "A useful first setup step for this approach; you design the main algorithm." },
+  { value: 2, label: "Guided", description: "More state and an initial flow; you decide the key conditions and updates." },
+  { value: 3, label: "Strong Scaffold", description: "Most structure is in place, but important decisions and result logic remain yours." }
 ];
 
 type StarterCodeProps = {

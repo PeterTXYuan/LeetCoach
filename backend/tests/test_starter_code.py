@@ -38,6 +38,8 @@ class StarterCodeTests(DatabaseTestCase):
                             self.assertEqual((data["slug"], data["approachId"], data["language"], data["level"]),
                                              (slug, approach["id"], language, level))
                             self.assertFalse(data["isAiGenerated"])
+                            self.assertEqual(data["policyVersion"], 3)
+                            self.assertEqual(data["levelName"], {1: "Kickstart", 2: "Guided", 3: "Strong Scaffold"}[level])
                             self.assertIn("TODO", data["code"])
                             self.assertNotIn("```", data["code"])
                             signature = CURATED_PROBLEM_SPECS[slug]["submissionTemplates"][language].splitlines()[
@@ -47,8 +49,11 @@ class StarterCodeTests(DatabaseTestCase):
                             codes.append(data["code"])
                             if language == "python": ast.parse(data["code"])
                     self.assertEqual(len(set(codes)), 3)
-                    self.assertLess(len(codes[0]), len(codes[1]))
-                    self.assertLess(len(codes[1]), len(codes[2]))
+                    self.assertNotRegex(codes[0], r"(?m)^\s*(?:for|while|if)\b")
+                    self.assertNotIn("implement the selected approach", codes[0].lower())
+                    self.assertNotEqual(codes[0].strip(), CURATED_PROBLEM_SPECS[slug]["submissionTemplates"][language].strip())
+                    if slug != "min-stack":
+                        self.assertRegex(codes[2], r"\b(?:for|while|if)\s*(?:\(|\w)")
 
     def test_exact_db_approach_and_submission_template_reach_provider(self):
         with Session(self.engine) as session, session.begin():
@@ -105,6 +110,7 @@ class StarterCodeTests(DatabaseTestCase):
             response = self.request(level=3, language="java")
         self.assertEqual(response.status_code, 200, response.text)
         self.assertTrue(response.json()["isAiGenerated"])
+        self.assertEqual(response.json()["policyVersion"], 3)
         self.assertEqual(len(calls), 1)
         sent = json.loads(calls[0]["messages"][1]["content"])
         self.assertEqual((sent["context"]["approach"]["id"], sent["language"], sent["level"]),
@@ -141,3 +147,130 @@ class StarterCodeTests(DatabaseTestCase):
                     template.replace("pass", "# TODO: review\n        return [0, 1]")):
             with self.assertRaises(ProviderOutputError):
                 validate_starter_code(bad, template, "python", 2)
+
+    def test_validator_blocks_obvious_solution_leaks_and_broken_design_shells(self):
+        java = CURATED_PROBLEM_SPECS["two-sum"]["submissionTemplates"]["java"]
+        commented_answer = """class Solution {
+    public int[] twoSum(int[] nums, int target) {
+        java.util.Map<Integer, Integer> seen = new java.util.HashMap<>();
+        for (int i = 0; i < nums.length; i++) {
+            int complement = target - nums[i];
+            // TODO: think about this
+            // if (seen.containsKey(complement)) {
+            // return new int[]{seen.get(complement), i};
+            // seen.put(nums[i], i);
+        }
+        throw new UnsupportedOperationException("Complete the TODOs");
+    }
+}"""
+        completed_then_throw = """class Solution {
+    public int[] twoSum(int[] nums, int target) {
+        // TODO: review this solution
+        java.util.Map<Integer, Integer> seen = new java.util.HashMap<>();
+        for (int i = 0; i < nums.length; i++) {
+            int complement = target - nums[i];
+            if (seen.containsKey(complement)) return new int[]{seen.get(complement), i};
+            seen.put(nums[i], i);
+        }
+        return new int[] {};
+        throw new UnsupportedOperationException("Complete the TODOs");
+    }
+}"""
+        decorative = java.replace("\n\n", "\n        // TODO: review this complete code.\n"
+                                  "        return new int[] {};\n"
+                                  "        throw new UnsupportedOperationException(\"Complete the TODOs\");\n", 1)
+        for bad in (commented_answer, completed_then_throw, decorative):
+            with self.subTest(bad=bad[:35]), self.assertRaises(ProviderOutputError):
+                validate_starter_code(bad, java, "java", 3)
+
+        with Session(self.engine) as session:
+            two_sum_context = find_problem_context(session, "two-sum", "hash-map", "java")
+        mock = MockLLMProvider()
+        minimal = mock.generate_starter_code(two_sum_context, "java", 1)
+        guided = mock.generate_starter_code(two_sum_context, "java", 2)
+        early_loop = minimal.replace(
+            'throw new UnsupportedOperationException("Complete the TODOs");',
+            'for (int i = 0; i < nums.length; i++) { /* TODO: decide */ }\n'
+            '        throw new UnsupportedOperationException("Complete the TODOs");', 1)
+        with self.assertRaises(ProviderOutputError):
+            validate_starter_code(early_loop, java, "java", 1)
+        self.assertIn("for (", guided)
+        invalid_condition = guided.replace("for (int index = 0; index < nums.length; index++) {",
+                                           "if (/* TODO */) {", 1)
+        with self.assertRaises(ProviderOutputError):
+            validate_starter_code(invalid_condition, java, "java", 2)
+        bare_kickstart = java.replace("{\n\n", "{\n        // TODO: decide what to do.\n"
+                                      '        throw new UnsupportedOperationException("Complete the TODOs");\n', 1)
+        with self.assertRaises(ProviderOutputError):
+            validate_starter_code(bare_kickstart, java, "java", 1)
+        with self.assertRaises(ProviderOutputError):
+            validate_starter_code(bare_kickstart.replace("// TODO: decide what to do.",
+                                                         "/* TODO: decide what to do. */"), java, "java", 1)
+
+        min_stack = CURATED_PROBLEM_SPECS["min-stack"]["submissionTemplates"]["python"]
+        with Session(self.engine) as session:
+            context = find_problem_context(session, "min-stack", "paired-minimums", "python")
+        valid_design = MockLLMProvider().generate_starter_code(context, "python", 3)
+        broken_design = valid_design.replace("    def getMin(self) -> int:", "    def minimum(self) -> int:")
+        with self.assertRaises(ProviderOutputError):
+            validate_starter_code(broken_design, min_stack, "python", 3)
+
+    def test_accepts_teaching_depth_examples_in_each_language(self):
+        mock = MockLLMProvider()
+        for slug, approach, language in (
+            ("two-sum", "hash-map", "java"),
+            ("3sum", "sort-and-two-pointers", "python"),
+            ("min-stack", "paired-minimums", "javascript"),
+            ("maximum-depth-of-binary-tree", "breadth-first-search", "cpp"),
+        ):
+            with Session(self.engine) as session:
+                context = find_problem_context(session, slug, approach, language)
+            codes = [mock.generate_starter_code(context, language, level) for level in (1, 2, 3)]
+            template = context["problem"]["submissionTemplate"]["code"]
+            for level, code in enumerate(codes, start=1):
+                with self.subTest(slug=slug, approach=approach, language=language, level=level):
+                    self.assertEqual(validate_starter_code(code, template, language, level), code)
+                    self.assertIn("TODO", code)
+            self.assertEqual(len(set(codes)), 3)
+            if slug == "two-sum":
+                self.assertIn("Map<Integer, Integer>", codes[0])
+                self.assertNotIn("for (", codes[0])
+                self.assertIn("for (", codes[1])
+                self.assertIn("int current =", codes[1])
+                self.assertNotIn("complement =", codes[1])
+                self.assertIn("Map<Integer, Integer>", codes[2])
+                self.assertIn("complement", codes[2])
+                self.assertNotIn("seen.put(", codes[2])
+            if slug == "3sum":
+                self.assertIn("nums.sort()", codes[0])
+                self.assertIn("results = []", codes[0])
+                self.assertNotIn("for first", codes[0])
+                self.assertIn("for first", codes[1])
+                self.assertIn("left, right =", codes[1])
+                self.assertNotIn("while left < right", codes[1])
+                self.assertIn("while left < right", codes[2])
+                self.assertIn("total =", codes[2])
+                self.assertIn("elif total < 0", codes[2])
+                self.assertNotIn("left +=", codes[2])
+                self.assertNotIn("results.append", codes[2])
+            if slug == "min-stack":
+                self.assertIn("MinStack.prototype.getMin", codes[2])
+                self.assertIn("this.values = []", codes[0])
+                self.assertNotIn("this.minimums", codes[0])
+                self.assertIn("this.minimums = []", codes[1])
+                self.assertIn("if (this.values.length > 0)", codes[2])
+
+    def test_min_stack_java_retains_all_methods_and_shared_state(self):
+        with Session(self.engine) as session:
+            context = find_problem_context(session, "min-stack", "paired-minimums", "java")
+        codes = [MockLLMProvider().generate_starter_code(context, "java", level)
+                 for level in (1, 2, 3)]
+        for code in codes:
+            for signature in ("public MinStack()", "public void push(int val)",
+                              "public void pop()", "public int top()", "public int getMin()"):
+                self.assertIn(signature, code)
+            self.assertIn("Deque<Integer> values", code)
+        self.assertNotIn("Deque<Integer> minimums", codes[0])
+        self.assertIn("Deque<Integer> minimums", codes[1])
+        self.assertIn("if (!values.isEmpty())", codes[2])
+        self.assertNotIn("values.push(val)", codes[2])

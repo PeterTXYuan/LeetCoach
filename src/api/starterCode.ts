@@ -1,6 +1,7 @@
 import type { SolutionLanguage } from "./approachSolution";
 
 export type GuidanceLevel = 1 | 2 | 3;
+export const starterCodePolicyVersion = 3;
 export type StarterCodeResponse = {
   slug: string;
   approachId: string;
@@ -9,6 +10,7 @@ export type StarterCodeResponse = {
   levelName: string;
   isAiGenerated: boolean;
   usedFallback?: boolean;
+  policyVersion?: number;
   code: string;
   notice: string;
 };
@@ -53,7 +55,8 @@ export function normalizeStarterCode(value: unknown): StarterCodeResponse {
     ![1, 2, 3].includes(data.level as number) ||
     typeof data.levelName !== "string" || typeof data.isAiGenerated !== "boolean" ||
     typeof data.code !== "string" || !data.code.trim() || typeof data.notice !== "string" ||
-    (data.usedFallback !== undefined && typeof data.usedFallback !== "boolean")
+    (data.usedFallback !== undefined && typeof data.usedFallback !== "boolean") ||
+    (data.policyVersion !== undefined && (!Number.isInteger(data.policyVersion) || (data.policyVersion as number) < 1))
   ) throw new Error("Invalid starter code response.");
   return data as StarterCodeResponse;
 }
