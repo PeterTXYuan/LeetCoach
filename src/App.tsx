@@ -13,6 +13,7 @@ import { ThinkingProcess } from "./components/ThinkingProcess";
 import { useApproachHints } from "./hooks/useApproachHints";
 import { useApproachSolution } from "./hooks/useApproachSolution";
 import { useCoachWorkspaces } from "./hooks/useCoachWorkspaces";
+import { emptyStarter } from "./coachWorkspaceStorage";
 import { useActiveProblem, type ActiveProblemState } from "./useActiveProblem";
 import { useProblemAnalysis, type ProblemAnalysisState } from "./useProblemAnalysis";
 
@@ -229,6 +230,17 @@ export default function App() {
                       slug={visibleProblemAnalysis.analysis.slug}
                       approachId={starterApproachId}
                       approachNumber={starterApproachNumber || undefined}
+                      saved={starterApproachId ? workspace?.starterByApproach[starterApproachId] ?? emptyStarter() : undefined}
+                      onSave={(update) => {
+                        if (!workspaceSlug || !starterApproachId) return;
+                        updateWorkspace(workspaceSlug, (current) => ({
+                          ...current,
+                          starterByApproach: {
+                            ...current.starterByApproach,
+                            [starterApproachId]: update(current.starterByApproach[starterApproachId] ?? emptyStarter())
+                          }
+                        }));
+                      }}
                     />
                   )}
                   <section className="strategy-card" aria-label="Solution strategies">

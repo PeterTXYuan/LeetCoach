@@ -1,4 +1,4 @@
-"""Provider contract and concise output validation shared by hint providers."""
+"""Provider contract and output validation shared by guidance providers."""
 import re
 from typing import Any, Protocol
 
@@ -15,6 +15,10 @@ class ProviderUnavailableError(Exception):
 
 class ProviderOutputError(Exception):
     pass
+
+
+SUPPORTED_STARTER_LANGUAGES = frozenset({"python", "java", "javascript", "cpp"})
+STARTER_LEVEL_NAMES = {1: "Minimal", 2: "Guided", 3: "Strong Scaffold"}
 
 
 MAX_HINT_WORDS = 18
@@ -61,4 +65,36 @@ def shorten_hint(hint: str, index: int) -> str:
 
 
 class LLMProvider(Protocol):
+    is_ai_generated: bool
+
     def generate_hints(self, context: dict) -> list[str]: ...
+
+    def generate_starter_code(self, context: dict, language: str, level: int) -> str: ...
+
+
+def validate_starter_code(raw: Any, template: str, language: str, level: int) -> str:
+    """Reject malformed scaffolds and changed LeetCode entry-point signatures."""
+    if not isinstance(raw, str):
+        raise ProviderOutputError("Invalid starter code output")
+    code = raw.strip()
+    if not code or len(code) > 20000 or "```" in code or "todo" not in code.lower():
+        raise ProviderOutputError("Invalid starter code output")
+    signatures = [line.strip().rstrip(" {") for line in template.splitlines() if "(" in line]
+    output_lines = [line.strip().rstrip(" {") for line in code.splitlines()]
+    if any(output_lines.count(signature) != 1 for signature in signatures):
+        raise ProviderOutputError("Starter code changed the submission signature")
+    class_line = next((line.strip().rstrip(" {") for line in template.splitlines()
+                       if line.strip().startswith("class ")), None)
+    if class_line and class_line not in output_lines:
+        raise ProviderOutputError("Starter code changed the submission class")
+    placeholders = {
+        "python": ("NotImplementedError",),
+        "java": ("UnsupportedOperationException",),
+        "javascript": ("throw new Error",),
+        "cpp": ("throw ",),
+    }
+    if not any(marker in code for marker in placeholders[language]):
+        raise ProviderOutputError("Starter code is missing unfinished logic")
+    if level > 1 and code == template.strip():
+        raise ProviderOutputError("Starter code lacks progressive guidance")
+    return code

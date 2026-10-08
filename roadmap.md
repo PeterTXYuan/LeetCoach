@@ -33,7 +33,7 @@ Backend
 - Canonical approach metadata with stable approach IDs
 - DB-grounded hint routes using a small LLMProvider boundary
 - Solution service abstraction returning approach-specific mock answers
-- Independent starter-code service with curated progressive scaffolds
+- DB-grounded Starter Code route through the same LLMProvider boundary (offline mock or Groq)
 - Manually curated related-problem rows per seeded problem
 
 Database
@@ -43,8 +43,8 @@ Database
 - Future PostgreSQL migration remains a separate milestone
 
 AI
-- Current: deterministic offline MockLLMProvider or live GroqLLMProvider for Hints
-- Current: Starter Code and Full Solution remain three-problem mock examples
+- Current: deterministic offline MockLLMProvider or live GroqLLMProvider for Hints and Starter Code
+- Current: Full Solution remains a three-problem mock example
 - Future providers may include OpenAI, Gemini, or OpenRouter
 
 ---
@@ -55,7 +55,7 @@ AI
 
 The extension waits for storage hydration before showing a detected problem's Coach controls or writing defaults, so a saved workspace is not overwritten during startup. Stored shapes and slug/approach keys are validated; missing, obsolete, corrupt, or unavailable storage falls back to a clean in-memory workspace. A failed storage read disables writes for that panel session so a temporary outage cannot erase previously saved data. Stale selected IDs are discarded after the current DB-backed analysis loads. Whole-map writes are serialized to keep later state from being overwritten by a slower earlier write. The Manifest V3 `storage` permission was added. Theme remains in its existing `localStorage` key.
 
-Starter Code choices/results, generated full answers, Recognition Signals reveal, and loaded Practice cards remain session-only because those components still own their state. The current same-problem non-LeetCode-tab behavior keeps them mounted while the side panel stays open; they are not restored after a different problem or panel reopen. Backend APIs and persistence are unchanged.
+Starter Code now lives in the same versioned workspace record. Each problem stores per-canonical-approach language, level, disclosure and result visibility, plus validated responses keyed by language and level. Changing options displays a matching cached result without a request; an uncached combination still requires Generate. Clear and Hide conceal code without deleting cache. Switching problems or reopening the side panel restores choices and visible code. Older v1 records without starter fields hydrate normally, preserving hints; corrupt starter entries are discarded individually. Generated full answers, Recognition Signals reveal, and loaded Practice cards remain session-only. The same-problem non-LeetCode-tab behavior still keeps them mounted while the side panel stays open.
 
 ---
 
@@ -88,15 +88,19 @@ For schema changes, edit the models, run `python -m alembic revision --autogener
 
 Seed behavior: one transaction, lookups by stable natural keys, updates existing rows without replacing their internal IDs, and inserts missing rows. Each problem present in `app/stable_data.py` exactly syncs its constraints, examples, submission templates, approaches, recognition signals, and related cards. Children absent from the source are deleted. Ordered rows retain IDs by display position; templates retain IDs by language; related cards retain IDs by slug even when moved between categories. Repeating the command adds no duplicates and refreshes curated fields. Problem rows outside the current seeded dataset and their children remain untouched. The separate `app/mock_data.py` remains the guidance source for the original three fully mocked problems.
 
-At that September 30 milestone, hint text, starter templates, and full answers were mocked. Thinking steps were stored with approach metadata in SQLite. The later hint-provider milestone replaced the hint route's mock text and fixture-based validation; Starter Code and Full Solution are still mocked.
+At that September 30 milestone, hint text, starter templates, and full answers were mocked. Thinking steps were stored with approach metadata in SQLite. Later provider milestones moved Hints and Starter Code to SQLite-grounded mock/Groq generation; Full Solution remains mocked.
 
-Problem Specification gives the hint provider factual, local grounding rather than opening a LeetCode URL, relying on memory, guessing constraints, or inventing a function signature. The database owns problem facts, submission shells, and canonical approach identity. A future milestone may extend dynamic teaching to level-specific Starter Code, full solutions, explanations, and complexity discussion. The internal `find_problem_context` helper still assembles problem + language template + approach context for that future work; the hint routes use their language-free DB context loader now.
+Problem Specification gives both providers factual, local grounding rather than opening a LeetCode URL, relying on memory, guessing constraints, or inventing a function signature. The database owns problem facts, submission shells, and canonical approach identity. `find_problem_context` assembles the selected approach and language-specific template for Starter Code; the hint routes retain their language-free DB context loader. Full solutions, explanations, and complexity discussion remain future work.
 
 Future PostgreSQL path: add the PostgreSQL driver/configuration in a separate milestone, apply and test the portable SQLAlchemy/Alembic schema against that dialect, and transfer local rows with foreign-key/sequence verification (or seed a fresh database). Public problem slugs and canonical approach keys stay unchanged. SQLite-specific connection settings are isolated in `database.py`; PostgreSQL is not installed or deployed now.
 
 ---
 
 ## Completed
+
+- Starter Code response resilience (October 8, 2026): an HTTP 200 from Groq can still contain invalid JSON or a scaffold that fails signature/unfinished-code checks. Harmless extra JSON fields and a single outer Markdown code fence are now accepted. If Groq output is unusable or its request times out, the endpoint returns a safe unfinished offline scaffold with `isAiGenerated: false`, `usedFallback: true`, and a clear notice instead of failing the student. The fallback is cached, but its UI offers an explicit Try AI generation again action. Provider failures are logged with context and exception category only; raw model text and secrets are not logged or returned.
+- Real LLM Progressive Starter Code + persistent cache (October 7, 2026): the existing POST contract now loads the exact problem, selected canonical approach, facts, thinking steps, and requested language's submission template from SQLite for all 20 curated problems and 41 approaches. `LLMProvider.generate_starter_code` uses a deterministic offline mock or a structured Groq JSON request. Validation requires the original class and all entry-point signatures, an unfinished TODO and fail-loud placeholder, and rejects fences/malformed output; provider errors yield sanitized 502/503 responses. Full Solution and Hints behavior are unchanged. The prior seven-approach static starter service remains as a legacy fixture, but the route no longer uses it. No schema migration or backend generated-code cache was added.
+- Starter responses and UI choices now persist in the existing `leetcoach-workspaces-v1` map, keyed by slug, canonical approach ID, language, and level. Cached combinations reappear when selected and never trigger another request; Hide starter code and Close starter code options only affect visibility. Tests cover old-hint hydration, bad-cache isolation, problem switch/remount reuse, and aborted response isolation. Mock scaffolds give three distinct unfinished levels for all 492 combinations; actual Groq teaching quality still needs human review. That milestone passed 49 backend tests, 81 frontend tests, and the production build with its final offline suite.
 
 - Problem Specification / LLM grounding (October 4, 2026): migration `0002` adds required title/difficulty/summary fields plus ordered constraint/example tables and language-keyed submission templates. All 20 problems have concise algorithm-neutral specifications, representative examples, and LeetCode-style Python/Java/JavaScript/C++ shells. Exact-sync seeding covers every new child type while preserving retained IDs. An internal repository helper loads a complete problem + language template + canonical approach context; public API and frontend behavior are unchanged.
 - 20-problem SQLite catalog (October 1, 2026): expanded stable editorial coverage to the requested 20 problems, with 41 canonical approaches, exactly one primary approach per problem, 84 ordered recognition-signal bullets, and 68 manually curated related cards. Three related categories are intentionally empty where no useful choice was available. Stable DB seed data now lives in `app/stable_data.py`, separate from mock guidance/code fixtures. No schema or Alembic migration was needed.
@@ -118,7 +122,7 @@ Future PostgreSQL path: add the PostgreSQL driver/configuration in a separate mi
 - Coach stays mounted while switching sections, preserving selected approaches, hints, starter disclosure/settings/code, thinking process, full answers, and pending requests. Actual problem changes retain the existing reset behavior.
 - Added Practice and Progress placeholders and a short About page. Replaced the large no-problem welcome/explanation cards with Progress and a simple Open LeetCode action; guidance explanation now lives in About.
 - Added four navigation regression tests covering Coach state preservation, pending requests, problem detection transitions, and keyboard navigation. Built-app fixture preview verified light/dark navigation and no horizontal overflow at 320px.
-- Starter Code opens from a neutral Get starter code button; language, levels, and orange generation controls stay hidden initially. Hiding it cancels pending requests and clears code. Its approach badge uses the same green branch icon as Hints.
+- Starter Code opens from a neutral Get starter code button; language, levels, and orange generation controls stay hidden initially. Closing the options cancels pending requests and hides visible code while keeping its cache. Its approach badge uses the same green branch icon as Hints.
 - Progressive Starter Code (September 19, 2026): independent card between Hints and Solution strategies, preserving the approved light/dark styling.
 - Three explicit guidance levels: Minimal signatures, Guided variables/data structures, and Strong Scaffold control flow with meaningful algorithm TODOs. Placeholder exceptions keep unfinished scaffolds from silently behaving like solutions.
 - Separate, independently authored starter templates for all seven canonical approaches, all four answer languages (Python, Java, JavaScript, C++), and all three levels: 84 combinations. Full solution templates are not used to generate starter code.
@@ -276,8 +280,8 @@ Generated Answer Flow
 - Confirm the detected problem view is ordered as title, hints, starter code, approaches, selected approach details/Generate Answer, then thinking process.
 - Generate starter code for each level and confirm progressively more structure appears while Level 3 still requires meaningful algorithm work.
 - Confirm starter requests use the primary approach before selection and the selected canonical ID afterward, including after closing an alternative approach.
-- Change starter language/level and confirm old code clears without a request; click Generate Starter Code to load the new scaffold.
-- Clear starter code, switch approaches, and switch problems; confirm old code and pending results cannot reappear.
+- Change starter language/level and confirm an uncached combination shows no code or automatic request; click Generate Starter Code to load it. Revisit a cached combination and confirm its own code appears without another request.
+- Hide starter code or close its options and confirm the result disappears while its cache survives; switch approaches/problems and reopen the panel to confirm each context restores only its own saved choices/code. Confirm late aborted results never appear in a new context.
 - Confirm no hint, approach name, pattern, or thinking process is revealed automatically.
 - Click `Get first hint` and confirm exactly one hint appears.
 - Click `Show next hint` and confirm each click reveals exactly one additional hint.
@@ -305,6 +309,9 @@ Generated Answer Flow
 ---
 
 ## Verified This Milestone
+
+- October 8 Starter Code response resilience: 49 backend tests, 84 frontend tests, and the production build pass with fake Groq responses, including valid responses with harmless formatting differences, malformed 200 responses, provider timeouts, safe offline fallback, and explicit retry after panel remount. No live Groq request is made by these tests.
+- October 7 Starter Code provider/cache milestone: `py -B -m unittest discover -s backend/tests -q` passed 49 backend tests; `npm test` passed 81 frontend tests; `npm run build` passed. The backend suite covers all 41 canonical approaches across 20 problems, each in four languages and three levels using an offline mock, plus mocked Groq structured output/failure handling. The final suite makes no live Groq calls.
 
 - October 4 persistent-workspace milestone: `npm test` passed 78 frontend tests, including ten new storage/hydration regressions for problem switches, panel remount, cached hint disclosure/reset, separate approach caches, non-LeetCode tab switching, stale in-flight responses, corrupt/unavailable storage, and stale canonical IDs. `npm run build` passed. Backend tests were not needed because API contracts and backend code did not change.
 - October 4 hint-quality refinement: Groq is instructed to return three one-idea questions, without naming a technique, providing a solution sequence, or copying approach metadata. Shared output handling keeps the first complete sentence and limits successive hints to 10/14/18 words and 75/100/120 characters; overlong single-sentence responses use a short fallback nudge. Groq hints that are commands, contain code formatting, or directly name the selected approach/pattern also use a short fallback question. Offline mock hints are shorter and no longer announce the approach pattern early. A manual Groq check for Two Sum returned short questions without code or a full algorithm. No frontend/API contract changed. Backend tests: 50 passed; frontend tests: 68 passed; build passed.
@@ -342,10 +349,10 @@ Generated Answer Flow
 
 - Practice offers manually curated related problems stored in SQLite for all 20 seeded problems. Opening a related problem does not imply full mock guidance is available for it. Progress remains a placeholder; no learning-history persistence is implemented yet.
 - Chrome side-panel interactions still need manual browser verification after reloading the unpacked extension.
-- Stable metadata and hint grounding use SQLite. Starter Code and Full Solution still use in-memory templates and fixture-based problem/approach validation.
-- Hints use a deterministic mock provider by default; live generation requires Groq configuration and a working network connection. Model text is validated for shape and nonempty content, but semantic quality still needs human review.
+- Stable metadata and both Hints and Starter Code grounding use SQLite. Full Solution still uses in-memory templates and fixture-based problem/approach validation.
+- Hints and Starter Code use a deterministic mock provider by default; live generation requires Groq configuration and a working network connection. Starter validation enforces output shape, unchanged signatures, and unfinished placeholders, but semantic quality and the strength of Level 3's remaining work still need human review.
 - Generated answers are static mock strings, not generated by an AI provider.
-- Starter Code and Full Solutions remain fully mocked only for Two Sum, Valid Parentheses, and Longest Substring Without Repeating Characters (seven approaches total). All 20 DB problems support the hint provider; the other 17 have no fabricated code templates.
+- Full Solutions remain fully mocked only for Two Sum, Valid Parentheses, and Longest Substring Without Repeating Characters (seven approaches total). All 20 DB problems support Hints and Starter Code; the offline Starter Code mock uses deterministic DB-grounded scaffolds and Groq can generate richer ones when configured.
 - No PostgreSQL, authentication, cloud deployment, or user history yet.
 - The extension assumes the local backend is available at `http://localhost:8000`.
 
@@ -360,7 +367,7 @@ Generated Answer Flow
 
 ## Future Features
 
-- LLM Starter Code and Full Solution integration when their mock-to-provider transition is explicitly scoped
+- LLM Full Solution integration when its mock-to-provider transition is explicitly scoped
 - Interview follow-up questions
 - OpenAI, Gemini, or OpenRouter provider integration
 - PostgreSQL migration

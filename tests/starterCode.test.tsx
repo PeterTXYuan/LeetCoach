@@ -33,7 +33,7 @@ describe("starter code generation", () => {
     expect(screen.getByRole("button", { name: "Get starter code" }).getAttribute("aria-expanded")).toBe("false");
     click("Get starter code");
     expect(fetchMock).not.toHaveBeenCalled();
-    expect(screen.getByRole("button", { name: "Hide starter code" }).getAttribute("aria-expanded")).toBe("true");
+    expect(screen.getByRole("button", { name: "Close starter code options" }).getAttribute("aria-expanded")).toBe("true");
     chooseLanguage(language);
     for (const level of [1, 2, 3]) {
       click(new RegExp(`Level ${level}`));
@@ -57,7 +57,7 @@ describe("starter code generation", () => {
     click(/Level 3/);
     click("Generate Starter Code");
     await screen.findByText("// TODO: java level 3");
-    click("Clear starter code");
+    click("Hide starter code");
     expect(screen.queryByRole("article")).toBeNull();
     expect((screen.getByLabelText("Starter language") as HTMLSelectElement).value).toBe("java");
     expect(screen.getByRole("button", { name: /Level 3/ }).getAttribute("aria-pressed")).toBe("true");
@@ -74,8 +74,8 @@ describe("starter code generation", () => {
     if (change === "level") click(/Level 2/);
     if (change === "approach") view.rerender(<StarterCode {...props} approachId="brute-force" />);
     if (change === "problem") view.rerender(<StarterCode {...props} slug="valid-parentheses" approachId="stack" />);
-    if (change === "clear") click("Clear starter code");
-    if (change === "hide") click("Hide starter code");
+    if (change === "clear") click("Hide starter code");
+    if (change === "hide") click("Close starter code options");
     if (change === "unmount") view.unmount();
     expect(signal.aborted).toBe(true);
     await act(async () => resolve(json(response())));
@@ -110,6 +110,22 @@ describe("starter code generation", () => {
     await screen.findByText("// TODO: java level 2");
     expect(JSON.parse(fetchMock.mock.lastCall![1].body)).toEqual({ language: "java", level: 2 });
   });
+
+  it("shows a usable offline fallback and permits an explicit AI retry", async () => {
+    fetchMock.mockResolvedValueOnce(json(response({
+      code: "# TODO: offline scaffold", isAiGenerated: false, usedFallback: true,
+      notice: "AI starter code could not be used. Showing an offline scaffold."
+    })));
+    render(<StarterCode {...props} />);
+    click("Get starter code");
+    click("Generate Starter Code");
+    await screen.findByText("# TODO: offline scaffold");
+    expect(screen.getByText(/Showing an offline scaffold/)).toBeTruthy();
+    click("Try AI generation again");
+    await screen.findByText("// TODO: python level 1");
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(screen.queryByRole("button", { name: "Try AI generation again" })).toBeNull();
+  });
 });
 
 describe("starter API contract", () => {
@@ -119,7 +135,7 @@ describe("starter API contract", () => {
     fetchMock.mockResolvedValueOnce(json(response(mismatch)));
     await expect(fetchStarterCode("two-sum", "hash-map", "python", 1)).rejects.toThrow("does not match");
   });
-  it.each([null, {}, response({ level: "1" }), response({ language: "ruby" }), response({ code: "" })])("rejects malformed data %j", (data) => {
+  it.each([null, {}, response({ level: "1" }), response({ language: "ruby" }), response({ code: "" }), response({ usedFallback: "yes" })])("rejects malformed data %j", (data) => {
     expect(() => normalizeStarterCode(data)).toThrow("Invalid starter code");
   });
 });
@@ -153,7 +169,12 @@ it("places Starter Code between Hints and Solution strategies and uses canonical
   await screen.findByRole("article", { name: "Generated starter code" });
   expect(fetchMock.mock.lastCall![0]).toContain("/brute-force/starter-code");
   click("Close selected approach");
-  expect(screen.queryByRole("article", { name: "Generated starter code" })).toBeNull();
+  expect(screen.getByRole("article", { name: "Generated starter code" })).toBeTruthy();
   expect(screen.getByLabelText("Starter code for Approach 1")).toBeTruthy();
+  const requestsBeforeReturn = fetchMock.mock.calls.filter(([url]) => String(url).endsWith("/starter-code")).length;
+  click(/^Approach 2$/);
+  expect(screen.getByRole("article", { name: "Generated starter code" })).toBeTruthy();
+  expect(fetchMock.mock.calls.filter(([url]) => String(url).endsWith("/starter-code")).length).toBe(requestsBeforeReturn);
+  click("Close selected approach");
   expect(within(screen.getByRole("region", { name: "Hints" })).getByRole("button", { name: "Get first hint" })).toBeTruthy();
 });

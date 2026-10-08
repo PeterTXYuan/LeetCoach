@@ -8,6 +8,7 @@ export type StarterCodeResponse = {
   level: GuidanceLevel;
   levelName: string;
   isAiGenerated: boolean;
+  usedFallback?: boolean;
   code: string;
   notice: string;
 };
@@ -51,7 +52,8 @@ export function normalizeStarterCode(value: unknown): StarterCodeResponse {
     !["python", "java", "javascript", "cpp"].includes(data.language as string) ||
     ![1, 2, 3].includes(data.level as number) ||
     typeof data.levelName !== "string" || typeof data.isAiGenerated !== "boolean" ||
-    typeof data.code !== "string" || !data.code.trim() || typeof data.notice !== "string"
+    typeof data.code !== "string" || !data.code.trim() || typeof data.notice !== "string" ||
+    (data.usedFallback !== undefined && typeof data.usedFallback !== "boolean")
   ) throw new Error("Invalid starter code response.");
   return data as StarterCodeResponse;
 }

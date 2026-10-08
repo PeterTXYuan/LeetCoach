@@ -1,4 +1,6 @@
 import type { ApproachHintsResponse } from "./api/approachHints";
+import { normalizeStarterCode, type GuidanceLevel, type StarterCodeResponse } from "./api/starterCode";
+import type { SolutionLanguage } from "./api/approachSolution";
 import type { SectionId } from "./components/SectionNav";
 
 export const workspaceStorageKey = "leetcoach-workspaces-v1";
@@ -8,11 +10,28 @@ export type SavedHints = {
   visibleHintCount: number;
 };
 
+export type SavedStarter = {
+  language: SolutionLanguage;
+  level: GuidanceLevel;
+  isExpanded: boolean;
+  isVisible: boolean;
+  responses: Record<string, StarterCodeResponse>;
+};
+
+export function emptyStarter(): SavedStarter {
+  return { language: "python", level: 1, isExpanded: false, isVisible: false, responses: {} };
+}
+
+export function starterResponseKey(language: SolutionLanguage, level: GuidanceLevel): string {
+  return `${language}:${level}`;
+}
+
 export type CoachWorkspace = {
   selectedApproachId: string | null;
   isThinkingExpanded: boolean;
   activeSection: SectionId;
   hintsByApproach: Record<string, SavedHints>;
+  starterByApproach: Record<string, SavedStarter>;
 };
 
 export type CoachWorkspaces = Record<string, CoachWorkspace>;
@@ -25,7 +44,8 @@ export function emptyWorkspace(): CoachWorkspace {
     selectedApproachId: null,
     isThinkingExpanded: false,
     activeSection: "coach",
-    hintsByApproach: {}
+    hintsByApproach: {},
+    starterByApproach: {}
   };
 }
 
@@ -51,6 +71,26 @@ function parseSavedHints(value: unknown, slug: string, approachId: string): Save
   };
 }
 
+function parseSavedStarter(value: unknown, slug: string, approachId: string): SavedStarter | null {
+  if (!isRecord(value) || !isRecord(value.responses) ||
+      !["python", "java", "javascript", "cpp"].includes(value.language as string) ||
+      ![1, 2, 3].includes(value.level as number) ||
+      typeof value.isExpanded !== "boolean" || typeof value.isVisible !== "boolean") return null;
+  const responses: Record<string, StarterCodeResponse> = {};
+  for (const [key, saved] of Object.entries(value.responses)) {
+    try {
+      const response = normalizeStarterCode(saved);
+      if (response.slug !== slug || response.approachId !== approachId ||
+          key !== starterResponseKey(response.language, response.level)) continue;
+      responses[key] = response;
+    } catch { /* Drop one corrupted cache entry, keep the rest of the workspace. */ }
+  }
+  return {
+    language: value.language as SolutionLanguage, level: value.level as GuidanceLevel,
+    isExpanded: value.isExpanded, isVisible: value.isVisible, responses
+  };
+}
+
 function parseWorkspace(value: unknown, slug: string): CoachWorkspace | null {
   if (!isRecord(value) || !isRecord(value.hintsByApproach)) return null;
   if (value.selectedApproachId !== null &&
@@ -66,11 +106,21 @@ function parseWorkspace(value: unknown, slug: string): CoachWorkspace | null {
     if (!parsed) return null;
     hintsByApproach[approachId] = parsed;
   }
+  const starterByApproach: Record<string, SavedStarter> = {};
+  // Existing v1 workspaces predate starter caching; absence is a valid migration.
+  if (value.starterByApproach !== undefined && isRecord(value.starterByApproach)) {
+    for (const [approachId, saved] of Object.entries(value.starterByApproach)) {
+      if (!canonicalKey.test(approachId)) continue;
+      const parsed = parseSavedStarter(saved, slug, approachId);
+      if (parsed) starterByApproach[approachId] = parsed;
+    }
+  }
   return {
     selectedApproachId: value.selectedApproachId as string | null,
     isThinkingExpanded: value.isThinkingExpanded,
     activeSection: value.activeSection as SectionId,
-    hintsByApproach
+    hintsByApproach,
+    starterByApproach
   };
 }
 

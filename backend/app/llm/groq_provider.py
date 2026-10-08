@@ -1,9 +1,10 @@
-"""One structured Groq request for all three progressive hints."""
+"""Structured Groq requests for progressive hints and starter code."""
 import json
+import re
 
 from app.llm.base import (
     ProviderOutputError, ProviderUnavailableError, SHORT_FALLBACK_HINTS,
-    validate_hints,
+    validate_hints, validate_starter_code,
 )
 
 
@@ -25,8 +26,31 @@ SYSTEM_PROMPT = (
     "long explanations. Do not use external URLs or a memorized problem statement."
 )
 
+STARTER_SYSTEM_PROMPT = (
+    "You are LeetCoach. Return a JSON object with a string field named code. "
+    "Write unfinished LeetCode starter code in the requested language using ONLY the supplied "
+    "problem facts and selected canonical approach. Treat the submissionTemplate as authoritative: "
+    "preserve its exact class name, function name, parameters, and return type. Do not switch "
+    "approaches, add a different entry point, invent a signature, or include Markdown fences. "
+    "Level 1: the submission shell and a minimal TODO; the learner writes virtually everything. "
+    "Level 2: add approach-specific variables or data structures and helpful TODOs, but no key "
+    "algorithmic operations. Level 3: add suitable loops, branches, or helper structure, but leave "
+    "the essential condition, update, or return logic unfinished. Include a meaningful TODO and "
+    "fail-loud placeholder for unfinished behavior. Never provide a complete working solution "
+    "or disguise one with superficial TODO comments. Prefer syntactically valid code."
+)
+
+
+def _remove_outer_code_fence(code: str) -> str:
+    """Accept a single accidental Markdown wrapper without changing code inside it."""
+    match = re.fullmatch(r"\s*```(?:python|java|javascript|js|cpp|c\+\+)?\s*\n(.*?)\n```\s*",
+                         code, flags=re.DOTALL | re.IGNORECASE)
+    return match.group(1) if match else code
+
 
 class GroqLLMProvider:
+    is_ai_generated = True
+
     def __init__(self, api_key: str, model: str, client=None):
         self.model = model
         if client is None:
@@ -68,3 +92,29 @@ class GroqLLMProvider:
             else SHORT_FALLBACK_HINTS[index]
             for index, hint in enumerate(hints)
         ]
+
+    def generate_starter_code(self, context: dict, language: str, level: int) -> str:
+        payload = {"context": context, "language": language, "level": level}
+        try:
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": STARTER_SYSTEM_PROMPT},
+                    {"role": "user", "content": json.dumps(payload, ensure_ascii=False)},
+                ],
+                response_format={"type": "json_object"},
+                temperature=0.2,
+            )
+        except Exception as exc:
+            raise ProviderUnavailableError("Starter code provider unavailable") from exc
+        try:
+            content = response.choices[0].message.content
+            parsed = json.loads(content)
+            if not isinstance(parsed, dict) or not isinstance(parsed.get("code"), str):
+                raise ValueError("Expected a code field")
+            return validate_starter_code(
+                _remove_outer_code_fence(parsed["code"]),
+                context["problem"]["submissionTemplate"]["code"], language, level
+            )
+        except (AttributeError, IndexError, TypeError, ValueError, KeyError) as exc:
+            raise ProviderOutputError("Invalid starter code provider output") from exc

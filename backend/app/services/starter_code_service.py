@@ -6,9 +6,11 @@ truncated, or transformed to produce starter code.
 """
 from textwrap import indent
 
+from app.llm.base import STARTER_LEVEL_NAMES, SUPPORTED_STARTER_LANGUAGES
 
-SUPPORTED_LANGUAGES = {"python", "java", "javascript", "cpp"}
-LEVEL_NAMES = {1: "Minimal", 2: "Guided", 3: "Strong Scaffold"}
+
+SUPPORTED_LANGUAGES = SUPPORTED_STARTER_LANGUAGES
+LEVEL_NAMES = STARTER_LEVEL_NAMES
 
 
 class UnsupportedStarterLanguageError(ValueError):

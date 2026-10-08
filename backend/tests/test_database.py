@@ -159,7 +159,7 @@ class DatabaseTests(DatabaseTestCase):
                         self.assertEqual(response.status_code, 200)
                         self.assertEqual(response.json(), generate_approach_solution(problem, approach, language))
 
-    def test_expanded_database_problem_gains_hints_but_not_mock_code(self):
+    def test_expanded_database_problem_gains_hints_and_starter_but_not_full_solution(self):
         slug = "contains-duplicate"
         self.assertEqual(self.client.get(f"/api/problems/{slug}").status_code, 200)
         self.assertEqual(self.client.get(f"/api/problems/{slug}/related").status_code, 200)
@@ -169,13 +169,17 @@ class DatabaseTests(DatabaseTestCase):
         )
         self.assertEqual(approach_hints.status_code, 200)
         self.assertEqual(len(approach_hints.json()["hints"]), 3)
-        for path, body in (
-            ("hash-set/starter-code", {"language": "python", "level": 1}),
-            ("hash-set/solution", {"language": "python"}),
-        ):
-            endpoint = f"/api/problems/{slug}/approaches/{path}"
-            response = self.client.post(endpoint, json=body)
-            self.assertEqual(response.status_code, 404)
+        starter = self.client.post(
+            f"/api/problems/{slug}/approaches/hash-set/starter-code",
+            json={"language": "python", "level": 1},
+        )
+        self.assertEqual(starter.status_code, 200)
+        self.assertFalse(starter.json()["isAiGenerated"])
+        solution = self.client.post(
+            f"/api/problems/{slug}/approaches/hash-set/solution",
+            json={"language": "python"},
+        )
+        self.assertEqual(solution.status_code, 404)
 
     def test_database_enforces_uniqueness_and_foreign_keys(self):
         with Session(self.engine) as session:

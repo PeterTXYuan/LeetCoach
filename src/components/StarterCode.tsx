@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { SolutionLanguage } from "../api/approachSolution";
 import type { GuidanceLevel } from "../api/starterCode";
+import { emptyStarter, starterResponseKey, type SavedStarter } from "../coachWorkspaceStorage";
 import { useStarterCode } from "../hooks/useStarterCode";
 
 const languages: { value: SolutionLanguage; label: string }[] = [
@@ -17,13 +18,43 @@ type StarterCodeProps = {
   slug: string;
   approachId: string | null;
   approachNumber?: number;
+  saved?: SavedStarter;
+  onSave?: (update: (current: SavedStarter) => SavedStarter) => void;
 };
 
-export function StarterCode({ slug, approachId, approachNumber }: StarterCodeProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
-  const [language, setLanguage] = useState<SolutionLanguage>("python");
-  const [level, setLevel] = useState<GuidanceLevel>(1);
-  const { state, generate, clear } = useStarterCode({ slug, approachId, language, level });
+export function StarterCode({ slug, approachId, approachNumber, saved, onSave }: StarterCodeProps) {
+  const [localSaved, setLocalSaved] = useState<SavedStarter>(emptyStarter);
+  const settings = saved ?? localSaved;
+  const updateSettings = (update: (current: SavedStarter) => SavedStarter) => {
+    if (onSave) onSave(update);
+    else setLocalSaved(update);
+  };
+  const { language, level, isExpanded } = settings;
+  const candidate = settings.responses[starterResponseKey(language, level)];
+  const cached = candidate?.slug === slug && candidate.approachId === approachId ? candidate : undefined;
+  const { state, generate, clear } = useStarterCode({ slug, approachId, language, level,
+    onResult: (response) => updateSettings((current) => ({
+      ...current, isVisible: true,
+      responses: { ...current.responses, [starterResponseKey(response.language, response.level)]: response }
+    }))
+  });
+  const hideResult = () => {
+    clear();
+    updateSettings((current) => ({ ...current, isVisible: false }));
+  };
+  const chooseLanguage = (next: SolutionLanguage) => {
+    updateSettings((current) => ({ ...current, language: next,
+      isVisible: Boolean(current.responses[starterResponseKey(next, current.level)]) }));
+  };
+  const chooseLevel = (next: GuidanceLevel) => {
+    updateSettings((current) => ({ ...current, level: next,
+      isVisible: Boolean(current.responses[starterResponseKey(current.language, next)]) }));
+  };
+  const handleGenerate = () => {
+    if (cached) {
+      updateSettings((current) => ({ ...current, isVisible: true }));
+    } else void generate();
+  };
 
   return (
     <section className="starter-card" aria-labelledby="starter-code-title">
@@ -45,23 +76,23 @@ export function StarterCode({ slug, approachId, approachNumber }: StarterCodePro
             )}
           </div>
         </div>
-        {state.status !== "idle" && (
-          <button className="text-action" type="button" onClick={clear}>Clear starter code</button>
+        {(settings.isVisible || state.status !== "idle") && (
+          <button className="text-action" type="button" onClick={hideResult}>Hide starter code</button>
         )}
       </div>
       <button className="secondary-action" type="button" aria-expanded={isExpanded}
         aria-controls="starter-code-options" onClick={() => {
-          if (isExpanded) clear();
-          setIsExpanded(!isExpanded);
+          if (isExpanded) hideResult();
+          updateSettings((current) => ({ ...current, isExpanded: !current.isExpanded }));
         }}>
-        {isExpanded ? "Hide starter code" : "Get starter code"}
+        {isExpanded ? "Close starter code options" : "Get starter code"}
       </button>
       <div id="starter-code-options" hidden={!isExpanded}>
         <p className="section-copy">Choose how much structure to reveal. Each level leaves code for you to complete.</p>
         <label className="field-label" htmlFor="starter-language">Starter language</label>
         <div className="language-select-control">
           <select id="starter-language" className="language-select" value={language}
-            onChange={(event) => setLanguage(event.target.value as SolutionLanguage)}>
+            onChange={(event) => chooseLanguage(event.target.value as SolutionLanguage)}>
             {languages.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
           </select>
           <svg className="language-select-chevron" width="16" height="16" viewBox="0 0 24 24"
@@ -75,7 +106,7 @@ export function StarterCode({ slug, approachId, approachNumber }: StarterCodePro
             {levels.map((option) => (
               <button key={option.value} type="button" aria-pressed={level === option.value}
                 className={level === option.value ? "starter-level selected" : "starter-level"}
-                onClick={() => setLevel(option.value)}>
+                onClick={() => chooseLevel(option.value)}>
                 <span>Level {option.value}</span>
                 <span className="starter-level-name">{option.label}</span>
               </button>
@@ -87,7 +118,7 @@ export function StarterCode({ slug, approachId, approachNumber }: StarterCodePro
         </p>
         {!approachId && <p className="analysis-message">Choose an approach to generate starter code.</p>}
         <button className="primary-action" type="button" disabled={!approachId || state.status === "loading"}
-          onClick={() => void generate()}>
+          onClick={handleGenerate}>
           {state.status === "loading" ? "Generating starter code..." : "Generate Starter Code"}
         </button>
         {state.status === "loading" && <p className="analysis-message" role="status">Loading your scaffold...</p>}
@@ -99,16 +130,22 @@ export function StarterCode({ slug, approachId, approachNumber }: StarterCodePro
             <button className="secondary-action" type="button" onClick={() => void generate()}>Retry starter code</button>
           </div>
         )}
-        {state.status === "success" && (
+        {settings.isVisible && cached && (
           <article className="starter-result reveal-motion" aria-label="Generated starter code">
-            <p className="starter-notice">{state.response.notice}</p>
+            <p className="starter-notice">{cached.notice}</p>
             <pre className="code-block">
               <span className="code-language">
-                {languages.find((option) => option.value === state.response.language)?.label}
-                {` · Level ${state.response.level} — ${state.response.levelName}`}
+                {languages.find((option) => option.value === cached.language)?.label}
+                {` · Level ${cached.level} — ${cached.levelName}`}
               </span>
-              <code>{state.response.code}</code>
+              <code>{cached.code}</code>
             </pre>
+            {cached.usedFallback && (
+              <button className="secondary-action" type="button" disabled={state.status === "loading"}
+                onClick={() => void generate()}>
+                Try AI generation again
+              </button>
+            )}
           </article>
         )}
       </div>

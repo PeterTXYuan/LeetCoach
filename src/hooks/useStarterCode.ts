@@ -14,10 +14,13 @@ type StarterCodeOptions = {
   approachId: string | null;
   language: SolutionLanguage;
   level: GuidanceLevel;
+  onResult: (response: StarterCodeResponse) => void;
 };
 
-export function useStarterCode({ slug, approachId, language, level }: StarterCodeOptions) {
+export function useStarterCode({ slug, approachId, language, level, onResult }: StarterCodeOptions) {
   const contextKey = JSON.stringify([slug, approachId, language, level]);
+  const latestKey = useRef(contextKey);
+  latestKey.current = contextKey;
   const [snapshot, setSnapshot] = useState<{ key: string; state: StarterCodeState }>({
     key: contextKey, state: { status: "idle" }
   });
@@ -41,15 +44,16 @@ export function useStarterCode({ slug, approachId, language, level }: StarterCod
     update({ status: "loading" });
     try {
       const response = await fetchStarterCode(slug, approachId, language, level, controller.signal);
-      if (!controller.signal.aborted) {
+      if (!controller.signal.aborted && latestKey.current === contextKey) {
+        if (response) onResult(response);
         update(response ? { status: "success", response } : { status: "not_found" });
       }
     } catch (error) {
-      if (!controller.signal.aborted) {
+      if (!controller.signal.aborted && latestKey.current === contextKey) {
         update({ status: error instanceof InvalidStarterOptionsError ? "invalid_options" : "error" });
       }
     }
-  }, [slug, approachId, language, level, contextKey]);
+  }, [slug, approachId, language, level, contextKey, onResult]);
 
   // Never show a prior language/level while its cleanup effect is pending.
   const state: StarterCodeState = snapshot.key === contextKey ? snapshot.state : { status: "idle" };

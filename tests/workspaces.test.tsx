@@ -26,6 +26,10 @@ function hintRequests() {
   return fetchMock.mock.calls.filter(([url]) => String(url).endsWith("/hints")).length;
 }
 
+function starterRequests() {
+  return fetchMock.mock.calls.filter(([url]) => String(url).endsWith("/starter-code")).length;
+}
+
 function storedWorkspace(slug: string) {
   return (disk[workspaceStorageKey] as Record<string, any> | undefined)?.[slug];
 }
@@ -66,6 +70,13 @@ beforeEach(() => {
     if (path.endsWith("/related")) {
       return json({ slug, easier: [], similar: [], harder: [] });
     }
+    if (path.endsWith("/starter-code")) {
+      const body = JSON.parse(fetchMock.mock.lastCall![1].body as string);
+      return json({ slug, approachId: parts[5], language: body.language, level: body.level,
+        levelName: ["", "Minimal", "Guided", "Strong Scaffold"][body.level],
+        isAiGenerated: false, code: `// TODO: ${slug} ${parts[5]} ${body.language} ${body.level}`,
+        notice: "Complete the TODOs." });
+    }
     return json({
       slug,
       approaches: catalogs[slug].map((approach, index) => ({
@@ -103,6 +114,100 @@ function section(name: string) {
 }
 
 describe("persistent Coach workspaces", () => {
+  it("caches starter code by canonical approach, language, and level across problems and remounts", async () => {
+    const view = await mount();
+    click("Get starter code");
+    fireEvent.change(screen.getByLabelText("Starter language"), { target: { value: "java" } });
+    fireEvent.click(screen.getByRole("button", { name: /Level 2/ }));
+    click("Generate Starter Code");
+    expect(await screen.findByText("// TODO: two-sum hash-map java 2")).toBeTruthy();
+    expect(starterRequests()).toBe(1);
+    click("Close starter code options");
+    click("Get starter code");
+    expect(screen.queryByText("// TODO: two-sum hash-map java 2")).toBeNull();
+    click("Generate Starter Code");
+    expect(screen.getByText("// TODO: two-sum hash-map java 2")).toBeTruthy();
+    expect(starterRequests()).toBe(1);
+
+    fireEvent.click(screen.getByRole("button", { name: /Level 3/ }));
+    expect(screen.queryByText("// TODO: two-sum hash-map java 2")).toBeNull();
+    click("Generate Starter Code");
+    expect(await screen.findByText("// TODO: two-sum hash-map java 3")).toBeTruthy();
+    expect(starterRequests()).toBe(2);
+    fireEvent.click(screen.getByRole("button", { name: /Level 2/ }));
+    expect(screen.getByText("// TODO: two-sum hash-map java 2")).toBeTruthy();
+    expect(starterRequests()).toBe(2);
+
+    await waitFor(() => expect(storedWorkspace("two-sum")?.starterByApproach["hash-map"]
+      .responses["java:2"].code).toContain("two-sum"));
+    await activate("https://leetcode.com/problems/valid-parentheses/");
+    await screen.findByRole("heading", { name: "Valid Parentheses" });
+    expect(screen.queryByText("// TODO: two-sum hash-map java 2")).toBeNull();
+    await activate("https://leetcode.com/problems/two-sum/");
+    expect(await screen.findByText("// TODO: two-sum hash-map java 2")).toBeTruthy();
+    expect(starterRequests()).toBe(2);
+    view.unmount();
+    await mount();
+    expect(await screen.findByText("// TODO: two-sum hash-map java 2")).toBeTruthy();
+    expect((screen.getByLabelText("Starter language") as HTMLSelectElement).value).toBe("java");
+    expect(starterRequests()).toBe(2);
+  });
+
+  it("drops a bad starter cache entry while retaining older hint data", () => {
+    const parsed = parseWorkspaces({ "two-sum": {
+      selectedApproachId: null, isThinkingExpanded: false, activeSection: "coach",
+      hintsByApproach: { "hash-map": {
+        response: { slug: "two-sum", approachId: "hash-map", hints: ["Saved hint"] },
+        visibleHintCount: 1
+      } },
+      starterByApproach: { "hash-map": { language: "java", level: 2, isExpanded: true,
+        isVisible: true, responses: { "java:2": { slug: "other", approachId: "hash-map",
+          language: "java", level: 2, levelName: "Guided", isAiGenerated: false,
+          code: "// TODO", notice: "Finish" } } } }
+    } });
+    expect(parsed["two-sum"].hintsByApproach["hash-map"].response.hints).toEqual(["Saved hint"]);
+    expect(parsed["two-sum"].starterByApproach["hash-map"].responses).toEqual({});
+  });
+
+  it("does not save an aborted starter response after switching the requested combination", async () => {
+    await mount();
+    let resolveStarter!: (value: Response) => void;
+    fetchMock.mockImplementationOnce(() => new Promise((resolve) => { resolveStarter = resolve; }));
+    click("Get starter code");
+    click("Generate Starter Code");
+    const signal = fetchMock.mock.lastCall![1].signal as AbortSignal;
+    fireEvent.change(screen.getByLabelText("Starter language"), { target: { value: "java" } });
+    expect(signal.aborted).toBe(true);
+    await act(async () => resolveStarter(json({ slug: "two-sum", approachId: "hash-map",
+      language: "python", level: 1, levelName: "Minimal", isAiGenerated: false,
+      code: "# TODO: stale", notice: "Finish" })));
+    expect(storedWorkspace("two-sum")?.starterByApproach["hash-map"]?.responses["python:1"]).toBeUndefined();
+    click("Generate Starter Code");
+    expect(await screen.findByText("// TODO: two-sum hash-map java 1")).toBeTruthy();
+    expect(starterRequests()).toBe(2);
+  });
+
+  it("retains a fallback across remounts but lets the user retry AI explicitly", async () => {
+    const view = await mount();
+    fetchMock.mockResolvedValueOnce(json({
+      slug: "two-sum", approachId: "hash-map", language: "python", level: 1,
+      levelName: "Minimal", isAiGenerated: false, usedFallback: true,
+      code: "# TODO: offline fallback", notice: "AI starter code could not be used."
+    }));
+    click("Get starter code");
+    click("Generate Starter Code");
+    expect(await screen.findByText("# TODO: offline fallback")).toBeTruthy();
+    await waitFor(() => expect(storedWorkspace("two-sum")?.starterByApproach["hash-map"]
+      .responses["python:1"].usedFallback).toBe(true));
+    view.unmount();
+    await mount();
+    expect(await screen.findByText("# TODO: offline fallback")).toBeTruthy();
+    expect(starterRequests()).toBe(1);
+    click("Try AI generation again");
+    expect(await screen.findByText("// TODO: two-sum hash-map python 1")).toBeTruthy();
+    expect(starterRequests()).toBe(2);
+    expect(screen.queryByRole("button", { name: "Try AI generation again" })).toBeNull();
+  });
   it("restores a problem's approach, hint count, thinking, and section without another hint request", async () => {
     await mount();
     click("Approach 1");
