@@ -181,10 +181,14 @@ it("places Starter Code between Hints and Solution strategies and uses canonical
   await screen.findByRole("article", { name: "Generated starter code" });
   expect(fetchMock.mock.lastCall![0]).toContain("/brute-force/starter-code");
   click("Close selected approach");
-  expect(screen.getByRole("article", { name: "Generated starter code" })).toBeTruthy();
+  expect(screen.queryByRole("article", { name: "Generated starter code" })).toBeNull();
+  expect(screen.getByRole("button", { name: "Get starter code" })).toBeTruthy();
   expect(screen.getByLabelText("Starter code for Approach 1")).toBeTruthy();
   const requestsBeforeReturn = fetchMock.mock.calls.filter(([url]) => String(url).endsWith("/starter-code")).length;
   click(/^Approach 2$/);
+  expect(screen.queryByRole("article", { name: "Generated starter code" })).toBeNull();
+  click("Get starter code");
+  click("Generate Starter Code");
   expect(screen.getByRole("article", { name: "Generated starter code" })).toBeTruthy();
   expect(fetchMock.mock.calls.filter(([url]) => String(url).endsWith("/starter-code")).length).toBe(requestsBeforeReturn);
   click("Close selected approach");

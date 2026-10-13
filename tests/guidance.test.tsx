@@ -54,7 +54,7 @@ describe("global section navigation", () => {
     });
   }
 
-  it("preserves all Coach state across every section without requesting guidance again", async () => {
+  it("preserves expanded Coach guidance across extension and browser tab switches", async () => {
     await mount();
     expect(screen.getAllByRole("tab").map((tab) => tab.textContent)).toEqual(["Coach", "Practice", "Progress", "About"]);
     expect(screen.getByRole("tab", { name: "Coach" }).getAttribute("aria-selected")).toBe("true");
@@ -86,12 +86,15 @@ describe("global section navigation", () => {
       expect(screen.getByText("java example code")).toBeTruthy();
       expect(screen.getByText("// TODO: starter scaffold")).toBeTruthy();
       expect(screen.getByText("Recognize brute-force")).toBeTruthy();
-      expect((screen.getByLabelText("Starter language") as HTMLSelectElement).value).toBe("cpp");
+      expect(screen.getByRole("button", { name: "Close starter code options" })).toBeTruthy();
       expect((screen.getByLabelText("Language") as HTMLSelectElement).value).toBe("java");
-      expect(screen.getByRole("button", { name: /Level 2/ }).getAttribute("aria-pressed")).toBe("true");
     }
     expect(fetchMock.mock.calls.filter(([url]) => !url.endsWith("/related"))).toHaveLength(requestCount);
     expect(fetchMock.mock.calls.filter(([url]) => url.endsWith("/related"))).toHaveLength(1);
+
+    expect((screen.getByLabelText("Starter language") as HTMLSelectElement).value).toBe("cpp");
+    expect(screen.getByRole("button", { name: /Level 2/ }).getAttribute("aria-pressed")).toBe("true");
+    expect(fetchMock.mock.calls.filter(([url]) => !url.endsWith("/related"))).toHaveLength(requestCount);
 
     const requestsBeforeBrowserSwitch = fetchMock.mock.calls.length;
     await activateBrowserTab("https://example.com/");
@@ -218,13 +221,16 @@ function click(name: string) { fireEvent.click(screen.getByRole("button", { name
 function chooseLanguage(language: string) { fireEvent.change(screen.getByLabelText("Language"), { target: { value: language } }); }
 
 describe("canonical hint disclosure", () => {
-  it("labels default hints by primary ID and preserves them when selecting that approach", async () => {
+  it("labels default hints by primary ID and hides them on selection while reusing the batch", async () => {
     await mount();
     expect(screen.getByLabelText("Hints for Approach 2")).toBeTruthy();
     expect(fetchMock).toHaveBeenCalledTimes(1);
     click("Get first hint");
     await screen.findByText("hash-map hint 1");
     click("Approach 2");
+    expect(screen.queryByText("hash-map hint 1")).toBeNull();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    click("Get first hint");
     expect(screen.getByText("hash-map hint 1")).toBeTruthy();
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });

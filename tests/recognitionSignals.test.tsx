@@ -64,7 +64,12 @@ it("is absent without a selection, follows canonical IDs, sits between Summary a
 });
 
 it("renders signals without a quote and exposes an accessible disclosure button", () => {
-  render(<RecognitionSignals slug="two-sum" signals={{ bullets: signals.bullets }} />);
+  function Harness() {
+    const [isRevealed, setIsRevealed] = React.useState(false);
+    return <RecognitionSignals slug="two-sum" signals={{ bullets: signals.bullets }}
+      isRevealed={isRevealed} onToggle={() => setIsRevealed((value) => !value)} />;
+  }
+  render(<Harness />);
   const button = screen.getByRole("button", { name: "Reveal recognition signals" });
   button.focus();
   expect(document.activeElement).toBe(button);

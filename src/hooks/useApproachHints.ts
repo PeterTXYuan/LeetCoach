@@ -18,6 +18,7 @@ type UseApproachHintsOptions = {
   selectedApproachId: string | null;
   primaryApproachId: string | null;
   hintsByApproach?: Record<string, SavedHints>;
+  disclosureRevision: number;
   updateHints: (
     slug: string, approachId: string,
     update: (current: SavedHints | undefined) => SavedHints | undefined
@@ -31,10 +32,11 @@ export function useApproachHints({
   selectedApproachId,
   primaryApproachId,
   hintsByApproach,
-  updateHints
+  updateHints,
+  disclosureRevision
 }: UseApproachHintsOptions) {
   const approachId = selectedApproachId ?? primaryApproachId;
-  const contextKey = JSON.stringify([slug, approachId]);
+  const contextKey = JSON.stringify([slug, approachId, disclosureRevision]);
   const currentContextKey = useRef(contextKey);
   currentContextKey.current = contextKey;
   const [requestState, setRequestState] = useState<RequestState>({

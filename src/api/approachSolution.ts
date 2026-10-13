@@ -20,6 +20,18 @@ export class UnsupportedLanguageRequestError extends Error {
   }
 }
 
+export class SolutionProviderResponseError extends Error {
+  constructor(readonly status: number) {
+    super(`Full solution provider returned HTTP ${status}.`);
+  }
+}
+
+export class InvalidApproachSolutionResponseError extends Error {
+  constructor() {
+    super("Invalid full solution response.");
+  }
+}
+
 export async function fetchApproachSolution(
   slug: string,
   approachId: string,
@@ -48,14 +60,21 @@ export async function fetchApproachSolution(
     throw new UnsupportedLanguageRequestError();
   }
 
-  if (!response.ok) {
-    throw new Error(`Approach solution request failed: ${response.status}`);
-  }
+  if (!response.ok) throw new SolutionProviderResponseError(response.status);
 
-  return normalizeApproachSolutionResponse(await response.json());
+  let result: ApproachSolutionResponse;
+  try {
+    result = normalizeApproachSolutionResponse(await response.json());
+  } catch {
+    throw new InvalidApproachSolutionResponseError();
+  }
+  if (result.slug !== slug || result.approachId !== approachId || result.language !== language) {
+    throw new InvalidApproachSolutionResponseError();
+  }
+  return result;
 }
 
-function normalizeApproachSolutionResponse(rawResponse: unknown) {
+export function normalizeApproachSolutionResponse(rawResponse: unknown): ApproachSolutionResponse {
   if (
     !isRecord(rawResponse) ||
     typeof rawResponse.slug !== "string" ||
@@ -63,10 +82,10 @@ function normalizeApproachSolutionResponse(rawResponse: unknown) {
     !isSolutionLanguage(rawResponse.language) ||
     typeof rawResponse.isAiGenerated !== "boolean" ||
     typeof rawResponse.warning !== "string" ||
-    typeof rawResponse.code !== "string" ||
-    typeof rawResponse.explanation !== "string" ||
-    typeof rawResponse.timeComplexity !== "string" ||
-    typeof rawResponse.spaceComplexity !== "string"
+    typeof rawResponse.code !== "string" || !rawResponse.code.trim() ||
+    typeof rawResponse.explanation !== "string" || !rawResponse.explanation.trim() ||
+    typeof rawResponse.timeComplexity !== "string" || !rawResponse.timeComplexity.trim() ||
+    typeof rawResponse.spaceComplexity !== "string" || !rawResponse.spaceComplexity.trim()
   ) {
     throw new Error("Invalid approach solution response.");
   }
@@ -94,5 +113,5 @@ function isSolutionLanguage(value: unknown): value is SolutionLanguage {
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }

@@ -1,6 +1,6 @@
 import type { ApproachHintsResponse } from "./api/approachHints";
 import { normalizeStarterCode, starterCodePolicyVersion, type GuidanceLevel, type StarterCodeResponse } from "./api/starterCode";
-import type { SolutionLanguage } from "./api/approachSolution";
+import { normalizeApproachSolutionResponse, type ApproachSolutionResponse, type SolutionLanguage } from "./api/approachSolution";
 import type { SectionId } from "./components/SectionNav";
 
 export const workspaceStorageKey = "leetcoach-workspaces-v1";
@@ -26,12 +26,28 @@ export function starterResponseKey(language: SolutionLanguage, level: GuidanceLe
   return `${language}:${level}`;
 }
 
+export const solutionPolicyVersion = 1;
+
+export type SavedSolution = {
+  policyVersion: number;
+  language: SolutionLanguage;
+  visibleByLanguage: Partial<Record<SolutionLanguage, boolean>>;
+  responses: Partial<Record<SolutionLanguage, ApproachSolutionResponse>>;
+};
+
+export function emptySolution(): SavedSolution {
+  return { policyVersion: solutionPolicyVersion, language: "python", visibleByLanguage: {}, responses: {} };
+}
+
 export type CoachWorkspace = {
   selectedApproachId: string | null;
   isThinkingExpanded: boolean;
   activeSection: SectionId;
   hintsByApproach: Record<string, SavedHints>;
   starterByApproach: Record<string, SavedStarter>;
+  solutionByApproach: Record<string, SavedSolution>;
+  recognitionRevealedByApproach: Record<string, boolean>;
+  disclosureRevision: number;
 };
 
 export type CoachWorkspaces = Record<string, CoachWorkspace>;
@@ -45,7 +61,29 @@ export function emptyWorkspace(): CoachWorkspace {
     isThinkingExpanded: false,
     activeSection: "coach",
     hintsByApproach: {},
-    starterByApproach: {}
+    starterByApproach: {},
+    solutionByApproach: {},
+    recognitionRevealedByApproach: {},
+    disclosureRevision: 0
+  };
+}
+
+/** Hide guidance without deleting generated responses or user choices. */
+export function collapseWorkspaceDisclosure(workspace: CoachWorkspace): CoachWorkspace {
+  return {
+    ...workspace,
+    isThinkingExpanded: false,
+    hintsByApproach: Object.fromEntries(Object.entries(workspace.hintsByApproach).map(
+      ([id, saved]) => [id, { ...saved, visibleHintCount: 0 }]
+    )),
+    starterByApproach: Object.fromEntries(Object.entries(workspace.starterByApproach).map(
+      ([id, saved]) => [id, { ...saved, isExpanded: false, isVisible: false }]
+    )),
+    solutionByApproach: Object.fromEntries(Object.entries(workspace.solutionByApproach).map(
+      ([id, saved]) => [id, { ...saved, visibleByLanguage: {} }]
+    )),
+    recognitionRevealedByApproach: {},
+    disclosureRevision: workspace.disclosureRevision + 1
   };
 }
 
@@ -67,7 +105,7 @@ function parseSavedHints(value: unknown, slug: string, approachId: string): Save
   ) return null;
   return {
     response: { slug, approachId, hints: [...response.hints] as string[] },
-    visibleHintCount: value.visibleHintCount as number
+    visibleHintCount: 0
   };
 }
 
@@ -88,11 +126,28 @@ function parseSavedStarter(value: unknown, slug: string, approachId: string): Sa
   }
   return {
     language: value.language as SolutionLanguage, level: value.level as GuidanceLevel,
-    isExpanded: value.isExpanded,
-    isVisible: value.isVisible && Boolean(responses[starterResponseKey(
-      value.language as SolutionLanguage, value.level as GuidanceLevel)]),
+    isExpanded: false,
+    isVisible: false,
     responses
   };
+}
+
+function parseSavedSolution(value: unknown, slug: string, approachId: string): SavedSolution | null {
+  if (!isRecord(value) || value.policyVersion !== solutionPolicyVersion ||
+      !["python", "java", "javascript", "cpp"].includes(value.language as string) ||
+      !isRecord(value.responses) || !isRecord(value.visibleByLanguage)) return null;
+  const responses: SavedSolution["responses"] = {};
+  for (const language of ["python", "java", "javascript", "cpp"] as const) {
+    try {
+      const saved = value.responses[language];
+      if (saved === undefined) continue;
+      const response = normalizeApproachSolutionResponse(saved);
+      if (response.slug !== slug || response.approachId !== approachId || response.language !== language) continue;
+      responses[language] = response;
+    } catch { /* Keep healthy language entries when one saved answer is corrupt. */ }
+  }
+  return { policyVersion: solutionPolicyVersion, language: value.language as SolutionLanguage,
+    visibleByLanguage: {}, responses };
 }
 
 function parseWorkspace(value: unknown, slug: string): CoachWorkspace | null {
@@ -119,12 +174,23 @@ function parseWorkspace(value: unknown, slug: string): CoachWorkspace | null {
       if (parsed) starterByApproach[approachId] = parsed;
     }
   }
+  const solutionByApproach: Record<string, SavedSolution> = {};
+  if (value.solutionByApproach !== undefined && isRecord(value.solutionByApproach)) {
+    for (const [approachId, saved] of Object.entries(value.solutionByApproach)) {
+      if (!canonicalKey.test(approachId)) continue;
+      const parsed = parseSavedSolution(saved, slug, approachId);
+      if (parsed) solutionByApproach[approachId] = parsed;
+    }
+  }
   return {
     selectedApproachId: value.selectedApproachId as string | null,
-    isThinkingExpanded: value.isThinkingExpanded,
+    isThinkingExpanded: false,
     activeSection: value.activeSection as SectionId,
     hintsByApproach,
-    starterByApproach
+    starterByApproach,
+    solutionByApproach,
+    recognitionRevealedByApproach: {},
+    disclosureRevision: 0
   };
 }
 
@@ -166,9 +232,16 @@ let pendingWrite: Promise<void> = Promise.resolve();
 export function saveWorkspaces(workspaces: CoachWorkspaces): void {
   const storage = storageArea();
   if (!storage) return;
+  // Persist content and choices, never the open panel's disclosure state.
+  const persistent = Object.fromEntries(Object.entries(workspaces).map(([slug, workspace]) => {
+    const collapsed = collapseWorkspaceDisclosure(workspace);
+    const { recognitionRevealedByApproach: _recognition, disclosureRevision: _revision,
+      ...saved } = collapsed;
+    return [slug, saved];
+  }));
   // Serialize whole-map writes so a slower older write cannot replace newer state.
   pendingWrite = pendingWrite.catch(() => {}).then(async () => {
-    await storage.set({ [workspaceStorageKey]: workspaces });
+    await storage.set({ [workspaceStorageKey]: persistent });
   });
   void pendingWrite.catch(() => {});
 }

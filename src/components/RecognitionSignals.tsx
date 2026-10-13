@@ -1,13 +1,14 @@
-import { useId, useState } from "react";
+import { useId } from "react";
 import type { RecognitionSignalsData } from "../api/problemAnalysis";
 
 type RecognitionSignalsProps = {
   signals: RecognitionSignalsData;
   slug: string;
+  isRevealed: boolean;
+  onToggle: () => void;
 };
 
-export function RecognitionSignals({ signals, slug }: RecognitionSignalsProps) {
-  const [isRevealed, setIsRevealed] = useState(false);
+export function RecognitionSignals({ signals, slug, isRevealed, onToggle }: RecognitionSignalsProps) {
   const id = useId();
 
   return (
@@ -20,7 +21,7 @@ export function RecognitionSignals({ signals, slug }: RecognitionSignalsProps) {
         <h2 id={`${id}-title`}>Recognition Signals</h2>
       </div>
       <button className="secondary-action" type="button" aria-expanded={isRevealed}
-        aria-controls={`${id}-content`} onClick={() => setIsRevealed((value) => !value)}>
+        aria-controls={`${id}-content`} onClick={onToggle}>
         {isRevealed ? "Hide recognition signals" : "Reveal recognition signals"}
       </button>
       <div id={`${id}-content`} hidden={!isRevealed}>

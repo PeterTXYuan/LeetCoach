@@ -1,12 +1,13 @@
-import { useState } from "react";
 import type { SolutionLanguage } from "../api/approachSolution";
 import type { ApproachSolutionState } from "../hooks/useApproachSolution";
 
 type GenerateAnswerProps = {
   solutionState: ApproachSolutionState;
-  onGenerate: (language: SolutionLanguage) => void;
+  language: SolutionLanguage;
+  onGenerate: () => void;
   onRetry: () => void;
-  onLanguageChange: () => void;
+  onLanguageChange: (language: SolutionLanguage) => void;
+  onHide: () => void;
 };
 
 const languageOptions: Array<{
@@ -21,18 +22,24 @@ const languageOptions: Array<{
 
 export function GenerateAnswer({
   solutionState,
+  language,
   onGenerate,
   onRetry,
-  onLanguageChange
+  onLanguageChange,
+  onHide
 }: GenerateAnswerProps) {
-  const [language, setLanguage] = useState<SolutionLanguage>("python");
   const isLoading = solutionState.status === "loading";
 
   return (
     <section className="generate-answer" aria-labelledby="generate-answer-title">
-      <h2 id="generate-answer-title">Generate Answer</h2>
+      <div className="section-heading-row">
+        <h2 id="generate-answer-title">Generate Answer</h2>
+        {solutionState.status === "success" && (
+          <button className="text-action" type="button" onClick={onHide}>Hide answer</button>
+        )}
+      </div>
       <p className="section-copy">
-        View a curated mock example for the selected approach.
+        Reveal the complete solution for the selected approach when you are ready.
       </p>
 
       <label className="field-label" htmlFor="solution-language">
@@ -44,8 +51,7 @@ export function GenerateAnswer({
           className="language-select"
           value={language}
           onChange={(event) => {
-            setLanguage(event.target.value as SolutionLanguage);
-            onLanguageChange();
+            onLanguageChange(event.target.value as SolutionLanguage);
           }}
         >
           {languageOptions.map((option) => (
@@ -75,7 +81,7 @@ export function GenerateAnswer({
         type="button"
         disabled={isLoading}
         aria-label={`Generate answer in ${getLanguageLabel(language)}`}
-        onClick={() => onGenerate(language)}
+        onClick={onGenerate}
       >
         {isLoading ? "Generating answer..." : "Generate answer"}
       </button>
@@ -95,13 +101,13 @@ export function GenerateAnswer({
 
       {solutionState.status === "unsupported_language" && (
         <p className="analysis-message" role="alert">
-          This language is not supported by the local mock backend yet.
+          This language is not supported by the local LeetCoach backend.
         </p>
       )}
 
       {solutionState.status === "error" && (
         <div className="answer-error" role="alert">
-          <p>Unable to connect to the local LeetCoach backend.</p>
+          <p>{solutionState.message}</p>
           <button className="secondary-action" type="button" onClick={onRetry}>
             Retry
           </button>

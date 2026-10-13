@@ -10,20 +10,26 @@ export type ActiveProblemState =
       slug: string;
       title: string;
       url: string;
+      tabId?: number;
+      navigationRevision: number;
     }
   | {
       status: "unsupported";
+      tabId?: number;
+      navigationRevision: number;
     };
 
-const unsupportedState: ActiveProblemState = { status: "unsupported" };
+type TabProblemState =
+  | { status: "detected"; slug: string; title: string; url: string; tabId?: number }
+  | { status: "unsupported"; tabId?: number };
 
 function canReadActiveTab() {
   return typeof chrome !== "undefined" && Boolean(chrome.tabs?.query);
 }
 
-async function getActiveProblemState(): Promise<ActiveProblemState> {
+async function getActiveProblemState(): Promise<TabProblemState> {
   if (!canReadActiveTab()) {
-    return unsupportedState;
+    return { status: "unsupported" };
   }
 
   const [activeTab] = await chrome.tabs.query({
@@ -34,14 +40,15 @@ async function getActiveProblemState(): Promise<ActiveProblemState> {
   const match = parseLeetCodeProblemUrl(activeTab?.url);
 
   if (!match.isSupported) {
-    return unsupportedState;
+    return { status: "unsupported", tabId: activeTab?.id };
   }
 
   return {
     status: "detected",
     slug: match.slug,
     title: getProblemDisplayTitle(match.slug, activeTab?.title),
-    url: match.url
+    url: match.url,
+    tabId: activeTab?.id
   };
 }
 
@@ -52,17 +59,23 @@ export function useActiveProblem() {
 
   useEffect(() => {
     let isMounted = true;
+    let latestRequest = 0;
+    let navigationRevision = 0;
+    let activeTabId: number | undefined;
 
     const refreshActiveProblem = async () => {
+      const request = ++latestRequest;
       try {
         const nextState = await getActiveProblemState();
 
-        if (isMounted) {
-          setActiveProblem(nextState);
+        if (isMounted && request === latestRequest) {
+          activeTabId = nextState.tabId;
+          setActiveProblem({ ...nextState, navigationRevision });
         }
       } catch {
-        if (isMounted) {
-          setActiveProblem(unsupportedState);
+        if (isMounted && request === latestRequest) {
+          activeTabId = undefined;
+          setActiveProblem({ status: "unsupported", navigationRevision });
         }
       }
     };
@@ -80,10 +93,11 @@ export function useActiveProblem() {
     };
 
     const handleTabUpdated = (
-      _tabId: number,
+      tabId: number,
       changeInfo: chrome.tabs.TabChangeInfo
     ) => {
-      if (changeInfo.url || changeInfo.status === "complete") {
+      if (tabId === activeTabId && (changeInfo.url || changeInfo.status === "complete")) {
+        navigationRevision += 1;
         void refreshActiveProblem();
       }
     };

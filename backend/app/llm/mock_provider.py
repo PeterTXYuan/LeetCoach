@@ -1,7 +1,9 @@
 """Offline, deterministic guidance derived from canonical DB context."""
 import re
 
-from app.llm.base import validate_hints, validate_starter_code
+from app.llm.base import ProviderUnavailableError, validate_hints, validate_starter_code
+from app.llm.solution_validation import validate_solution
+from app.services.solution_service import MOCK_SOLUTIONS
 
 
 class MockLLMProvider:
@@ -55,6 +57,36 @@ class MockLLMProvider:
             code = template.replace("{\n\n", "{\n" + body + "\n", 1)
         code = _with_imports(code, language)
         return validate_starter_code(code, template, language, level)
+
+    def generate_solution(self, context: dict, language: str) -> dict[str, str]:
+        key = (context["problem"]["slug"], context["approach"]["id"])
+        curated = MOCK_SOLUTIONS.get(key)
+        if curated is None or language not in curated["code"]:
+            raise ProviderUnavailableError("No curated offline full solution for this approach")
+        template = context["problem"]["submissionTemplate"]["code"]
+        code = _canonical_mock_solution(curated["code"][language], template, language)
+        return validate_solution({
+            "code": code, "explanation": curated["explanation"],
+            "timeComplexity": curated["timeComplexity"],
+            "spaceComplexity": curated["spaceComplexity"],
+        }, template, language)
+
+
+def _canonical_mock_solution(code: str, template: str, language: str) -> str:
+    """Keep legacy curated algorithms while restoring the DB's exact submission entry point."""
+    if language == "python":
+        signature = next(line for line in template.splitlines() if line.strip().startswith("def "))
+        code = re.sub(r"(?m)^\s*def\s+[^\n]+", signature, code, count=1)
+        needed = [name for name in ("List", "Optional") if f"{name}[" in signature]
+        if needed:
+            code = "from typing import " + ", ".join(needed) + "\n\n" + code
+    elif language == "java" and re.search(r"(?<![.\w])(?:Map|HashMap|Deque|ArrayDeque|Set)<", code):
+        code = "import java.util.*;\n\n" + code
+    elif language == "cpp":
+        headers = ["vector", "string", "unordered_map", "stack", "algorithm"]
+        needed = [header for header in headers if re.search(rf"\b{header}\b", code)]
+        code = "\n".join(f"#include <{header}>" for header in needed) + "\nusing namespace std;\n\n" + code
+    return code
 
 
 def _with_imports(code: str, language: str) -> str:

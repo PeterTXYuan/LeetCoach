@@ -73,6 +73,8 @@ class LLMProvider(Protocol):
 
     def generate_starter_code(self, context: dict, language: str, level: int) -> str: ...
 
+    def generate_solution(self, context: dict, language: str) -> dict[str, str]: ...
+
 
 def validate_starter_code(raw: Any, template: str, language: str, level: int) -> str:
     """Reject malformed scaffolds and changed LeetCode entry-point signatures."""

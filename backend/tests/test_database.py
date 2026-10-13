@@ -147,9 +147,7 @@ class DatabaseTests(DatabaseTestCase):
                 with Session(self.engine) as session, session.begin():
                     session.add(record)
 
-    def test_mock_solution_routes_keep_their_existing_payloads(self):
-        from app.services.solution_service import generate_approach_solution
-
+    def test_mock_solution_routes_keep_their_existing_contract(self):
         for slug, problem in PROBLEM_ANALYSES.items():
             for approach in problem["approaches"]:
                 endpoint = f"/api/problems/{slug}/approaches/{approach['id']}"
@@ -157,9 +155,14 @@ class DatabaseTests(DatabaseTestCase):
                     with self.subTest(slug=slug, approach=approach["id"], language=language):
                         response = self.client.post(f"{endpoint}/solution", json={"language": language})
                         self.assertEqual(response.status_code, 200)
-                        self.assertEqual(response.json(), generate_approach_solution(problem, approach, language))
+                        payload = response.json()
+                        self.assertEqual((payload["slug"], payload["approachId"], payload["language"]),
+                                         (slug, approach["id"], language))
+                        self.assertFalse(payload["isAiGenerated"])
+                        self.assertTrue(all(payload[key] for key in
+                                            ("warning", "code", "explanation", "timeComplexity", "spaceComplexity")))
 
-    def test_expanded_database_problem_gains_hints_and_starter_but_not_full_solution(self):
+    def test_expanded_database_problem_has_no_fabricated_offline_full_solution(self):
         slug = "contains-duplicate"
         self.assertEqual(self.client.get(f"/api/problems/{slug}").status_code, 200)
         self.assertEqual(self.client.get(f"/api/problems/{slug}/related").status_code, 200)
@@ -179,7 +182,8 @@ class DatabaseTests(DatabaseTestCase):
             f"/api/problems/{slug}/approaches/hash-set/solution",
             json={"language": "python"},
         )
-        self.assertEqual(solution.status_code, 404)
+        self.assertEqual(solution.status_code, 503)
+        self.assertIn("curated offline", solution.json()["detail"])
 
     def test_database_enforces_uniqueness_and_foreign_keys(self):
         with Session(self.engine) as session:

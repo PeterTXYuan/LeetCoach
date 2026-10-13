@@ -6,6 +6,7 @@ from app.llm.base import (
     ProviderOutputError, ProviderUnavailableError, SHORT_FALLBACK_HINTS,
     validate_hints, validate_starter_code,
 )
+from app.llm.solution_validation import validate_solution
 
 
 SYSTEM_PROMPT = (
@@ -55,6 +56,21 @@ STARTER_SYSTEM_PROMPT = (
     "steps. A student must still reason about the core operation. Keep comments short and "
     "educational, preserve language syntax and indentation, never use invalid placeholders "
     "such as if (/* TODO */), and include a TODO plus a fail-loud placeholder on unfinished paths."
+)
+
+SOLUTION_SYSTEM_PROMPT = (
+    "You are LeetCoach's final full-answer step. Return one JSON object with string fields "
+    "code, explanation, timeComplexity, and spaceComplexity. Use only the supplied problem "
+    "facts, constraints, examples, and the one selected canonical approach. Implement that "
+    "approach completely in the requested language (python, java, javascript, or cpp); do not "
+    "substitute a different technique. Treat submissionTemplate as authoritative: preserve "
+    "the exact class, every required method signature, parameter type/order, and return type, "
+    "including all operations of design problems. Handle important edge cases and use valid "
+    "language syntax and data structures. Code should be directly submittable to LeetCode, "
+    "with no Markdown fences, TODOs, placeholders, pseudocode, or unimplemented branches. "
+    "Explain the central idea, why it works, important state, progression, and edge cases "
+    "briefly and clearly. Give time and auxiliary-space complexity for the actual code; "
+    "account for sorting, recursion depth, and data structures. Return no other prose."
 )
 
 
@@ -135,3 +151,24 @@ class GroqLLMProvider:
             )
         except (AttributeError, IndexError, TypeError, ValueError, KeyError) as exc:
             raise ProviderOutputError("Invalid starter code provider output") from exc
+
+    def generate_solution(self, context: dict, language: str) -> dict[str, str]:
+        payload = {"context": context, "language": language}
+        try:
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": SOLUTION_SYSTEM_PROMPT},
+                    {"role": "user", "content": json.dumps(payload, ensure_ascii=False)},
+                ],
+                response_format={"type": "json_object"},
+                temperature=0.1,
+            )
+        except Exception as exc:
+            raise ProviderUnavailableError("Solution provider unavailable") from exc
+        try:
+            content = response.choices[0].message.content
+            parsed = json.loads(content)
+            return validate_solution(parsed, context["problem"]["submissionTemplate"]["code"], language)
+        except (AttributeError, IndexError, TypeError, ValueError, KeyError) as exc:
+            raise ProviderOutputError("Invalid solution provider output") from exc

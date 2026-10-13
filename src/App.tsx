@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AnalysisStatus } from "./components/AnalysisStatus";
 import { ApproachDetails } from "./components/ApproachDetails";
 import { ApproachSelector } from "./components/ApproachSelector";
@@ -13,7 +13,7 @@ import { ThinkingProcess } from "./components/ThinkingProcess";
 import { useApproachHints } from "./hooks/useApproachHints";
 import { useApproachSolution } from "./hooks/useApproachSolution";
 import { useCoachWorkspaces } from "./hooks/useCoachWorkspaces";
-import { emptyStarter } from "./coachWorkspaceStorage";
+import { collapseWorkspaceDisclosure, emptySolution, emptyStarter } from "./coachWorkspaceStorage";
 import { useActiveProblem, type ActiveProblemState } from "./useActiveProblem";
 import { useProblemAnalysis, type ProblemAnalysisState } from "./useProblemAnalysis";
 
@@ -61,12 +61,26 @@ export default function App() {
   const [lastDetectedProblem, setLastDetectedProblem] = useState<DetectedProblem | null>(null);
   const [awaySection, setAwaySection] = useState<"progress" | "about" | null>(null);
   const { ready: workspaceReady, workspaceFor, updateWorkspace, updateHints } = useCoachWorkspaces();
+  const handledNavigationRevision = useRef(0);
 
   useEffect(() => {
     if (activeProblem.status !== "detected") return;
     setLastDetectedProblem(activeProblem);
     setAwaySection(null);
   }, [activeProblem]);
+
+  useEffect(() => {
+    if (!workspaceReady || activeProblem.status === "checking" ||
+        !activeProblem.navigationRevision ||
+        handledNavigationRevision.current === activeProblem.navigationRevision) return;
+    handledNavigationRevision.current = activeProblem.navigationRevision;
+    const slugs = new Set<string>();
+    if (lastDetectedProblem && lastDetectedProblem.tabId === activeProblem.tabId) {
+      slugs.add(lastDetectedProblem.slug);
+    }
+    if (activeProblem.status === "detected") slugs.add(activeProblem.slug);
+    for (const slug of slugs) updateWorkspace(slug, collapseWorkspaceDisclosure);
+  }, [activeProblem, lastDetectedProblem, updateWorkspace, workspaceReady]);
 
   const workspaceProblem = activeProblem.status === "detected"
     ? activeProblem
@@ -80,7 +94,9 @@ export default function App() {
 
   const handleSelectSection = (section: SectionId) => {
     if (workspaceSlug && workspaceReady) {
-      updateWorkspace(workspaceSlug, (current) => ({ ...current, activeSection: section }));
+      updateWorkspace(workspaceSlug, (current) => current.activeSection === section
+        ? current
+        : { ...current, activeSection: section });
     }
     if (!hasProblem && (section === "progress" || section === "about")) {
       setAwaySection(section);
@@ -117,7 +133,8 @@ export default function App() {
     selectedApproachId,
     primaryApproachId,
     hintsByApproach: workspace?.hintsByApproach,
-    updateHints
+    updateHints,
+    disclosureRevision: workspace?.disclosureRevision ?? 0
   });
   const hintApproachId = approachHints.hintState.status === "success"
     ? approachHints.hintState.response.approachId
@@ -127,7 +144,19 @@ export default function App() {
   const starterApproachNumber = approaches.findIndex((approach) => approach.id === starterApproachId) + 1;
   const approachSolution = useApproachSolution({
     slug: workspaceReady && visibleProblemAnalysis.status === "success" ? workspaceSlug : undefined,
-    approachId: selectedApproachId
+    approachId: selectedApproachId,
+    disclosureRevision: workspace?.disclosureRevision ?? 0,
+    saved: selectedApproachId ? workspace?.solutionByApproach[selectedApproachId] ?? emptySolution() : undefined,
+    onSave: (update) => {
+      if (!workspaceSlug || !selectedApproachId) return;
+      updateWorkspace(workspaceSlug, (current) => ({
+        ...current,
+        solutionByApproach: {
+          ...current.solutionByApproach,
+          [selectedApproachId]: update(current.solutionByApproach[selectedApproachId] ?? emptySolution())
+        }
+      }));
+    }
   });
 
   const selectedApproach = useMemo(() => {
@@ -147,9 +176,8 @@ export default function App() {
   }, [theme]);
 
   const clearSelectedApproach = () => {
-    approachHints.resetHints();
     if (workspaceSlug) updateWorkspace(workspaceSlug, (current) => ({
-      ...current, selectedApproachId: null, isThinkingExpanded: false
+      ...collapseWorkspaceDisclosure(current), selectedApproachId: null
     }));
   };
 
@@ -160,7 +188,7 @@ export default function App() {
     }
 
     if (workspaceSlug) updateWorkspace(workspaceSlug, (current) => ({
-      ...current, selectedApproachId: approachId, isThinkingExpanded: false
+      ...collapseWorkspaceDisclosure(current), selectedApproachId: approachId
     }));
   };
 
@@ -226,7 +254,7 @@ export default function App() {
                   />
                   {visibleProblemAnalysis.analysis.slug === workspaceSlug && (
                     <StarterCode
-                      key={JSON.stringify([workspaceSlug, selectedApproachId])}
+                      key={JSON.stringify([workspaceSlug, selectedApproachId, workspace?.disclosureRevision])}
                       slug={visibleProblemAnalysis.analysis.slug}
                       approachId={starterApproachId}
                       approachNumber={starterApproachNumber || undefined}
@@ -257,15 +285,24 @@ export default function App() {
                         />
                         {selectedApproach.recognitionSignals && visibleProblemAnalysis.analysis.slug === workspaceSlug && (
                           <RecognitionSignals
-                            key={JSON.stringify(["recognition", workspaceSlug, selectedApproach.id])}
                             slug={visibleProblemAnalysis.analysis.slug}
                             signals={selectedApproach.recognitionSignals}
+                            isRevealed={Boolean(workspace?.recognitionRevealedByApproach[selectedApproach.id])}
+                            onToggle={() => workspaceSlug && updateWorkspace(workspaceSlug, (current) => ({
+                              ...current,
+                              recognitionRevealedByApproach: {
+                                ...current.recognitionRevealedByApproach,
+                                [selectedApproach.id]: !current.recognitionRevealedByApproach[selectedApproach.id]
+                              }
+                            }))}
                           />
                         )}
                         <GenerateAnswer
-                          onLanguageChange={approachSolution.resetSolution}
+                          language={approachSolution.language}
+                          onLanguageChange={approachSolution.chooseLanguage}
                           onGenerate={approachSolution.generateSolution}
                           onRetry={approachSolution.retrySolution}
+                          onHide={approachSolution.hideSolution}
                           solutionState={approachSolution.solutionState}
                         />
                         <ThinkingProcess
