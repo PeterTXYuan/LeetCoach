@@ -112,6 +112,22 @@ python -B -m unittest discover -s backend/tests
 
 On Windows, use `py` if `python` is not on PATH. The suite checks the 20-problem catalog and specifications, all 80 language templates, full-answer snippets, all 84 starter-code combinations for the original three problems, request validation, and approach-specific progressive structure. Database tests create temporary file-backed SQLite databases through the real Alembic migrations, seed them, override the API session dependency and hint provider, and dispose of them afterward. They do not require or alter your local database. Hint tests use only mock/fake providers and never call Groq or require `GROQ_API_KEY`. Coverage includes `0001 ↔ 0002` migration behavior, ordered facts, payload parity, internal context loading, persistence, uniqueness, foreign keys/cascades, rollback, exact-sync seeding, retained IDs, and migration/model consistency.
 
+## Live LLM evaluation
+
+The separate `evaluation/` package tests the existing FastAPI generation endpoints with a deterministic 31-case matrix (10 Hints, 9 Starter Code, 12 Full Solutions). It validates every slug, canonical approach, and requested language against the seeded SQLite database before any generation call. Dry-run is the default and sends **zero** Groq requests:
+
+```powershell
+cd backend
+py -B -m evaluation.run_evaluation --dry-run
+py -B -m evaluation.run_evaluation --live --max-calls 31 --pace-seconds 12
+```
+
+Live mode requires the configured Groq model and `GROQ_API_KEY` from the environment or ignored `backend/.env`; it forces `LEETCOACH_LLM_PROVIDER=groq` inside that process. Use `--feature hints`, `--feature starter`, or `--feature solution` to select a subset, and `--output-dir PATH` to choose a report directory. A 503 stops the batch; after a cooldown, continue only unrun cases with `--live --resume-json PATH_TO_mvp_evaluation.json`. The total `--max-calls` budget includes calls from earlier invocations. There are no automatic retries. The API sanitizes upstream errors, so a 503 cannot be identified as a rate limit versus another provider outage from this endpoint alone.
+
+Each run writes `mvp_evaluation.json` and `mvp_evaluation_report.md` under ignored `backend/evaluation_runs/<run-id>/` by default. The JSON retains generated outputs, HTTP status, duration, structural checks, separate failure categories, independent fixture outcomes, and human-review flags; the Markdown report includes all returned hint batches and a readiness recommendation. Current endpoints do not expose provider token usage, so the reports mark token usage and cost unavailable. To refresh validation and report wording from saved responses without making any Groq call, run `py -B -m evaluation.reassess PATH_TO_mvp_evaluation.json`; optional `--observations-json PATH` attaches preliminary editorial notes.
+
+Generated Python and C++ Full Solutions run only inside a bounded WSL2 bubblewrap namespace with no network and no writable host mounts. A Linux namespace probe determines availability. JavaScript and Java receive syntax or compiler checks where installed, but executable correctness is `NOT_RUN` without an adequate isolated runtime. No generated code is executed inside FastAPI or the evaluation driver process. The independent fixtures cover representative examples and edge cases; passing them does not prove general correctness or teaching quality.
+
 ## Future PostgreSQL path
 
 The SQLAlchemy models use portable relational types and keep SQLite connection settings isolated in `database.py`. A later PostgreSQL milestone will add its driver, configure a PostgreSQL URL, run and verify Alembic migrations against that dialect, and transfer existing rows with foreign keys and sequences checked (or seed a fresh dataset). Preserve the public slugs and approach keys throughout. PostgreSQL, authentication, and cloud deployment remain outside this milestone.
