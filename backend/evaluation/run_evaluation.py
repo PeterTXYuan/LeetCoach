@@ -13,9 +13,10 @@ from dotenv import load_dotenv
 from fastapi.testclient import TestClient
 
 from app.database import BACKEND_DIR, SessionLocal
+from app.llm.starter_diagnostics import starter_observer, starter_raw_capture
 from app.main import app
 from app.services.problem_repository import find_problem_context
-from evaluation.cases import CASES, validate_matrix
+from evaluation.cases import CASES, PREVIOUS_STARTER_FALLBACK_IDS, validate_matrix
 from evaluation.correctness import execute_solution, probe_sandbox
 from evaluation.reporting import write_reports
 from evaluation.validators import evaluate_hints, evaluate_progression, evaluate_solution, evaluate_starter
@@ -32,11 +33,21 @@ def parse_args(argv=None):
     parser.add_argument("--resume-json", type=Path, help="Continue NOT_RUN cases from a previous live JSON report")
     parser.add_argument("--feature", action="append", choices=("hints", "starter", "solution"),
                         help="Repeat to select features; default is all three")
+    parser.add_argument("--previous-starter-fallbacks", action="store_true",
+                        help="Select exactly the seven Starter Code cases that fell back in the baseline")
+    parser.add_argument("--capture-raw", action="store_true",
+                        help="Save raw Starter Code model text to the ignored local evaluation directory")
     args = parser.parse_args(argv)
     if args.max_calls < 0 or args.pace_seconds < 0:
         parser.error("--max-calls and --pace-seconds must be nonnegative")
     if args.resume_json and not args.live:
         parser.error("--resume-json requires explicit --live")
+    if args.capture_raw and not args.live:
+        parser.error("--capture-raw requires explicit --live")
+    if args.previous_starter_fallbacks and args.feature and args.feature != ["starter"]:
+        parser.error("--previous-starter-fallbacks only supports --feature starter")
+    if args.previous_starter_fallbacks and args.max_calls > 7:
+        parser.error("Targeted reproduction requires --max-calls 7 or less")
     return args
 
 
@@ -57,6 +68,7 @@ def _empty_record(case, status="NOT_RUN", reason="Not executed") -> dict:
         "correctness": {"status": "NOT_RUN", "cases": [], "summary": reason}
         if case.feature == "solution" else None,
         "failure_categories": [], "error_summary": reason,
+        "starter_diagnostic": None, "raw_artifact": None,
     }
 
 
@@ -66,8 +78,14 @@ def _classify(record: dict) -> None:
     if validation["structure"] == "FAIL" or (validation["syntax"] and
                                                validation["syntax"]["status"] == "FAIL"):
         categories.append("structural_output")
-    if record["case"]["feature"] == "starter" and record.get("response", {}).get("usedFallback"):
-        categories.append("structural_output")
+    if record["case"]["feature"] == "starter" and (record.get("response") or {}).get("usedFallback"):
+        diagnostic = record.get("starter_diagnostic") or {}
+        if diagnostic.get("stage") in {"response", "parsing", "validation"}:
+            categories.append("structural_output")
+        elif diagnostic.get("stage") == "provider":
+            categories.append("api_provider")
+        else:
+            categories.append("evaluation_limitation")
     if any(check["status"] == "FAIL" and check["criterion"] != "live AI scaffold"
            for check in validation["quality"] if check["criterion"] not in {
                "three bounded hints and canonical identity", "API identity, signature, and unfinished scaffold",
@@ -113,6 +131,8 @@ def run(argv=None) -> int:
     args = parse_args(argv)
     load_dotenv(BACKEND_DIR / ".env", override=False)
     selected = [case for case in CASES if not args.feature or case.feature in args.feature]
+    if args.previous_starter_fallbacks:
+        selected = [case for case in CASES if case.key in PREVIOUS_STARTER_FALLBACK_IDS]
     previous = None
     if args.resume_json:
         previous = json.loads(args.resume_json.read_text(encoding="utf-8"))
@@ -133,7 +153,11 @@ def run(argv=None) -> int:
         "model": os.environ.get("LEETCOACH_LLM_MODEL", "").strip() or None,
         "config": {"provider": "groq" if args.live else "none (dry-run)",
                    "max_calls": args.max_calls, "pace_seconds": args.pace_seconds,
-                   "features": sorted(set(args.feature or ("hints", "starter", "solution"))),
+                   "features": sorted({case.feature for case in selected}),
+                   "capture_raw": args.capture_raw,
+                   "temperature": {"hints": 0.3, "starter": 0.2, "solution": 0.1},
+                   "response_format": "json_object", "provider_timeout_seconds": 20.0,
+                   "provider_max_retries": 0,
                    "sandbox": sandbox_description, "token_usage": "unavailable"},
         "matrix_validation": [], "records": [], "run_notes": [],
     }
@@ -196,16 +220,40 @@ def run(argv=None) -> int:
                 attempted += 1
                 new_attempts += 1
                 last_call = time.monotonic()
-                status, payload, error, duration = _request(client, case)
+                events = []
+                token = starter_observer.set(events.append if case.feature == "starter" else None)
+                raw_token = starter_raw_capture.set(args.capture_raw and case.feature == "starter")
+                try:
+                    status, payload, error, duration = _request(client, case)
+                finally:
+                    starter_raw_capture.reset(raw_token)
+                    starter_observer.reset(token)
                 record = _empty_record(case)
                 record.update(request_status="EXECUTED", http_status=status, duration_ms=duration,
                               response=payload, error_summary=error)
+                if case.feature == "starter":
+                    record["starter_diagnostic"] = next((event for event in events
+                        if event["kind"] in {"failure", "accepted"}), None)
+                    if args.capture_raw:
+                        raw_event = next((event for event in events if event["kind"] == "raw_response"), None)
+                        if raw_event is not None and isinstance(raw_event.get("content"), str):
+                            raw_dir = BACKEND_DIR / "evaluation_runs" / run_data["run_id"] / "raw_starter"
+                            raw_dir.mkdir(parents=True, exist_ok=True)
+                            artifact = raw_dir / (case.key + ".txt")
+                            artifact.write_bytes(raw_event["content"].encode("utf-8"))
+                            record["raw_artifact"] = str(artifact)
+                    if record["starter_diagnostic"] is None and payload and payload.get("usedFallback"):
+                        record["starter_diagnostic"] = {"kind": "failure", "stage": "unknown",
+                            "reason": "UNKNOWN_FAILURE", "certainty": "unknown"}
+                    if (record["starter_diagnostic"] or {}).get("reason") == "PROVIDER_RATE_LIMITED":
+                        stop_reason = "Stopped after typed Groq rate limit in Starter Code fallback"
+                        run_data["run_notes"].append(stop_reason)
                 if status != 200 or payload is None:
                     record["failure_categories"].append(
                         "structural_output" if status == 502 or (status == 200 and payload is None)
                         else "api_provider")
                     if status == 503:
-                        stop_reason = "Stopped after HTTP 503; upstream rate limit versus outage is not observable"
+                        stop_reason = "Stopped after HTTP 503; inspect typed starter diagnostic when available"
                         run_data["run_notes"].append(stop_reason)
                     print(f"  HTTP {status or 'unavailable'}: {error or 'invalid payload'}", flush=True)
                 else:

@@ -13,6 +13,7 @@ from app.llm.base import (
 )
 from app.llm.provider_factory import get_llm_provider
 from app.llm.mock_provider import MockLLMProvider
+from app.llm.starter_diagnostics import failure_metadata, observe
 from app.llm.solution_validation import validate_solution
 from app.services.problem_repository import (
     find_hint_problem_context, find_problem_analysis, find_problem_context, find_related_problems,
@@ -195,13 +196,19 @@ def get_problem_starter_code(
             raise HTTPException(status_code=502, detail="Starter code provider returned invalid output.")
         # A provider can return HTTP 200 but still produce unusable code. Keep
         # the student moving without accepting a changed signature or answer.
-        logger.warning("Groq starter code rejected for %s/%s/%s/level-%s (%s)",
-                       slug, approach_id, language, request.level, type(exc).__name__)
+        diagnostic = failure_metadata(exc)
+        logger.warning("Groq starter code rejected slug=%s approach=%s language=%s level=%s "
+                       "failure_stage=%s reason=%s fallback_used=true",
+                       slug, approach_id, language, request.level,
+                       diagnostic["stage"], diagnostic["reason"])
+        observe({"kind": "failure", **diagnostic})
         try:
             code = MockLLMProvider().generate_starter_code(context, language, request.level)
         except ProviderOutputError:
             raise HTTPException(status_code=502, detail="Starter code could not be generated.")
         used_fallback = True
+    if provider.is_ai_generated and not used_fallback:
+        observe({"kind": "accepted", "stage": "accepted", "reason": None})
     result = {
         "slug": slug, "approachId": approach_id, "language": language,
         "level": request.level, "levelName": STARTER_LEVEL_NAMES[request.level],

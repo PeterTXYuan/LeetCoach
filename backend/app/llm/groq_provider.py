@@ -3,9 +3,11 @@ import json
 import re
 
 from app.llm.base import (
-    ProviderOutputError, ProviderUnavailableError, SHORT_FALLBACK_HINTS,
+    ProviderOutputError, ProviderUnavailableError, StarterOutputDiagnostic,
+    StarterProviderDiagnostic, SHORT_FALLBACK_HINTS,
     validate_hints, validate_starter_code,
 )
+from app.llm.starter_diagnostics import observe, provider_reason, starter_raw_capture
 from app.llm.solution_validation import validate_solution
 
 
@@ -55,8 +57,36 @@ STARTER_SYSTEM_PROMPT = (
     "throw/raise, commented-out solution statements, or ready-to-copy pseudocode for the missing "
     "steps. A student must still reason about the core operation. Keep comments short and "
     "educational, preserve language syntax and indentation, never use invalid placeholders "
-    "such as if (/* TODO */), and include a TODO plus a fail-loud placeholder on unfinished paths."
+    "such as if (/* TODO */). Follow starterDesign when supplied; each level is requested "
+    "independently, so keep its core storage design consistent across levels. "
+    "Every unfinished algorithm path needs a TODO and a reachable fail-loud placeholder: "
+    "Python: raise NotImplementedError(\"Complete the TODOs\"); Java: throw new "
+    "UnsupportedOperationException(\"Complete the TODOs\"); JavaScript: throw new "
+    "Error(\"Complete the TODOs\"); C++: #include <stdexcept> and throw "
+    "std::logic_error(\"Complete the TODOs\"). In multi-method designs, each method left "
+    "unfinished must fail loudly; do not leave TODO-only methods that silently return. "
+    "Do not replace an unfinished operation with an empty/default return, a break that "
+    "skips the work, or an exception appended after a completed answer. "
+    "Never put executable assignments, returns, conditionals, loops, or ready-to-copy "
+    "operations inside comments. TODOs should ask for the next conceptual decision, not "
+    "spell out an if/lookup/return/update sequence or the exact code to write. "
+    "For example, ask whether an earlier value can complete a pair, without giving the "
+    "lookup, returned indices, and storage update."
 )
+
+
+def _starter_design(context: dict) -> str | None:
+    if context["problem"]["slug"] != "min-stack":
+        return None
+    approach_id = context["approach"]["id"]
+    if approach_id == "paired-minimums":
+        return ("Use one stack of (value, minimum-so-far) pairs in every level. "
+                "At Kickstart, declare the pair stack; at Guided, build on that same stack; "
+                "at Strong Scaffold, add structure while leaving minimum calculation and "
+                "stack operations for the learner. Do not switch to parallel arrays.")
+    if approach_id == "scan-for-minimum":
+        return "Use one ordinary value stack in every level; getMin scans its stored values."
+    return None
 
 SOLUTION_SYSTEM_PROMPT = (
     "You are LeetCoach's final full-answer step. Return one JSON object with string fields "
@@ -128,6 +158,9 @@ class GroqLLMProvider:
 
     def generate_starter_code(self, context: dict, language: str, level: int) -> str:
         payload = {"context": context, "language": language, "level": level}
+        design = _starter_design(context)
+        if design:
+            payload["starterDesign"] = design
         try:
             response = self.client.chat.completions.create(
                 model=self.model,
@@ -139,18 +172,36 @@ class GroqLLMProvider:
                 temperature=0.2,
             )
         except Exception as exc:
-            raise ProviderUnavailableError("Starter code provider unavailable") from exc
+            raise StarterProviderDiagnostic(provider_reason(exc)) from exc
         try:
             content = response.choices[0].message.content
+        except (AttributeError, IndexError, TypeError, KeyError) as exc:
+            raise StarterOutputDiagnostic("Invalid starter code provider output", "INVALID_OUTPUT_TYPE",
+                                          "response") from exc
+        if starter_raw_capture.get():
+            observe({"kind": "raw_response", "content": content})
+        return self.parse_starter_content(content, context, language, level)
+
+    @staticmethod
+    def parse_starter_content(content, context: dict, language: str, level: int) -> str:
+        """Shared live/replay parser; validation rules stay in validate_starter_code."""
+        try:
             parsed = json.loads(content)
-            if not isinstance(parsed, dict) or not isinstance(parsed.get("code"), str):
-                raise ValueError("Expected a code field")
-            return validate_starter_code(
-                _remove_outer_code_fence(parsed["code"]),
-                context["problem"]["submissionTemplate"]["code"], language, level
-            )
-        except (AttributeError, IndexError, TypeError, ValueError, KeyError) as exc:
-            raise ProviderOutputError("Invalid starter code provider output") from exc
+        except (TypeError, ValueError) as exc:
+            raise StarterOutputDiagnostic("Invalid starter code provider output", "INVALID_JSON", "parsing") from exc
+        if not isinstance(parsed, dict):
+            raise StarterOutputDiagnostic("Invalid starter code provider output", "INVALID_OUTPUT_TYPE", "parsing")
+        if "code" not in parsed:
+            raise StarterOutputDiagnostic("Invalid starter code provider output", "MISSING_CODE_FIELD", "parsing")
+        if not isinstance(parsed["code"], str):
+            raise StarterOutputDiagnostic("Invalid starter code provider output", "INVALID_OUTPUT_TYPE", "parsing")
+        try:
+            template = context["problem"]["submissionTemplate"]["code"]
+        except (AttributeError, TypeError, KeyError) as exc:
+            raise StarterOutputDiagnostic("Invalid starter code provider output", "INVALID_OUTPUT_TYPE",
+                                          "context") from exc
+        return validate_starter_code(_remove_outer_code_fence(parsed["code"]),
+                                     template, language, level)
 
     def generate_solution(self, context: dict, language: str) -> dict[str, str]:
         payload = {"context": context, "language": language}

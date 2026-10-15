@@ -234,19 +234,22 @@ def _mock_setup(slug: str, pattern: str, approach_id: str, language: str) -> lis
 
 def _min_stack_scaffold(template: str, approach_id: str, language: str, level: int) -> str:
     comment = "#" if language == "python" else "//"
-    is_auxiliary = approach_id == "paired-minimums"
-    constructor = {
-        "python": ["self.values = []"],
-        "java": [f"{comment} TODO: use the shared values field in each operation."],
-        "javascript": ["this.values = [];"],
-        "cpp": [f"{comment} TODO: use the shared values field in each operation."],
-    }[language]
-    if is_auxiliary and level >= 2:
-        constructor.append({"python": "self.minimums = []",
-                            "java": f"{comment} TODO: keep the shared minimums field aligned with values.",
-                            "javascript": "this.minimums = [];",
-                            "cpp": f"{comment} TODO: keep the shared minimums field aligned with values."}[language])
-    constructor.append(f"{comment} TODO: decide how stack operations use this shared state.")
+    is_paired = approach_id == "paired-minimums"
+    if is_paired:
+        constructor = {
+            "python": ["self.pairs = []"],
+            "java": [f"{comment} The shared stack stores value/minimum pairs."],
+            "javascript": ["this.pairs = [];"],
+            "cpp": [f"{comment} The shared stack stores value/minimum pairs."],
+        }[language]
+    else:
+        constructor = {
+            "python": ["self.values = []"],
+            "java": [f"{comment} The shared stack stores values."],
+            "javascript": ["this.values = [];"],
+            "cpp": [f"{comment} The shared stack stores values."],
+        }[language]
+    constructor.append(f"{comment} TODO: decide how operations use this shared state.")
     failure = {"python": 'raise NotImplementedError("Complete the TODOs")',
                "java": 'throw new UnsupportedOperationException("Complete the TODOs");',
                "javascript": 'throw new Error("Complete the TODOs");',
@@ -261,22 +264,20 @@ def _min_stack_scaffold(template: str, approach_id: str, language: str, level: i
         code = template.replace("{\n\n", "{\n" + first + "\n", 1)
         code = code.replace("{\n\n", "{\n" + indentation + f"{comment} TODO: complete this stack operation.\n" + indentation + failure + "\n")
     if language == "java":
-        fields = "    private java.util.Deque<Integer> values = new java.util.ArrayDeque<>();\n"
-        if is_auxiliary and level >= 2:
-            fields += "    private java.util.Deque<Integer> minimums = new java.util.ArrayDeque<>();\n"
+        fields = ("    private java.util.Deque<int[]> pairs = new java.util.ArrayDeque<>();\n"
+                  if is_paired else
+                  "    private java.util.Deque<Integer> values = new java.util.ArrayDeque<>();\n")
         code = code.replace("class MinStack {\n", "class MinStack {\n" + fields, 1)
     if language == "cpp":
-        fields = "    vector<int> values;\n"
-        if is_auxiliary and level >= 2:
-            fields += "    vector<int> minimums;\n"
+        fields = "    vector<pair<int, int>> pairs;\n" if is_paired else "    vector<int> values;\n"
         code = code.replace("public:\n", "public:\n" + fields, 1)
     if level >= 2:
         tasks = ({
-            "push": "decide how the new value affects the tracked minimum",
-            "pop": "remove the value and keep the minimum tracker aligned",
-            "top": "read the latest stored value",
-            "getMin": "read the tracked minimum",
-        } if is_auxiliary else {
+            "push": "decide which minimum belongs beside the new value",
+            "pop": "remove the latest value/minimum pair",
+            "top": "read the value from the latest pair",
+            "getMin": "read the minimum from the latest pair",
+        } if is_paired else {
             "push": "store the incoming value",
             "pop": "remove the latest value",
             "top": "read the latest stored value",
@@ -291,7 +292,7 @@ def _min_stack_scaffold(template: str, approach_id: str, language: str, level: i
             if current_method and "TODO: complete this stack operation." in line:
                 line = line.replace("complete this stack operation", tasks[current_method])
                 indent = line[:len(line) - len(line.lstrip())]
-                if current_method == "getMin" and not is_auxiliary:
+                if current_method == "getMin" and not is_paired:
                     if language == "python":
                         line = indent + "smallest = None\n" + line
                         if level == 3:
@@ -306,13 +307,20 @@ def _min_stack_scaffold(template: str, approach_id: str, language: str, level: i
                                       "javascript": f"for (const value of {collection}) {{",
                                       "cpp": f"for (int value : {collection}) {{"}[language]
                             line += "\n" + indent + header + "\n" + indent + "    // TODO: update smallest when this value is lower.\n" + indent + "}"
-                elif current_method == "push" and is_auxiliary and level == 3:
-                    if language == "python":
-                        line += "\n" + indent + "if self.values:\n" + indent + "    # TODO: compare val with the tracked minimum.\n" + indent + "    pass"
-                    else:
-                        condition = {"java": "!values.isEmpty()", "javascript": "this.values.length > 0",
-                                     "cpp": "!values.empty()"}[language]
-                        line += "\n" + indent + f"if ({condition}) {{\n" + indent + "    // TODO: compare val with the tracked minimum.\n" + indent + "}"
+                elif current_method == "push" and is_paired:
+                    previous = {
+                        "python": "previous_pair = self.pairs[-1] if self.pairs else None",
+                        "java": "int[] previousPair = pairs.peek();",
+                        "javascript": "const previousPair = this.pairs.length ? this.pairs[this.pairs.length - 1] : null;",
+                        "cpp": "const pair<int, int>* previousPair = pairs.empty() ? nullptr : &pairs.back();",
+                    }[language]
+                    line = indent + previous + "\n" + line
+                    if level == 3:
+                        if language == "python":
+                            line += "\n" + indent + "if previous_pair is not None:\n" + indent + "    # TODO: compare val with the earlier minimum.\n" + indent + "    pass"
+                        else:
+                            condition = "previousPair" if language == "javascript" else "previousPair != null" if language == "java" else "previousPair != nullptr"
+                            line += "\n" + indent + f"if ({condition}) {{\n" + indent + "    // TODO: compare val with the earlier minimum.\n" + indent + "}"
             revised.append(line)
         code = "\n".join(revised)
     return validate_starter_code(_with_imports(code, language), template, language, level)
@@ -330,6 +338,7 @@ def _mock_guided_flow(language: str, parameter: str, template: str, comment: str
         return [header, *["    " + line for line in body], "    " + todo, "}"]
 
     if approach_id == "hash-map" and parameter == "nums":
+        todo = f"{comment} TODO: Determine which earlier value could complete the target pair."
         current = {"python": "current = nums[index]", "java": "int current = nums[index];",
                    "javascript": "const current = nums[index];", "cpp": "int current = nums[index];"}[language]
         header = {"python": "for index in range(len(nums)):",

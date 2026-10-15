@@ -67,6 +67,17 @@ CASES = (
 )
 
 
+PREVIOUS_STARTER_FALLBACK_IDS = (
+    "starter-two-sum-hash-map-python-level-1",
+    "starter-two-sum-hash-map-python-level-2",
+    "starter-3sum-sort-and-two-pointers-java-level-1",
+    "starter-3sum-sort-and-two-pointers-java-level-2",
+    "starter-3sum-sort-and-two-pointers-java-level-3",
+    "starter-min-stack-paired-minimums-javascript-level-1",
+    "starter-min-stack-paired-minimums-javascript-level-3",
+)
+
+
 def validate_matrix(session, cases=CASES) -> list[str]:
     """Inspect the live seed; never silently evaluate a nonexistent fixture."""
     errors: list[str] = []

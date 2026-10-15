@@ -14,6 +14,14 @@ def metrics(records: list[dict]) -> dict:
     executable_cases = [item for result in correctness for item in result.get("cases", [])]
     structural = Counter(record.get("validation", {}).get("structure", "NOT_RUN") for record in records)
     starter_records = [record for record in records if record["case"]["feature"] == "starter"]
+    starter_executed = [record for record in starter_records if record["request_status"] == "EXECUTED"]
+    starter_fallbacks = [record for record in starter_executed if
+                         (record.get("response") or {}).get("usedFallback") is True]
+    starter_reasons = Counter((record.get("starter_diagnostic") or {}).get("reason", "UNKNOWN_FAILURE")
+                              for record in starter_fallbacks)
+    fallback_valid = sum(record.get("validation", {}).get("structure") == "PASS" and
+                         (record.get("validation", {}).get("syntax") or {}).get("status") != "FAIL"
+                         for record in starter_fallbacks)
     return {
         "matrix_cases": len(records),
         "real_generation_requests": len(requested),
@@ -28,6 +36,20 @@ def metrics(records: list[dict]) -> dict:
         "starter_fallbacks": sum(record.get("response") is not None and
                                  record["response"].get("usedFallback") is True
                                  for record in starter_records),
+        "starter_diagnostics": {
+            "executed_requests": len(starter_executed),
+            "live_ai_accepted": sum((record.get("response") or {}).get("isAiGenerated") is True
+                                    for record in starter_executed),
+            "fallbacks": len(starter_fallbacks),
+            "fallback_reasons": dict(starter_reasons),
+            "fallback_structure_and_syntax_valid": fallback_valid,
+            "student_visible_structure_and_syntax_valid": sum(
+                record.get("validation", {}).get("structure") == "PASS" and
+                (record.get("validation", {}).get("syntax") or {}).get("status") != "FAIL"
+                for record in starter_executed if record.get("response")),
+            "student_visible_human_review_required": sum(bool(record.get("validation", {}).get("human_review"))
+                                                         for record in starter_executed),
+        },
         "blocked_by_api": sum(record["request_status"] == "EXECUTED" and
                               record.get("http_status") != 200 for record in records),
         "not_executed": sum(record["request_status"] != "EXECUTED" for record in records),
@@ -122,7 +144,7 @@ def write_reports(run: dict, output_dir: Path) -> tuple[Path, Path]:
 Run `{run['run_id']}` at {run['timestamp_utc']}; mode **{run['mode']}**; commit `{run['git_commit'] or 'unavailable'}`; Groq model `{run['model'] or 'unavailable'}`.
 Real generation requests: **{stats['real_generation_requests']}/{stats['matrix_cases']} planned**. HTTP 200: **{stats['http_success']}/{stats['real_generation_requests']} executed**; HTTP failures: **{stats['http_failed']}/{stats['real_generation_requests']}**. Failure categories among cases: {observed}. Token usage and monetary cost are **unavailable** from the current API response.
 
-Structural validation: {json.dumps(stats['structural_validation'], sort_keys=True)}. Starter Code accepted from live AI: **{stats['starter_live_ai_accepted']}/9 planned**; offline fallbacks: **{stats['starter_fallbacks']}/9**. API-blocked cases: **{stats['blocked_by_api']}**; not executed: **{stats['not_executed']}**; cases still needing human review: **{stats['human_review_cases']}**.
+Structural validation: {json.dumps(stats['structural_validation'], sort_keys=True)}. Starter Code accepted from live AI: **{stats['starter_live_ai_accepted']}/{sum(record['case']['feature'] == 'starter' for record in run['records'])} planned**; offline fallbacks: **{stats['starter_fallbacks']}/{sum(record['case']['feature'] == 'starter' for record in run['records'])}**. API-blocked cases: **{stats['blocked_by_api']}**; not executed: **{stats['not_executed']}**; cases still needing human review: **{stats['human_review_cases']}**.
 
 **Recommendation: {run['recommendation']}** — {run['recommendation_reason']} This small, curated sample cannot establish production-wide reliability.
 
@@ -143,6 +165,8 @@ All returned batches are reproduced below for review. Automated checks cover siz
 ## Starter Code teaching-quality assessment
 
 The complete scaffolds and validation checks are in `mvp_evaluation.json`. Exact signatures, unfinished placeholders, and available syntax checks are automated. Level-trio code differences and executable-line counts are heuristics; meaningful setup and central unfinished work require manual review. A `usedFallback` response is recorded as a failed live AI scaffold even when the endpoint serves a valid offline scaffold.
+
+Starter-specific diagnostic measures (executed denominator): {json.dumps(stats['starter_diagnostics'], sort_keys=True)}. `fallback_reasons` classify the rejected live response; `fallback_structure_and_syntax_valid` and `student_visible_structure_and_syntax_valid` assess the separate code that reached students. Human-review counts are not automated quality passes. Raw Groq text, when explicitly captured, is stored only in the ignored local directory and is not embedded in this report.
 
 ## Preliminary editorial observations
 

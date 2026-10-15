@@ -14,9 +14,62 @@ from evaluation.cases import CASES, validate_matrix
 from evaluation.correctness import execute_solution, probe_sandbox
 from evaluation.reporting import write_reports
 from evaluation.run_evaluation import _empty_record, run
+from evaluation.run_evaluation import _classify, parse_args
+from app.llm.starter_diagnostics import observe
 
 
 class EvaluationHarnessTests(DatabaseTestCase):
+    def test_targeted_selection_capture_guard_and_failure_classification(self):
+        with self.assertRaises(SystemExit):
+            parse_args(["--capture-raw"])
+        with self.assertRaises(SystemExit):
+            parse_args(["--live", "--previous-starter-fallbacks"])
+        case = next(case for case in CASES if case.key == "starter-two-sum-hash-map-python-level-1")
+        for stage, expected in (("provider", "api_provider"),
+                                ("validation", "structural_output"),
+                                ("unknown", "evaluation_limitation")):
+            record = _empty_record(case)
+            record.update(request_status="EXECUTED", http_status=200,
+                          response={"usedFallback": True},
+                          starter_diagnostic={"kind": "failure", "stage": stage,
+                                              "reason": "UNKNOWN_FAILURE"})
+            record["validation"]["structure"] = "PASS"
+            _classify(record)
+            self.assertEqual(record["failure_categories"], [expected])
+
+    def test_typed_rate_limit_stops_a_bounded_starter_run_even_with_http_200(self):
+        calls = []
+
+        class FakeClient:
+            def __init__(self, _app):
+                pass
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *_args):
+                return False
+
+            def post(self, path, json):
+                calls.append(path)
+                observe({"kind": "failure", "stage": "provider", "reason": "PROVIDER_RATE_LIMITED",
+                         "certainty": "confirmed"})
+                return SimpleNamespace(status_code=200, json=lambda: {"usedFallback": True})
+
+        with tempfile.TemporaryDirectory() as temporary:
+            with patch.dict(os.environ, {"GROQ_API_KEY": "test-only", "LEETCOACH_LLM_MODEL": "test-model"}), \
+                 patch("evaluation.run_evaluation.validate_matrix", return_value=[]), \
+                 patch("evaluation.run_evaluation.probe_sandbox", return_value=(False, "unavailable")), \
+                 patch("evaluation.run_evaluation.TestClient", FakeClient):
+                self.assertEqual(run(["--live", "--feature", "starter", "--previous-starter-fallbacks",
+                                      "--max-calls", "7", "--pace-seconds", "0",
+                                      "--output-dir", temporary]), 0)
+            data = json.loads((Path(temporary) / "mvp_evaluation.json").read_text(encoding="utf-8"))
+            self.assertEqual(len(calls), 1)
+            self.assertEqual(data["records"][0]["starter_diagnostic"]["reason"], "PROVIDER_RATE_LIMITED")
+            self.assertEqual(data["metrics"]["starter_diagnostics"]["fallback_reasons"],
+                             {"PROVIDER_RATE_LIMITED": 1})
+
     def test_fixed_matrix_matches_seeded_sqlite_and_budget(self):
         self.assertEqual(len(CASES), 31)
         self.assertEqual([sum(case.feature == feature for case in CASES)

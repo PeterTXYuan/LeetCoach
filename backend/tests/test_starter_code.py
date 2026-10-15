@@ -38,7 +38,7 @@ class StarterCodeTests(DatabaseTestCase):
                             self.assertEqual((data["slug"], data["approachId"], data["language"], data["level"]),
                                              (slug, approach["id"], language, level))
                             self.assertFalse(data["isAiGenerated"])
-                            self.assertEqual(data["policyVersion"], 3)
+                            self.assertEqual(data["policyVersion"], 4)
                             self.assertEqual(data["levelName"], {1: "Kickstart", 2: "Guided", 3: "Strong Scaffold"}[level])
                             self.assertIn("TODO", data["code"])
                             self.assertNotIn("```", data["code"])
@@ -110,7 +110,7 @@ class StarterCodeTests(DatabaseTestCase):
             response = self.request(level=3, language="java")
         self.assertEqual(response.status_code, 200, response.text)
         self.assertTrue(response.json()["isAiGenerated"])
-        self.assertEqual(response.json()["policyVersion"], 3)
+        self.assertEqual(response.json()["policyVersion"], 4)
         self.assertEqual(len(calls), 1)
         sent = json.loads(calls[0]["messages"][1]["content"])
         self.assertEqual((sent["context"]["approach"]["id"], sent["language"], sent["level"]),
@@ -255,10 +255,10 @@ class StarterCodeTests(DatabaseTestCase):
                 self.assertNotIn("results.append", codes[2])
             if slug == "min-stack":
                 self.assertIn("MinStack.prototype.getMin", codes[2])
-                self.assertIn("this.values = []", codes[0])
-                self.assertNotIn("this.minimums", codes[0])
-                self.assertIn("this.minimums = []", codes[1])
-                self.assertIn("if (this.values.length > 0)", codes[2])
+                self.assertTrue(all("this.pairs = []" in code for code in codes))
+                self.assertTrue(all("this.minimums" not in code for code in codes))
+                self.assertIn("previousPair", codes[1])
+                self.assertIn("if (previousPair)", codes[2])
 
     def test_min_stack_java_retains_all_methods_and_shared_state(self):
         with Session(self.engine) as session:
@@ -269,8 +269,9 @@ class StarterCodeTests(DatabaseTestCase):
             for signature in ("public MinStack()", "public void push(int val)",
                               "public void pop()", "public int top()", "public int getMin()"):
                 self.assertIn(signature, code)
-            self.assertIn("Deque<Integer> values", code)
-        self.assertNotIn("Deque<Integer> minimums", codes[0])
-        self.assertIn("Deque<Integer> minimums", codes[1])
-        self.assertIn("if (!values.isEmpty())", codes[2])
-        self.assertNotIn("values.push(val)", codes[2])
+            self.assertIn("Deque<int[]> pairs", code)
+            self.assertNotIn("Deque<Integer> minimums", code)
+        self.assertNotIn("previousPair", codes[0])
+        self.assertIn("previousPair", codes[1])
+        self.assertIn("if (previousPair != null)", codes[2])
+        self.assertNotIn("pairs.push(", codes[2])

@@ -88,7 +88,7 @@ beforeEach(() => {
     if (path.endsWith("/starter-code")) {
       const body = JSON.parse(fetchMock.mock.lastCall![1].body as string);
       return json({ slug, approachId: parts[5], language: body.language, level: body.level,
-        policyVersion: 3,
+        policyVersion: 4,
         levelName: ["", "Kickstart", "Guided", "Strong Scaffold"][body.level],
         isAiGenerated: false, code: `// TODO: ${slug} ${parts[5]} ${body.language} ${body.level}`,
         notice: "Complete the TODOs." });
@@ -392,7 +392,8 @@ describe("persistent Coach workspaces", () => {
       } },
       starterByApproach: { "hash-map": {
         language: "java", level: 2, isExpanded: true, isVisible: true,
-        responses: { "java:2": savedResponse(2, 2), "java:3": savedResponse(3, 3) }
+        responses: { "java:1": savedResponse(1, 4), "java:2": savedResponse(2, 2),
+          "java:3": savedResponse(3, 3) }
       } }
     } });
     const workspace = parsed["two-sum"];
@@ -402,7 +403,31 @@ describe("persistent Coach workspaces", () => {
     expect(workspace.starterByApproach["hash-map"]).toMatchObject({
       language: "java", level: 2, isExpanded: false, isVisible: false
     });
-    expect(Object.keys(workspace.starterByApproach["hash-map"].responses)).toEqual(["java:3"]);
+    expect(Object.keys(workspace.starterByApproach["hash-map"].responses)).toEqual(["java:1"]);
+  });
+
+  it("does not regenerate an old-policy starter cache during hydration", async () => {
+    disk[workspaceStorageKey] = { "two-sum": {
+      selectedApproachId: "hash-map", isThinkingExpanded: false, activeSection: "coach",
+      hintsByApproach: { "hash-map": {
+        response: { slug: "two-sum", approachId: "hash-map", hints: ["Saved hint"] },
+        visibleHintCount: 0
+      } },
+      starterByApproach: { "hash-map": { language: "java", level: 2,
+        isExpanded: false, isVisible: false,
+        responses: { "java:2": { slug: "two-sum", approachId: "hash-map", language: "java",
+          level: 2, levelName: "Guided", isAiGenerated: true, policyVersion: 3,
+          code: "// TODO: old scaffold", notice: "Old" } } } }
+    } };
+    await mount();
+    expect(starterRequests()).toBe(0);
+    expect(storedWorkspace("two-sum")?.selectedApproachId).toBe("hash-map");
+    click("Get starter code");
+    expect((screen.getByLabelText("Starter language") as HTMLSelectElement).value).toBe("java");
+    expect(starterRequests()).toBe(0);
+    click("Generate Starter Code");
+    expect(await screen.findByText("// TODO: two-sum hash-map java 2")).toBeTruthy();
+    expect(starterRequests()).toBe(1);
   });
 
   it("does not save an aborted starter response after switching the requested combination", async () => {
@@ -426,7 +451,7 @@ describe("persistent Coach workspaces", () => {
   it("retains a fallback across remounts but lets the user retry AI explicitly", async () => {
     const view = await mount();
     fetchMock.mockResolvedValueOnce(json({
-      slug: "two-sum", approachId: "hash-map", language: "python", level: 1, policyVersion: 3,
+      slug: "two-sum", approachId: "hash-map", language: "python", level: 1, policyVersion: 4,
       levelName: "Kickstart", isAiGenerated: false, usedFallback: true,
       code: "# TODO: offline fallback", notice: "AI starter code could not be used."
     }));
@@ -651,7 +676,7 @@ describe("persistent Coach workspaces", () => {
     await act(async () => {
       resolveHint(json({ slug: "two-sum", approachId: "hash-map", hints: ["Late hint"] }));
       resolveStarter(json({ slug: "two-sum", approachId: "hash-map", language: "python", level: 1,
-        policyVersion: 3, levelName: "Kickstart", isAiGenerated: false, code: "Late starter", notice: "TODO" }));
+        policyVersion: 4, levelName: "Kickstart", isAiGenerated: false, code: "Late starter", notice: "TODO" }));
       resolveAnswer(json(solution("two-sum", "hash-map", "python")));
     });
     click("Approach 2");

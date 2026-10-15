@@ -69,7 +69,7 @@ def evaluate_starter(payload: dict, case, template: str, output_dir) -> dict:
     code = payload.get("code")
     try:
         structure = (_identity(payload, case) and
-                     payload.get("policyVersion") == 3 and
+                     payload.get("policyVersion") == 4 and
                      isinstance(code, str) and
                      validate_starter_code(code, template, case.language, case.level) == code.strip())
     except (ProviderOutputError, KeyError, TypeError):

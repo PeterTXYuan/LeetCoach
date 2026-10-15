@@ -1,7 +1,7 @@
 import type { SolutionLanguage } from "./approachSolution";
 
 export type GuidanceLevel = 1 | 2 | 3;
-export const starterCodePolicyVersion = 3;
+export const starterCodePolicyVersion = 4;
 export type StarterCodeResponse = {
   slug: string;
   approachId: string;

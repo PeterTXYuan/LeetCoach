@@ -8,7 +8,7 @@ import { fetchStarterCode, normalizeStarterCode } from "../src/api/starterCode";
 
 const response = (overrides = {}) => ({
   slug: "two-sum", approachId: "hash-map", language: "python", level: 1,
-  levelName: "Kickstart", isAiGenerated: false, policyVersion: 3,
+  levelName: "Kickstart", isAiGenerated: false, policyVersion: 4,
   code: "# TODO: starter", notice: "Complete the TODOs.", ...overrides
 });
 const json = (data: unknown, status = 200) => ({ ok: status === 200, status, json: async () => data } as Response);
