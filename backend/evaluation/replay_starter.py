@@ -16,7 +16,16 @@ from app.services.problem_repository import find_problem_context
 
 def replay(content: str, context: dict, language: str, level: int) -> dict:
     try:
-        GroqLLMProvider.parse_starter_content(content, context, language, level)
+        # Historical Phase 1/3 captures used the retired full-file contract.
+        # Replay them offline without re-enabling it for production requests.
+        try:
+            parsed = json.loads(content)
+        except ValueError:
+            parsed = None
+        GroqLLMProvider.parse_starter_content(
+            content, context, language, level,
+            allow_legacy=isinstance(parsed, dict) and "code" in parsed,
+        )
     except ProviderOutputError as exc:
         return {"accepted": False, **failure_metadata(exc)}
     return {"accepted": True, "stage": "accepted", "reason": None, "certainty": "confirmed"}

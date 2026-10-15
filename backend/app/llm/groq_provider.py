@@ -8,6 +8,7 @@ from app.llm.base import (
     validate_hints, validate_starter_code,
 )
 from app.llm.starter_diagnostics import observe, provider_reason, starter_raw_capture
+from app.llm.starter_contract import assemble_starter_plan, starter_slots, trusted_starter
 from app.llm.solution_validation import validate_solution
 
 
@@ -30,48 +31,23 @@ SYSTEM_PROMPT = (
 )
 
 STARTER_SYSTEM_PROMPT = (
-    "You are LeetCoach. Return a JSON object with a string field named code, containing "
-    "unfinished LeetCode starter code in the requested language. Use ONLY the provided problem "
-    "facts and selected canonical approach. The submissionTemplate is authoritative: copy every "
-    "required class/method signature exactly, including all methods in design problems. Never "
-    "switch approaches, invent an entry point, or include Markdown fences. "
-    "Teaching rule: each level must add useful implementation help without giving the answer. "
-    "Level 1 (Kickstart): preserve the shell and add at least one approach-specific executable "
-    "setup step, such as a typed collection, sorted input, result container, or essential state. "
-    "Add one or two concise TODOs about the next decision. Do not merely repeat the template "
-    "or approach name; leave the main loop and algorithm substantially unwritten. "
-    "Level 2 (Guided): retain Level 1's setup and add meaningful state or the initial main "
-    "loop/control-flow outline when useful. The central condition, state transitions, and "
-    "result construction remain unfinished. Do not implement duplicate skipping or pointer "
-    "movement when those are key decisions. "
-    "Level 3 (Strong Scaffold): retain earlier setup and add the major loop, branch, or helper "
-    "structure plus useful intermediate calculations. Make TODOs precise and actionable at "
-    "the missing operation. Leave substantial reasoning about the central lookup, condition, "
-    "update, duplicate handling, pointer movement, or answer construction. "
-    "For Two Sum with a map, Level 2 may iterate and read the current number; Level 3 may "
-    "also calculate its complement, but must not implement map lookup/update or the answer. "
-    "For 3Sum with two pointers, Level 1 may sort and initialize results; Level 2 may add "
-    "the outer loop and pointers; Level 3 may add the inner loop, sum, and comparison branches "
-    "while leaving movement, duplicate handling, and recording for the student. "
-    "Never output a complete algorithm, a full solution with a decorative TODO and unreachable "
-    "throw/raise, commented-out solution statements, or ready-to-copy pseudocode for the missing "
-    "steps. A student must still reason about the core operation. Keep comments short and "
-    "educational, preserve language syntax and indentation, never use invalid placeholders "
-    "such as if (/* TODO */). Follow starterDesign when supplied; each level is requested "
-    "independently, so keep its core storage design consistent across levels. "
-    "Every unfinished algorithm path needs a TODO and a reachable fail-loud placeholder: "
-    "Python: raise NotImplementedError(\"Complete the TODOs\"); Java: throw new "
-    "UnsupportedOperationException(\"Complete the TODOs\"); JavaScript: throw new "
-    "Error(\"Complete the TODOs\"); C++: #include <stdexcept> and throw "
-    "std::logic_error(\"Complete the TODOs\"). In multi-method designs, each method left "
-    "unfinished must fail loudly; do not leave TODO-only methods that silently return. "
-    "Do not replace an unfinished operation with an empty/default return, a break that "
-    "skips the work, or an exception appended after a completed answer. "
-    "Never put executable assignments, returns, conditionals, loops, or ready-to-copy "
-    "operations inside comments. TODOs should ask for the next conceptual decision, not "
-    "spell out an if/lookup/return/update sequence or the exact code to write. "
-    "For example, ask whether an earlier value can complete a pair, without giving the "
-    "lookup, returned indices, and storage update."
+    "You are LeetCoach. The backend already owns the authoritative submission signature, "
+    "required methods, level-specific control flow, and fail-loud unfinished placeholders. "
+    "Do NOT generate a code file, method, class, return statement, branch, or full solution. "
+    "Return exactly one JSON object: {\"edits\":[{\"slot\":\"todo-1\",\"lines\":[\"one code line\"],"
+    "\"guidance\":\"one short conceptual question\"}]}. Choose one of the supplied slot IDs. "
+    "The lines array must contain exactly ONE new, useful local variable declaration or "
+    "intermediate assignment in the requested language. It must derive from a parameter or "
+    "earlier trusted state and must not duplicate baseline code. Each array item is one actual "
+    "source-code line: do not include a newline or literal \\n between lines. "
+    "The optional guidance becomes a TODO comment. It must ask a conceptual next question, "
+    "not state an if/lookup/return/store recipe or repeat work already done by nearby code. "
+    "Use only the database facts and selected canonical approach. Follow starterDesign if given. "
+    "Keep the requested level appropriate: Kickstart adds simple setup; Guided adds a useful "
+    "intermediate without doing central operations; Strong Scaffold builds on the trusted "
+    "baseline while leaving key decisions. Never switch data representation, call the solution "
+    "method recursively as the new line, or complete the algorithm. "
+    "Empty, generic, redundant, or unsafe contributions are rejected and shown as offline fallback."
 )
 
 
@@ -157,7 +133,11 @@ class GroqLLMProvider:
         ]
 
     def generate_starter_code(self, context: dict, language: str, level: int) -> str:
-        payload = {"context": context, "language": language, "level": level}
+        baseline = trusted_starter(context, language, level)
+        payload = {"context": context, "language": language, "level": level,
+                   "baselineScaffold": baseline,
+                   "editableSlots": [{"id": slot["id"], "existingTodo": slot["existingTodo"]}
+                                     for slot in starter_slots(baseline)]}
         design = _starter_design(context)
         if design:
             payload["starterDesign"] = design
@@ -180,27 +160,31 @@ class GroqLLMProvider:
                                           "response") from exc
         if starter_raw_capture.get():
             observe({"kind": "raw_response", "content": content})
-        return self.parse_starter_content(content, context, language, level)
+        return self.parse_starter_content(content, context, language, level, baseline=baseline)
 
     @staticmethod
-    def parse_starter_content(content, context: dict, language: str, level: int) -> str:
-        """Shared live/replay parser; validation rules stay in validate_starter_code."""
+    def parse_starter_content(content, context: dict, language: str, level: int,
+                              baseline: str | None = None, allow_legacy: bool = False) -> str:
+        """Assemble the current edit contract; replay may inspect old full-file captures."""
         try:
             parsed = json.loads(content)
         except (TypeError, ValueError) as exc:
             raise StarterOutputDiagnostic("Invalid starter code provider output", "INVALID_JSON", "parsing") from exc
         if not isinstance(parsed, dict):
             raise StarterOutputDiagnostic("Invalid starter code provider output", "INVALID_OUTPUT_TYPE", "parsing")
-        if "code" not in parsed:
-            raise StarterOutputDiagnostic("Invalid starter code provider output", "MISSING_CODE_FIELD", "parsing")
-        if not isinstance(parsed["code"], str):
-            raise StarterOutputDiagnostic("Invalid starter code provider output", "INVALID_OUTPUT_TYPE", "parsing")
         try:
             template = context["problem"]["submissionTemplate"]["code"]
         except (AttributeError, TypeError, KeyError) as exc:
             raise StarterOutputDiagnostic("Invalid starter code provider output", "INVALID_OUTPUT_TYPE",
                                           "context") from exc
-        return validate_starter_code(_remove_outer_code_fence(parsed["code"]),
+        if allow_legacy:
+            if "code" not in parsed:
+                raise StarterOutputDiagnostic("Invalid starter code provider output", "MISSING_CODE_FIELD", "parsing")
+            if not isinstance(parsed["code"], str):
+                raise StarterOutputDiagnostic("Invalid starter code provider output", "INVALID_OUTPUT_TYPE", "parsing")
+            return validate_starter_code(_remove_outer_code_fence(parsed["code"]),
+                                         template, language, level)
+        return assemble_starter_plan(parsed, baseline or trusted_starter(context, language, level),
                                      template, language, level)
 
     def generate_solution(self, context: dict, language: str) -> dict[str, str]:

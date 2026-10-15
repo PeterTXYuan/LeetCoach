@@ -38,7 +38,7 @@ class StarterProviderDiagnostic(ProviderUnavailableError):
 
 SUPPORTED_STARTER_LANGUAGES = frozenset({"python", "java", "javascript", "cpp"})
 STARTER_LEVEL_NAMES = {1: "Kickstart", 2: "Guided", 3: "Strong Scaffold"}
-STARTER_CODE_POLICY_VERSION = 4
+STARTER_CODE_POLICY_VERSION = 5
 
 
 MAX_HINT_WORDS = 18
@@ -195,8 +195,48 @@ def _validate_scaffold_quality(code: str, template: str, language: str, level: i
     if any(re.search(r"\btodo\b", line, re.IGNORECASE) and _DIRECT_PAIR_RECIPE.search(line)
            for line in lines if line.lstrip().startswith(("#", "//"))):
         raise StarterOutputDiagnostic("Algorithm recipe in starter comments", "ALGORITHM_RECIPE_IN_COMMENTS")
+    if "twoSum" in template and level >= 2:
+        comments = " ".join(line.lower() for line in lines
+                            if line.lstrip().startswith(("#", "//")) and "todo" in line.lower())
+        lookup = bool(re.search(r"\bcomplement\b.*\b(?:in|seen|map|earlier)\b|"
+                                r"\b(?:seen|map)\b.*\bcomplement\b", comments))
+        returned_pair = bool(re.search(r"\breturn\b.*\b(?:pair|indice|index)\b", comments))
+        store = bool(re.search(r"\b(?:store|record|insert|update|put|set)\b.*\b(?:seen|map)\b|"
+                               r"\b(?:seen|map)\b.*\b(?:store|record|insert|update|put|set)\b", comments))
+        if lookup and returned_pair and store:
+            raise StarterOutputDiagnostic("Algorithm recipe in starter comments",
+                                          "ALGORITHM_RECIPE_IN_COMMENTS")
+    if "maxDepth" in template and level == 2:
+        active_lines = "\n".join(line for line in lines
+                                 if not line.lstrip().startswith(("#", "//")))
+        comments = " ".join(line.lower() for line in lines if line.lstrip().startswith(("#", "//")))
+        if ("root.left" in active_lines and "root.right" in active_lines
+                and re.search(r"\b(?:return|combine)\b.*(?:1\s*(?:\+|plus)|one\s+plus).*(?:larger|max)", comments)):
+            raise StarterOutputDiagnostic("Recursion answer recipe in Guided starter",
+                                          "ALGORITHM_RECIPE_IN_COMMENTS")
+        if re.search(r"(?m)^\s*#\s*TODO:\s*compute.*right.*depth\s*$\n\s*right_depth\s*=", code, re.I):
+            raise StarterOutputDiagnostic("TODO repeats the next implemented line",
+                                          "REDUNDANT_GUIDANCE")
     if re.search(r"\bMinStack\b", code):
         _check_unfinished_min_stack_methods(code, language)
+
+    # A TODO after an unconditional placeholder in the same block cannot be
+    # reached. Dedentation/closing braces end the earlier block.
+    last_throw_indent = None
+    for line in lines:
+        stripped = line.strip()
+        if not stripped:
+            continue
+        indent = len(line) - len(line.lstrip())
+        if last_throw_indent is not None and indent < last_throw_indent:
+            last_throw_indent = None
+        if re.match(r"^\s*(?:#|//)\s*TODO\b", line, re.I) and last_throw_indent is not None and indent >= last_throw_indent:
+            raise StarterOutputDiagnostic("TODO follows an unreachable placeholder",
+                                          "UNREACHABLE_TODO")
+        if not stripped.startswith(("#", "//")) and any(marker in stripped for marker in (
+                "raise NotImplementedError", "throw new UnsupportedOperationException",
+                "throw new Error", "throw logic_error", "throw std::logic_error")):
+            last_throw_indent = indent
 
     todo_lines = [line.lower() for line in lines if re.search(r"\btodo\b", line, re.IGNORECASE)]
     if level >= 2 and all(re.search(r"\btodo\s*:\s*(?:review|explain|optimi[sz]e|test|done)\b", line)

@@ -78,6 +78,17 @@ PREVIOUS_STARTER_FALLBACK_IDS = (
 )
 
 
+# Future bounded post-contract comparison: the original nine plus four unseen
+# algorithm/language holdouts. This is only selected by an explicit CLI flag.
+CONTRACT_STARTER_CASES = (
+    *(case for case in CASES if case.feature == "starter"),
+    EvaluationCase("starter", "binary-search", "binary-search", "cpp", 1),
+    EvaluationCase("starter", "binary-search", "binary-search", "cpp", 2),
+    EvaluationCase("starter", "binary-search", "binary-search", "cpp", 3),
+    EvaluationCase("starter", "maximum-depth-of-binary-tree", "depth-first-search", "python", 2),
+)
+
+
 def validate_matrix(session, cases=CASES) -> list[str]:
     """Inspect the live seed; never silently evaluate a nonexistent fixture."""
     errors: list[str] = []

@@ -10,7 +10,7 @@ from unittest.mock import patch
 from sqlalchemy.orm import Session
 
 from db_test_support import DatabaseTestCase
-from evaluation.cases import CASES, validate_matrix
+from evaluation.cases import CASES, CONTRACT_STARTER_CASES, validate_matrix
 from evaluation.correctness import execute_solution, probe_sandbox
 from evaluation.reporting import write_reports
 from evaluation.run_evaluation import _empty_record, run
@@ -79,6 +79,25 @@ class EvaluationHarnessTests(DatabaseTestCase):
             changed = list(CASES)
             changed[0] = changed[0].__class__("hints", "two-sum", "made-up-approach")
             self.assertIn("canonical approach absent", validate_matrix(session, changed)[0])
+
+    def test_contract_matrix_is_explicit_bounded_and_dry_by_default(self):
+        self.assertEqual(len(CONTRACT_STARTER_CASES), 13)
+        self.assertEqual([case.key for case in CONTRACT_STARTER_CASES[:9]],
+                         [case.key for case in CASES if case.feature == "starter"])
+        with Session(self.engine) as session:
+            self.assertEqual(validate_matrix(session, CONTRACT_STARTER_CASES), [])
+        with self.assertRaises(SystemExit):
+            parse_args(["--contract-starter-matrix"])
+        with self.assertRaises(SystemExit):
+            parse_args(["--contract-starter-matrix", "--max-calls", "13", "--feature", "starter"])
+        with tempfile.TemporaryDirectory() as temporary:
+            with patch("evaluation.run_evaluation.TestClient") as client:
+                self.assertEqual(run(["--contract-starter-matrix", "--max-calls", "13",
+                                      "--output-dir", temporary]), 0)
+                client.assert_not_called()
+            data = json.loads((Path(temporary) / "mvp_evaluation.json").read_text(encoding="utf-8"))
+            self.assertEqual(len(data["records"]), 13)
+            self.assertEqual(data["metrics"]["real_generation_requests"], 0)
 
     def test_default_and_explicit_dry_run_never_open_generation_client(self):
         with tempfile.TemporaryDirectory() as temporary:

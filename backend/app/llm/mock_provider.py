@@ -706,25 +706,38 @@ def _mock_control_flow(language: str, parameter: str, template: str, comment: st
     if approach_id == "iterative-merge" and parameter == "list1":
         if language == "python":
             return ["while first is not None and second is not None:",
-                    f"    {comment} TODO: select the smaller node, connect it, and advance that list.",
-                    "    raise NotImplementedError('Complete the merge decision')"]
+                    "    if first.val <= second.val:",
+                    f"        {comment} TODO: connect and advance the first list.",
+                    "        raise NotImplementedError('Complete the first merge branch')",
+                    "    else:",
+                    f"        {comment} TODO: connect and advance the second list.",
+                    "        raise NotImplementedError('Complete the second merge branch')"]
         null = "nullptr" if language == "cpp" else "null"
         failure = {"java": 'throw new UnsupportedOperationException("Complete the merge decision");',
                    "javascript": 'throw new Error("Complete the merge decision");',
                    "cpp": 'throw logic_error("Complete the merge decision");'}[language]
+        first_value = "first->val" if language == "cpp" else "first.val"
+        second_value = "second->val" if language == "cpp" else "second.val"
         return [f"while (first != {null} && second != {null}) {{",
-                f"    {comment} TODO: select the smaller node, connect it, and advance that list.",
-                f"    {failure}", "}"]
+                f"    if ({first_value} <= {second_value}) {{",
+                f"        {comment} TODO: connect and advance the first list.",
+                f"        {failure}", "    } else {",
+                f"        {comment} TODO: connect and advance the second list.",
+                f"        {failure}", "    }", "}"]
     if approach_id == "iterative-pointers" and parameter == "head":
         if language == "python":
             return ["while current is not None:",
+                    "    next_node = current.next",
                     f"    {comment} TODO: redirect the link, then advance current and previous.",
                     "    raise NotImplementedError('Complete pointer updates')"]
         null = "nullptr" if language == "cpp" else "null"
         failure = {"java": 'throw new UnsupportedOperationException("Complete pointer updates");',
                    "javascript": 'throw new Error("Complete pointer updates");',
                    "cpp": 'throw logic_error("Complete pointer updates");'}[language]
-        return [f"while (current != {null}) {{",
+        saved_next = {"java": "ListNode nextNode = current.next;",
+                      "javascript": "const nextNode = current.next;",
+                      "cpp": "ListNode* nextNode = current->next;"}[language]
+        return [f"while (current != {null}) {{", f"    {saved_next}",
                 f"    {comment} TODO: redirect the link, then advance current and previous.",
                 f"    {failure}", "}"]
     if approach_id == "recursive-unwind" and parameter == "head":

@@ -130,7 +130,9 @@ class StarterPhase2Tests(DatabaseTestCase):
                 level = sent["level"]
                 calls.append(level)
                 self.assertIn("one stack of (value, minimum-so-far) pairs", sent["starterDesign"])
-                content = json.dumps({"code": generated[level - 1] if sources[level - 1] else "bad"})
+                content = json.dumps({"edits": [{"slot": "todo-2", "lines": [
+                    "const pairCount = this.pairs.length;"
+                ]}]} if sources[level - 1] else {"code": "bad"})
                 return SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content=content))])
             client = SimpleNamespace(chat=SimpleNamespace(completions=SimpleNamespace(create=create)))
             provider = GroqLLMProvider(api_key="offline", model="fake", client=client)
@@ -147,9 +149,8 @@ class StarterPhase2Tests(DatabaseTestCase):
             self.assertTrue(all("this.pairs = []" in item["code"] for item in responses))
             self.assertTrue(all("this.values" not in item["code"] and "this.minimums" not in item["code"]
                                 for item in responses))
-            self.assertTrue(all(item["policyVersion"] == 4 for item in responses))
-        self.assertIn("NotImplementedError", STARTER_SYSTEM_PROMPT)
-        self.assertIn("UnsupportedOperationException", STARTER_SYSTEM_PROMPT)
-        self.assertIn("std::logic_error", STARTER_SYSTEM_PROMPT)
-        self.assertIn("TODOs should ask for the next conceptual decision", STARTER_SYSTEM_PROMPT)
+            self.assertTrue(all(item["policyVersion"] == 5 for item in responses))
+        self.assertIn("backend already owns the authoritative submission signature", STARTER_SYSTEM_PROMPT)
+        self.assertIn("lines array must contain exactly ONE", STARTER_SYSTEM_PROMPT)
+        self.assertIn("not state an if/lookup/return/store recipe", STARTER_SYSTEM_PROMPT)
 

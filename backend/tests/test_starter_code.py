@@ -38,7 +38,7 @@ class StarterCodeTests(DatabaseTestCase):
                             self.assertEqual((data["slug"], data["approachId"], data["language"], data["level"]),
                                              (slug, approach["id"], language, level))
                             self.assertFalse(data["isAiGenerated"])
-                            self.assertEqual(data["policyVersion"], 4)
+                            self.assertEqual(data["policyVersion"], 5)
                             self.assertEqual(data["levelName"], {1: "Kickstart", 2: "Guided", 3: "Strong Scaffold"}[level])
                             self.assertIn("TODO", data["code"])
                             self.assertNotIn("```", data["code"])
@@ -52,6 +52,13 @@ class StarterCodeTests(DatabaseTestCase):
                     self.assertNotRegex(codes[0], r"(?m)^\s*(?:for|while|if)\b")
                     self.assertNotIn("implement the selected approach", codes[0].lower())
                     self.assertNotEqual(codes[0].strip(), CURATED_PROBLEM_SPECS[slug]["submissionTemplates"][language].strip())
+                    initial_setup = [line.strip() for line in codes[0].splitlines()
+                                     if line.strip() and "=" in line
+                                     and not line.lstrip().startswith(("#", "//", "import ", "from ", "using "))
+                                     and not any(token in line for token in ("class ", "def ", "function", "throw ", "raise "))]
+                    for setup in initial_setup:
+                        self.assertIn(setup, codes[1])
+                        self.assertIn(setup, codes[2])
                     if slug != "min-stack":
                         self.assertRegex(codes[2], r"\b(?:for|while|if)\s*(?:\(|\w)")
 
@@ -98,24 +105,26 @@ class StarterCodeTests(DatabaseTestCase):
     def test_structured_groq_request_without_network(self):
         with Session(self.engine) as session:
             context = find_problem_context(session, "two-sum", "hash-map", "java")
-        code = MockLLMProvider().generate_starter_code(context, "java", 3)
+        plan = {"edits": [{"slot": "todo-1", "lines": ["int remainingSlots = nums.length - index;"]}]}
         calls = []
         def create(**kwargs):
             calls.append(kwargs)
             return SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(
-                content=json.dumps({"code": code})))])
+                content=json.dumps(plan)))])
         client = SimpleNamespace(chat=SimpleNamespace(completions=SimpleNamespace(create=create)))
         provider = GroqLLMProvider(api_key="test-only", model="test-model", client=client)
         with patch("app.main.get_llm_provider", return_value=provider):
             response = self.request(level=3, language="java")
         self.assertEqual(response.status_code, 200, response.text)
         self.assertTrue(response.json()["isAiGenerated"])
-        self.assertEqual(response.json()["policyVersion"], 4)
+        self.assertEqual(response.json()["policyVersion"], 5)
         self.assertEqual(len(calls), 1)
         sent = json.loads(calls[0]["messages"][1]["content"])
         self.assertEqual((sent["context"]["approach"]["id"], sent["language"], sent["level"]),
                          ("hash-map", "java", 3))
         self.assertEqual(calls[0]["response_format"], {"type": "json_object"})
+        self.assertIn("baselineScaffold", sent)
+        self.assertTrue(sent["editableSlots"])
         for bad in ({"code": "```java\ncode\n```"}, {"code": "class Solution {}"}, ["wrong"]):
             client.chat.completions.create = lambda **_: SimpleNamespace(choices=[SimpleNamespace(
                 message=SimpleNamespace(content=json.dumps(bad)))])
@@ -125,14 +134,8 @@ class StarterCodeTests(DatabaseTestCase):
             self.assertFalse(fallback.json()["isAiGenerated"])
             self.assertTrue(fallback.json()["usedFallback"])
             self.assertIn("TODO", fallback.json()["code"])
-        for usable in ({"code": code, "extra": "harmless"}, {"code": f"```java\n{code}\n```"}):
-            client.chat.completions.create = lambda **_: SimpleNamespace(choices=[SimpleNamespace(
-                message=SimpleNamespace(content=json.dumps(usable)))])
-            with patch("app.main.get_llm_provider", return_value=provider):
-                accepted = self.request(level=3, language="java")
-            self.assertEqual(accepted.status_code, 200)
-            self.assertTrue(accepted.json()["isAiGenerated"])
-            self.assertNotIn("usedFallback", accepted.json())
+        self.assertIn("int remainingSlots = nums.length - index;", response.json()["code"])
+        self.assertNotIn("usedFallback", response.json())
         client.chat.completions.create = lambda **_: (_ for _ in ()).throw(TimeoutError("secret"))
         with patch("app.main.get_llm_provider", return_value=provider):
             response = self.request(level=3, language="java")

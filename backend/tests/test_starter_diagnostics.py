@@ -64,7 +64,7 @@ class StarterDiagnosticsTests(DatabaseTestCase):
         commented = valid.replace("# TODO", "# seen = {}\n        # seen[target] = 0\n        # TODO")
         cases = [
             ("not json", "INVALID_JSON", "parsing"),
-            ("{}", "MISSING_CODE_FIELD", "parsing"),
+            ("{}", "INVALID_GENERATION_PLAN", "validation"),
             (json.dumps({"code": 4}), "INVALID_OUTPUT_TYPE", "parsing"),
             (json.dumps({"code": changed}), "CHANGED_SIGNATURE", "validation"),
             (json.dumps({"code": invalid_syntax}), "INVALID_SYNTAX", "validation"),
@@ -81,8 +81,8 @@ class StarterDiagnosticsTests(DatabaseTestCase):
 
     def test_success_and_capture_default_off_and_public_contract(self):
         context = self.context()
-        valid = MockLLMProvider().generate_starter_code(context, "python", 1)
-        provider = self.fake_provider(json.dumps({"code": valid}))
+        plan = {"edits": [{"slot": "todo-1", "lines": ["count = len(nums)"]}]}
+        provider = self.fake_provider(json.dumps(plan))
         self.assertIsNone(starter_observer.get())
         response = self.request(provider)
         self.assertEqual(response.status_code, 200)

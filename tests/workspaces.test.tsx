@@ -88,7 +88,7 @@ beforeEach(() => {
     if (path.endsWith("/starter-code")) {
       const body = JSON.parse(fetchMock.mock.lastCall![1].body as string);
       return json({ slug, approachId: parts[5], language: body.language, level: body.level,
-        policyVersion: 4,
+        policyVersion: 5,
         levelName: ["", "Kickstart", "Guided", "Strong Scaffold"][body.level],
         isAiGenerated: false, code: `// TODO: ${slug} ${parts[5]} ${body.language} ${body.level}`,
         notice: "Complete the TODOs." });
@@ -392,7 +392,7 @@ describe("persistent Coach workspaces", () => {
       } },
       starterByApproach: { "hash-map": {
         language: "java", level: 2, isExpanded: true, isVisible: true,
-        responses: { "java:1": savedResponse(1, 4), "java:2": savedResponse(2, 2),
+        responses: { "java:1": savedResponse(1, 5), "java:2": savedResponse(2, 4),
           "java:3": savedResponse(3, 3) }
       } }
     } });
@@ -451,7 +451,7 @@ describe("persistent Coach workspaces", () => {
   it("retains a fallback across remounts but lets the user retry AI explicitly", async () => {
     const view = await mount();
     fetchMock.mockResolvedValueOnce(json({
-      slug: "two-sum", approachId: "hash-map", language: "python", level: 1, policyVersion: 4,
+      slug: "two-sum", approachId: "hash-map", language: "python", level: 1, policyVersion: 5,
       levelName: "Kickstart", isAiGenerated: false, usedFallback: true,
       code: "# TODO: offline fallback", notice: "AI starter code could not be used."
     }));
@@ -676,7 +676,7 @@ describe("persistent Coach workspaces", () => {
     await act(async () => {
       resolveHint(json({ slug: "two-sum", approachId: "hash-map", hints: ["Late hint"] }));
       resolveStarter(json({ slug: "two-sum", approachId: "hash-map", language: "python", level: 1,
-        policyVersion: 4, levelName: "Kickstart", isAiGenerated: false, code: "Late starter", notice: "TODO" }));
+        policyVersion: 5, levelName: "Kickstart", isAiGenerated: false, code: "Late starter", notice: "TODO" }));
       resolveAnswer(json(solution("two-sum", "hash-map", "python")));
     });
     click("Approach 2");
