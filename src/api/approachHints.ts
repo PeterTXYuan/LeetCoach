@@ -8,32 +8,37 @@ const backendBaseUrl = "http://localhost:8000";
 
 export async function fetchPrimaryApproachHints(
   slug: string,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  forceFresh = false
 ) {
   return fetchApproachHintsResponse(
     `${backendBaseUrl}/api/problems/${encodeURIComponent(slug)}/hints`,
-    signal
+    signal,
+    forceFresh
   );
 }
 
 export async function fetchSpecificApproachHints(
   slug: string,
   approachId: string,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  forceFresh = false
 ) {
   return fetchApproachHintsResponse(
     `${backendBaseUrl}/api/problems/${encodeURIComponent(
       slug
     )}/approaches/${encodeURIComponent(approachId)}/hints`,
-    signal
+    signal,
+    forceFresh
   );
 }
 
 async function fetchApproachHintsResponse(
   url: string,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  forceFresh = false
 ): Promise<ApproachHintsResponse | null> {
-  const response = await fetch(url, { signal });
+  const response = await fetch(url, { signal, cache: forceFresh ? "no-store" : undefined });
 
   if (response.status === 404) {
     return null;

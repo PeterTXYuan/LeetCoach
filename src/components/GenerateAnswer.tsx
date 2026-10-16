@@ -6,6 +6,8 @@ type GenerateAnswerProps = {
   language: SolutionLanguage;
   onGenerate: () => void;
   onRetry: () => void;
+  onRegenerate: () => void;
+  regenerationStatus: { status: "idle" | "loading" | "error"; message?: string } | null;
   onLanguageChange: (language: SolutionLanguage) => void;
   onHide: () => void;
 };
@@ -25,10 +27,12 @@ export function GenerateAnswer({
   language,
   onGenerate,
   onRetry,
+  onRegenerate,
+  regenerationStatus,
   onLanguageChange,
   onHide
 }: GenerateAnswerProps) {
-  const isLoading = solutionState.status === "loading";
+  const isLoading = solutionState.status === "loading" || regenerationStatus?.status === "loading";
 
   return (
     <section className="generate-answer" aria-labelledby="generate-answer-title">
@@ -140,6 +144,15 @@ export function GenerateAnswer({
               <dd>{solutionState.response.spaceComplexity}</dd>
             </div>
           </dl>
+          <button className="secondary-action" type="button" onClick={onRegenerate} disabled={isLoading}>
+            {regenerationStatus?.status === "loading" ? "Regenerating answer..." : "Regenerate answer"}
+          </button>
+          {regenerationStatus?.status === "loading" && (
+            <p className="analysis-message" role="status">Generating a new answer...</p>
+          )}
+          {regenerationStatus?.status === "error" && (
+            <p className="analysis-message" role="alert">{regenerationStatus.message}</p>
+          )}
         </article>
       )}
     </section>

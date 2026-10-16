@@ -126,8 +126,12 @@ export function StarterCode({ slug, approachId, approachNumber, saved, onSave }:
         {state.status === "invalid_options" && <p className="analysis-message" role="alert">This language or guidance level is not supported. Choose another option and generate again.</p>}
         {state.status === "error" && (
           <div className="answer-error" role="alert">
-            <p>Unable to load starter code. Please try again.</p>
-            <button className="secondary-action" type="button" onClick={() => void generate()}>Retry starter code</button>
+            <p>{settings.isVisible && cached
+              ? "Unable to regenerate starter code. Your previous scaffold is still available."
+              : "Unable to load starter code. Please try again."}</p>
+            {!(settings.isVisible && cached) && (
+              <button className="secondary-action" type="button" onClick={() => void generate()}>Retry starter code</button>
+            )}
           </div>
         )}
         {settings.isVisible && cached && (
@@ -140,12 +144,11 @@ export function StarterCode({ slug, approachId, approachNumber, saved, onSave }:
               </span>
               <code>{cached.code}</code>
             </pre>
-            {cached.usedFallback && (
-              <button className="secondary-action" type="button" disabled={state.status === "loading"}
-                onClick={() => void generate()}>
-                Try AI generation again
-              </button>
-            )}
+            <button className="secondary-action" type="button" disabled={state.status === "loading"}
+              onClick={() => void generate()}>
+              {state.status === "loading" ? "Regenerating starter code..." :
+                cached.usedFallback ? "Try AI generation again" : "Regenerate starter code"}
+            </button>
           </article>
         )}
       </div>

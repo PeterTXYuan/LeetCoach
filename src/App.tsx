@@ -249,6 +249,8 @@ export default function App() {
                     onRequestFirstHint={approachHints.requestFirstHint}
                     onResetHints={approachHints.resetHints}
                     onRetryHints={approachHints.retryHints}
+                    onRegenerateHints={approachHints.regenerateHints}
+                    regenerationStatus={approachHints.regenerationStatus}
                     onShowNextHint={approachHints.showNextHint}
                     visibleHintCount={approachHints.visibleHintCount}
                   />
@@ -302,6 +304,8 @@ export default function App() {
                           onLanguageChange={approachSolution.chooseLanguage}
                           onGenerate={approachSolution.generateSolution}
                           onRetry={approachSolution.retrySolution}
+                          onRegenerate={approachSolution.regenerateSolution}
+                          regenerationStatus={approachSolution.regenerationStatus}
                           onHide={approachSolution.hideSolution}
                           solutionState={approachSolution.solutionState}
                         />

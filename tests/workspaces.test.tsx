@@ -145,6 +145,90 @@ function section(name: string) {
 }
 
 describe("persistent Coach workspaces", () => {
+  it("regenerates each cached guidance type with a fresh request and replaces only that response", async () => {
+    const normalFetch = fetchMock.getMockImplementation()!;
+    const versions = { hints: 0, starter: 0, answer: 0 };
+    fetchMock.mockImplementation((url: string, options?: RequestInit) => {
+      if (url.endsWith("/hints")) {
+        const version = ++versions.hints;
+        return Promise.resolve(json({ slug: "two-sum", approachId: "hash-map",
+          hints: [`Hint version ${version} one`, `Hint version ${version} two`] }));
+      }
+      if (url.endsWith("/starter-code")) {
+        const version = ++versions.starter;
+        return Promise.resolve(json({ slug: "two-sum", approachId: "hash-map",
+          ...JSON.parse(options!.body as string), policyVersion: 5, levelName: "Kickstart",
+          isAiGenerated: true, code: `Starter version ${version}`, notice: "Complete the TODOs." }));
+      }
+      if (url.endsWith("/solution")) {
+        const version = ++versions.answer;
+        return Promise.resolve(json({ ...solution("two-sum", "hash-map", "python"),
+          code: `Answer version ${version}` }));
+      }
+      return normalFetch(url, options);
+    });
+    await mount();
+    click("Approach 2");
+    click("Get first hint");
+    await screen.findByText("Hint version 1 one");
+    click("Show next hint");
+    click("Regenerate hints");
+    await screen.findByText("Hint version 2 one");
+    expect(screen.queryByText("Hint version 1 one")).toBeNull();
+    expect(screen.queryByText("Hint version 2 two")).toBeNull();
+    expect(hintRequests()).toBe(2);
+    expect(fetchMock.mock.calls.filter(([url]) => String(url).endsWith("/hints"))[1][1].cache)
+      .toBe("no-store");
+
+    click("Get starter code");
+    click("Generate Starter Code");
+    await screen.findByText("Starter version 1");
+    click("Regenerate starter code");
+    await screen.findByText("Starter version 2");
+    expect(screen.queryByText("Starter version 1")).toBeNull();
+    expect(starterRequests()).toBe(2);
+
+    click("Generate answer in Python");
+    await screen.findByText("Answer version 1");
+    click("Regenerate answer");
+    await screen.findByText("Answer version 2");
+    expect(screen.queryByText("Answer version 1")).toBeNull();
+    expect(solutionRequests()).toBe(2);
+    await waitFor(() => expect(storedWorkspace("two-sum")?.hintsByApproach["hash-map"].response.hints[0])
+      .toBe("Hint version 2 one"));
+    expect(storedWorkspace("two-sum")?.starterByApproach["hash-map"].responses["python:1"].code)
+      .toBe("Starter version 2");
+    expect(storedWorkspace("two-sum")?.solutionByApproach["hash-map"].responses.python.code)
+      .toBe("Answer version 2");
+  });
+
+  it("keeps previous generated guidance visible when regeneration fails", async () => {
+    await mount();
+    click("Approach 2");
+    click("Get first hint");
+    await screen.findByText("two-sum hash-map hint 1");
+    click("Get starter code");
+    click("Generate Starter Code");
+    await screen.findByText("// TODO: two-sum hash-map python 1");
+    click("Generate answer in Python");
+    await screen.findByText("two-sum hash-map python full solution");
+
+    fetchMock.mockRejectedValueOnce(new Error("Offline"));
+    click("Regenerate hints");
+    await screen.findByText(/Could not regenerate hints/);
+    expect(screen.getByText("two-sum hash-map hint 1")).toBeTruthy();
+
+    fetchMock.mockRejectedValueOnce(new Error("Offline"));
+    click("Regenerate starter code");
+    await screen.findByText(/Unable to regenerate starter code/);
+    expect(screen.getByText("// TODO: two-sum hash-map python 1")).toBeTruthy();
+
+    fetchMock.mockRejectedValueOnce(new Error("Offline"));
+    click("Regenerate answer");
+    await screen.findByText(/Your previous answer is still available/);
+    expect(screen.getByText("two-sum hash-map python full solution")).toBeTruthy();
+  });
+
   it("collapses every reveal on approach changes but reuses each generated response", async () => {
     await mount();
     click("Approach 2");

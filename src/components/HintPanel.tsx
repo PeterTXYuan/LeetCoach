@@ -6,6 +6,8 @@ type HintPanelProps = {
   onRequestFirstHint: () => void;
   onResetHints: () => void;
   onRetryHints: () => void;
+  onRegenerateHints: () => void;
+  regenerationStatus: "idle" | "loading" | "not_found" | "error";
   onShowNextHint: () => void;
   visibleHintCount: number;
 };
@@ -16,6 +18,8 @@ export function HintPanel({
   onRequestFirstHint,
   onResetHints,
   onRetryHints,
+  onRegenerateHints,
+  regenerationStatus,
   onShowNextHint,
   visibleHintCount
 }: HintPanelProps) {
@@ -139,9 +143,23 @@ export function HintPanel({
           className="secondary-action"
           type="button"
           onClick={onShowNextHint}
+          disabled={regenerationStatus === "loading"}
         >
           Show next hint
         </button>
+      )}
+
+      {hasVisibleHints && (
+        <button className="secondary-action" type="button" onClick={onRegenerateHints}
+          disabled={regenerationStatus === "loading"}>
+          {regenerationStatus === "loading" ? "Regenerating hints..." : "Regenerate hints"}
+        </button>
+      )}
+      {regenerationStatus === "loading" && (
+        <p className="analysis-message" role="status">Generating new hints...</p>
+      )}
+      {regenerationStatus === "error" && (
+        <p className="analysis-message" role="alert">Could not regenerate hints. Your previous hints are still available.</p>
       )}
 
       {hintState.status === "success" &&

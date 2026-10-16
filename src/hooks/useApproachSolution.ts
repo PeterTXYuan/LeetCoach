@@ -24,6 +24,7 @@ type UseApproachSolutionOptions = {
 
 type RequestContext = { slug: string; approachId: string; language: SolutionLanguage };
 type TransientState = { key: string; state: ApproachSolutionState };
+type RegenerationState = { key: string; status: "idle" | "loading" | "error"; message?: string };
 const contextKey = (slug?: string, approachId?: string | null, language?: SolutionLanguage,
   disclosureRevision?: number) => JSON.stringify([slug, approachId, language, disclosureRevision]);
 
@@ -42,6 +43,7 @@ export function useApproachSolution({ slug, approachId, disclosureRevision, save
   const requestIdRef = useRef(0);
   const lastRequestRef = useRef<RequestContext | null>(null);
   const [transient, setTransient] = useState<TransientState | null>(null);
+  const [regeneration, setRegeneration] = useState<RegenerationState | null>(null);
 
   useEffect(() => {
     requestIdRef.current += 1;
@@ -49,6 +51,7 @@ export function useApproachSolution({ slug, approachId, disclosureRevision, save
     abortRef.current = null;
     lastRequestRef.current = null;
     setTransient(null);
+    setRegeneration(null);
     return () => abortRef.current?.abort();
   }, [key]);
 
@@ -60,12 +63,14 @@ export function useApproachSolution({ slug, approachId, disclosureRevision, save
     : cached && settings.visibleByLanguage[language]
       ? { status: "success", response: cached }
       : { status: "idle" };
+  const regenerationStatus = regeneration?.key === key ? regeneration : null;
 
   const chooseLanguage = (next: SolutionLanguage) => {
     requestIdRef.current += 1;
     abortRef.current?.abort();
     lastRequestRef.current = null;
     setTransient(null);
+    setRegeneration(null);
     updateSettings((current) => ({ ...current, language: next }));
   };
 
@@ -73,25 +78,29 @@ export function useApproachSolution({ slug, approachId, disclosureRevision, save
     requestIdRef.current += 1;
     abortRef.current?.abort();
     setTransient(null);
+    setRegeneration(null);
     updateSettings((current) => ({ ...current,
       visibleByLanguage: { ...current.visibleByLanguage, [current.language]: false }
     }));
   };
 
-  const request = (context: RequestContext) => {
+  const request = (context: RequestContext, forceFresh = false) => {
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
     const requestId = ++requestIdRef.current;
     const requestKey = key;
     lastRequestRef.current = context;
-    setTransient({ key: requestKey, state: { status: "loading" } });
+    if (forceFresh) setRegeneration({ key: requestKey, status: "loading" });
+    else setTransient({ key: requestKey, state: { status: "loading" } });
     void fetchApproachSolution(context.slug, context.approachId, context.language, controller.signal)
       .then((response) => {
         if (controller.signal.aborted || requestId !== requestIdRef.current ||
             requestKey !== latestKeyRef.current) return;
         if (!response) {
-          setTransient({ key: requestKey, state: { status: "not_found" } });
+          if (forceFresh) setRegeneration({ key: requestKey, status: "error",
+            message: "Could not regenerate the answer. Your previous answer is still available." });
+          else setTransient({ key: requestKey, state: { status: "not_found" } });
           return;
         }
         updateSettings((current) => ({ ...current,
@@ -99,12 +108,15 @@ export function useApproachSolution({ slug, approachId, disclosureRevision, save
           visibleByLanguage: { ...current.visibleByLanguage, [context.language]: true }
         }));
         setTransient(null);
+        setRegeneration(null);
       })
       .catch((error: unknown) => {
         if (controller.signal.aborted || requestId !== requestIdRef.current ||
             requestKey !== latestKeyRef.current) return;
         if (error instanceof UnsupportedLanguageRequestError) {
-          setTransient({ key: requestKey, state: { status: "unsupported_language" } });
+          if (forceFresh) setRegeneration({ key: requestKey, status: "error",
+            message: "This language is not supported. Your previous answer is still available." });
+          else setTransient({ key: requestKey, state: { status: "unsupported_language" } });
           return;
         }
         const message = error instanceof InvalidApproachSolutionResponseError
@@ -116,12 +128,15 @@ export function useApproachSolution({ slug, approachId, disclosureRevision, save
               ? "The full solution provider is unavailable. Check its configuration and retry."
               : "Unable to load the full solution. Please retry."
           : "Unable to connect to the local LeetCoach backend.";
-        setTransient({ key: requestKey, state: { status: "error", message } });
+        if (forceFresh) setRegeneration({ key: requestKey, status: "error",
+          message: `${message} Your previous answer is still available.` });
+        else setTransient({ key: requestKey, state: { status: "error", message } });
       });
   };
 
   const generateSolution = () => {
-    if (!slug || !approachId || solutionState.status === "loading") return;
+    if (!slug || !approachId || solutionState.status === "loading" ||
+        regenerationStatus?.status === "loading") return;
     if (cached) {
       setTransient(null);
       updateSettings((current) => ({ ...current,
@@ -139,5 +154,12 @@ export function useApproachSolution({ slug, approachId, disclosureRevision, save
     request(context);
   };
 
-  return { language, solutionState, generateSolution, retrySolution, chooseLanguage, hideSolution };
+  const regenerateSolution = () => {
+    if (!slug || !approachId || !cached || !settings.visibleByLanguage[language] ||
+        regenerationStatus?.status === "loading") return;
+    request({ slug, approachId, language }, true);
+  };
+
+  return { language, solutionState, generateSolution, retrySolution, regenerateSolution,
+    regenerationStatus, chooseLanguage, hideSolution };
 }

@@ -42,17 +42,21 @@ export function useApproachHints({
   const [requestState, setRequestState] = useState<RequestState>({
     contextKey, status: "idle"
   });
+  const [regenerationState, setRegenerationState] = useState<RequestState>({
+    contextKey, status: "idle"
+  });
   const abortRef = useRef<AbortController | null>(null);
   const saved = approachId ? hintsByApproach?.[approachId] : undefined;
 
   useEffect(() => {
     setRequestState({ contextKey, status: "idle" });
+    setRegenerationState({ contextKey, status: "idle" });
     return () => abortRef.current?.abort();
   }, [contextKey]);
 
-  const requestFirstHint = useCallback(async () => {
+  const requestHints = useCallback(async (forceFresh: boolean) => {
     if (!slug || !approachId) return;
-    if (saved) {
+    if (saved && !forceFresh) {
       updateHints(slug, approachId, (current) => current
         ? { ...current, visibleHintCount: 1 }
         : current);
@@ -62,27 +66,30 @@ export function useApproachHints({
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
-    setRequestState({ contextKey, status: "loading" });
+    const setStatus = forceFresh ? setRegenerationState : setRequestState;
+    setStatus({ contextKey, status: "loading" });
     try {
       const response = selectedApproachId
-        ? await fetchSpecificApproachHints(slug, selectedApproachId, controller.signal)
-        : await fetchPrimaryApproachHints(slug, controller.signal);
+        ? await fetchSpecificApproachHints(slug, selectedApproachId, controller.signal, forceFresh)
+        : await fetchPrimaryApproachHints(slug, controller.signal, forceFresh);
       if (controller.signal.aborted || currentContextKey.current !== contextKey) return;
       if (!response) {
-        setRequestState({ contextKey, status: "not_found" });
+        setStatus({ contextKey, status: forceFresh ? "error" : "not_found" });
         return;
       }
       if (response.slug !== slug || response.approachId !== approachId) {
         throw new Error("The hints do not match the requested canonical approach.");
       }
       updateHints(slug, approachId, () => ({ response, visibleHintCount: 1 }));
-      setRequestState({ contextKey, status: "idle" });
+      setStatus({ contextKey, status: "idle" });
     } catch {
       if (!controller.signal.aborted && currentContextKey.current === contextKey) {
-        setRequestState({ contextKey, status: "error" });
+        setStatus({ contextKey, status: "error" });
       }
     }
   }, [slug, approachId, saved, selectedApproachId, contextKey, updateHints]);
+  const requestFirstHint = useCallback(() => void requestHints(false), [requestHints]);
+  const regenerateHints = useCallback(() => void requestHints(true), [requestHints]);
 
   const showNextHint = useCallback(() => {
     if (!slug || !approachId) return;
@@ -95,10 +102,12 @@ export function useApproachHints({
 
   const resetHints = useCallback(() => {
     if (!slug || !approachId) return;
+    abortRef.current?.abort();
+    setRegenerationState({ contextKey, status: "idle" });
     updateHints(slug, approachId, (current) => current
       ? { ...current, visibleHintCount: 0 }
       : current);
-  }, [slug, approachId, updateHints]);
+  }, [slug, approachId, contextKey, updateHints]);
 
   const hintState: ApproachHintsState = saved
     ? { status: "success", response: saved.response }
@@ -111,6 +120,8 @@ export function useApproachHints({
     visibleHintCount: saved?.visibleHintCount ?? 0,
     requestFirstHint,
     retryHints: requestFirstHint,
+    regenerateHints,
+    regenerationStatus: regenerationState.contextKey === contextKey ? regenerationState.status : "idle",
     showNextHint,
     resetHints
   };
