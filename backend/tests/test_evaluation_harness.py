@@ -10,7 +10,8 @@ from unittest.mock import patch
 from sqlalchemy.orm import Session
 
 from db_test_support import DatabaseTestCase
-from evaluation.cases import CASES, CONTRACT_STARTER_CASES, validate_matrix
+from evaluation.cases import (CASES, CONTRACT_STARTER_CASES, FINAL_MVP_FRESH_CASES,
+                              FINAL_MVP_STARTER_CASES, validate_matrix)
 from evaluation.correctness import execute_solution, probe_sandbox
 from evaluation.reporting import write_reports
 from evaluation.run_evaluation import _empty_record, run
@@ -97,6 +98,29 @@ class EvaluationHarnessTests(DatabaseTestCase):
                 client.assert_not_called()
             data = json.loads((Path(temporary) / "mvp_evaluation.json").read_text(encoding="utf-8"))
             self.assertEqual(len(data["records"]), 13)
+            self.assertEqual(data["metrics"]["real_generation_requests"], 0)
+
+    def test_final_mvp_matrix_freezes_six_new_holdouts_with_nineteen_call_cap(self):
+        self.assertEqual(len(FINAL_MVP_STARTER_CASES), 19)
+        self.assertEqual(FINAL_MVP_STARTER_CASES[:13], CONTRACT_STARTER_CASES)
+        self.assertEqual(len(FINAL_MVP_FRESH_CASES), 6)
+        self.assertEqual(len({case.key for case in FINAL_MVP_STARTER_CASES}), 19)
+        self.assertEqual({case.language for case in FINAL_MVP_FRESH_CASES},
+                         {"python", "java", "javascript", "cpp"})
+        self.assertEqual({case.level for case in FINAL_MVP_FRESH_CASES}, {1, 2, 3})
+        with Session(self.engine) as session:
+            self.assertEqual(validate_matrix(session, FINAL_MVP_STARTER_CASES), [])
+        with self.assertRaises(SystemExit):
+            parse_args(["--final-mvp-matrix"])
+        with self.assertRaises(SystemExit):
+            parse_args(["--final-mvp-matrix", "--max-calls", "19", "--feature", "starter"])
+        with tempfile.TemporaryDirectory() as temporary:
+            with patch("evaluation.run_evaluation.TestClient") as client:
+                self.assertEqual(run(["--final-mvp-matrix", "--max-calls", "19",
+                                      "--output-dir", temporary]), 0)
+                client.assert_not_called()
+            data = json.loads((Path(temporary) / "mvp_evaluation.json").read_text(encoding="utf-8"))
+            self.assertEqual(len(data["records"]), 19)
             self.assertEqual(data["metrics"]["real_generation_requests"], 0)
 
     def test_default_and_explicit_dry_run_never_open_generation_client(self):

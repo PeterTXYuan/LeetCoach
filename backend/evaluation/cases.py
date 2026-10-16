@@ -78,8 +78,8 @@ PREVIOUS_STARTER_FALLBACK_IDS = (
 )
 
 
-# Future bounded post-contract comparison: the original nine plus four unseen
-# algorithm/language holdouts. This is only selected by an explicit CLI flag.
+# Post-contract comparison: the original nine plus four previously used
+# algorithm/language regression cases. Selected only by an explicit CLI flag.
 CONTRACT_STARTER_CASES = (
     *(case for case in CASES if case.feature == "starter"),
     EvaluationCase("starter", "binary-search", "binary-search", "cpp", 1),
@@ -87,6 +87,21 @@ CONTRACT_STARTER_CASES = (
     EvaluationCase("starter", "binary-search", "binary-search", "cpp", 3),
     EvaluationCase("starter", "maximum-depth-of-binary-tree", "depth-first-search", "python", 2),
 )
+
+
+# Frozen before the final live run. These six identities are present in SQLite,
+# span four languages and six distinct algorithm families, and are absent from
+# the original nine and the four repeated regression cases.
+FINAL_MVP_FRESH_CASES = (
+    EvaluationCase("starter", "group-anagrams", "frequency-signature", "java", 1),
+    EvaluationCase("starter", "number-of-islands", "depth-first-flood-fill", "python", 1),
+    EvaluationCase("starter", "climbing-stairs", "memoized-recursion", "javascript", 2),
+    EvaluationCase("starter", "reverse-linked-list", "iterative-pointers", "python", 2),
+    EvaluationCase("starter", "daily-temperatures", "monotonic-stack", "cpp", 3),
+    EvaluationCase("starter", "search-in-rotated-sorted-array", "modified-binary-search", "python", 3),
+)
+
+FINAL_MVP_STARTER_CASES = (*CONTRACT_STARTER_CASES, *FINAL_MVP_FRESH_CASES)
 
 
 def validate_matrix(session, cases=CASES) -> list[str]:

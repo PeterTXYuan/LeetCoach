@@ -78,6 +78,8 @@ class StarterDiagnosticsTests(DatabaseTestCase):
                 self.assertEqual((result["accepted"], result["reason"], result["stage"]),
                                  (False, reason, stage))
         self.assertTrue(replay(json.dumps({"code": valid}), context, "python", 1)["accepted"])
+        self.assertTrue(replay(json.dumps({"slot": "todo-1", "code": "count = len(nums)"}),
+                               context, "python", 1)["accepted"])
 
     def test_success_and_capture_default_off_and_public_contract(self):
         context = self.context()

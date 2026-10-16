@@ -24,7 +24,7 @@ def replay(content: str, context: dict, language: str, level: int) -> dict:
             parsed = None
         GroqLLMProvider.parse_starter_content(
             content, context, language, level,
-            allow_legacy=isinstance(parsed, dict) and "code" in parsed,
+            allow_legacy=isinstance(parsed, dict) and "code" in parsed and "slot" not in parsed,
         )
     except ProviderOutputError as exc:
         return {"accepted": False, **failure_metadata(exc)}

@@ -181,9 +181,9 @@ def _mock_setup(slug: str, pattern: str, approach_id: str, language: str) -> lis
                          "javascript": "const queue = [];", "cpp": "queue<pair<int, int>> pending;"}[language]
         else:
             structure = {"python": "visited = set()",
-                         "java": "boolean[][] visited = new boolean[grid.length][grid[0].length];",
+                         "java": "boolean[][] visited = new boolean[grid.length][grid.length == 0 ? 0 : grid[0].length];",
                          "javascript": "const visited = grid.map(row => Array(row.length).fill(false));",
-                         "cpp": "vector<vector<bool>> visited(grid.size(), vector<bool>(grid[0].size(), false));"}[language]
+                         "cpp": "vector<vector<bool>> visited(grid.size(), vector<bool>(grid.empty() ? 0 : grid[0].size(), false));"}[language]
         return [count, structure]
     if slug == "valid-anagram" and approach_id == "sorting":
         prepared = {"python": ["sorted_s = sorted(s)"],
@@ -333,9 +333,22 @@ def _mock_guided_flow(language: str, parameter: str, template: str, comment: str
     def shell(header: str, inside: list[str] | None = None) -> list[str]:
         body = inside or []
         if language == "python":
-            return [header, *["    " + line for line in body], "    " + todo,
-                    *([] if body else ["    pass"])]
-        return [header, *["    " + line for line in body], "    " + todo, "}"]
+            result = [header, *["    " + line for line in body], "    " + todo]
+            if header.startswith("while "):
+                result.append("    raise NotImplementedError('Complete this loop step')")
+            elif not body:
+                result.append("    raise NotImplementedError('Complete this decision')" if header.startswith("if ") else "    pass")
+            return result
+        result = [header, *["    " + line for line in body], "    " + todo]
+        if header.startswith("while "):
+            result.append("    " + {"java": 'throw new UnsupportedOperationException("Complete this loop step");',
+                                  "javascript": 'throw new Error("Complete this loop step");',
+                                  "cpp": 'throw logic_error("Complete this loop step");'}[language])
+        elif header.startswith("if "):
+            result.append("    " + {"java": 'throw new UnsupportedOperationException("Complete this decision");',
+                                  "javascript": 'throw new Error("Complete this decision");',
+                                  "cpp": 'throw logic_error("Complete this decision");'}[language])
+        return [*result, "}"]
 
     if approach_id == "hash-map" and parameter == "nums":
         todo = f"{comment} TODO: Determine which earlier value could complete the target pair."
@@ -363,6 +376,7 @@ def _mock_guided_flow(language: str, parameter: str, template: str, comment: str
                   "cpp": "for (int first = 0; first < numbers.size() - 1; first++) {"}[language]
         return shell(header)
     if approach_id == "memoized-recursion" and parameter == "n":
+        todo = f"{comment} TODO: Decide the count for this small base case."
         return shell("if n <= 2:" if language == "python" else "if (n <= 2) {")
     if approach_id == "sorting" and parameter == "s":
         other = {"python": "sorted_t = sorted(t)", "java": "char[] sortedT = t.toCharArray();",
@@ -383,6 +397,7 @@ def _mock_guided_flow(language: str, parameter: str, template: str, comment: str
     if "recursion" in pattern.lower() or "tree dfs" in pattern.lower():
         header = f"if {parameter} is None:" if language == "python" else (
             f"if ({parameter} == {'nullptr' if language == 'cpp' else 'null'}) {{")
+        todo = f"{comment} TODO: Decide the base-case result for the empty input."
         return shell(header)
     if approach_id == "iterative-merge":
         header = "while first is not None and second is not None:" if language == "python" else (
@@ -806,13 +821,17 @@ def _mock_control_flow(language: str, parameter: str, template: str, comment: st
                 f"{comment} TODO: decide what the recursive call should return, then {next_step.lower()}"]
     if parameter in {"head", "list1", "root"}:
         if language == "python":
-            return [f"current = {parameter}", "while current is not None:", f"    {comment} TODO: {next_step}", "    break"]
+            return [f"current = {parameter}", "while current is not None:", f"    {comment} TODO: {next_step}",
+                    "    raise NotImplementedError('Complete this loop step')"]
         if language == "java":
             node_type = "TreeNode" if parameter == "root" else "ListNode"
-            return [f"{node_type} current = {parameter};", "while (current != null) {", f"    {comment} TODO: {next_step}", "    break;", "}"]
+            return [f"{node_type} current = {parameter};", "while (current != null) {", f"    {comment} TODO: {next_step}",
+                    '    throw new UnsupportedOperationException("Complete this loop step");', "}"]
         return [f"auto current = {parameter};" if language == "cpp" else f"let current = {parameter};",
                 "while (current != null) {" if language == "javascript" else "while (current != nullptr) {",
-                f"    {comment} TODO: {next_step}", "    break;", "}"]
+                f"    {comment} TODO: {next_step}",
+                "    " + ('throw logic_error("Complete this loop step");' if language == "cpp" else
+                         'throw new Error("Complete this loop step");'), "}"]
     if parameter == "n":
         limit = "n"
     else:
@@ -822,12 +841,16 @@ def _mock_control_flow(language: str, parameter: str, template: str, comment: st
         end = f"{limit} - 1"
         if language == "python":
             return [f"right = {end}", "while left <= right:",
-                    "    mid = (left + right) // 2", f"    {comment} TODO: {next_step}", "    break"]
+                    "    mid = (left + right) // 2", f"    {comment} TODO: {next_step}",
+                    "    raise NotImplementedError('Complete the search decision')"]
         int_type = "let" if language == "javascript" else "int"
         return [f"{int_type} right = {end};", "while (left <= right) {",
                 f"    {int_type} mid = left + (right - left) / 2;" if language != "javascript" else
                 "    const mid = Math.floor((left + right) / 2);",
-                f"    {comment} TODO: {next_step}", "    break;", "}"]
+                f"    {comment} TODO: {next_step}",
+                "    " + {"java": 'throw new UnsupportedOperationException("Complete the search decision");',
+                           "javascript": 'throw new Error("Complete the search decision");',
+                           "cpp": 'throw logic_error("Complete the search decision");'}[language], "}"]
     if "two pointers" in pattern.lower() and parameter not in {"head", "list1"}:
         if parameter in {"numbers", "s"}:
             if language == "python":
@@ -844,16 +867,22 @@ def _mock_control_flow(language: str, parameter: str, template: str, comment: st
                 values = [f"    {kind} leftValue = {parameter}[left], rightValue = {parameter}[right];"]
             if language == "python":
                 return [f"right = {limit} - 1", "while left < right:", *values,
-                        f"    {comment} TODO: {next_step}", "    break"]
+                    f"    {comment} TODO: {next_step}", "    raise NotImplementedError('Complete this pointer step')"]
             int_type = "let" if language == "javascript" else "int"
             return [f"{int_type} right = {limit} - 1;", "while (left < right) {", *values,
-                    f"    {comment} TODO: {next_step}", "    break;", "}"]
+                    f"    {comment} TODO: {next_step}",
+                    "    " + {"java": 'throw new UnsupportedOperationException("Complete this pointer step");',
+                               "javascript": 'throw new Error("Complete this pointer step");',
+                               "cpp": 'throw logic_error("Complete this pointer step");'}[language], "}"]
         if language == "python":
             return [f"right = {limit} - 1", "while left < right:",
-                    f"    {comment} TODO: {next_step}", "    break"]
+                    f"    {comment} TODO: {next_step}", "    raise NotImplementedError('Complete this pointer step')"]
         int_type = "let" if language == "javascript" else "int"
         return [f"{int_type} right = {limit} - 1;", "while (left < right) {",
-                f"    {comment} TODO: {next_step}", "    break;", "}"]
+                f"    {comment} TODO: {next_step}",
+                "    " + {"java": 'throw new UnsupportedOperationException("Complete this pointer step");',
+                           "javascript": 'throw new Error("Complete this pointer step");',
+                           "cpp": 'throw logic_error("Complete this pointer step");'}[language], "}"]
     if "nested loops" in pattern.lower():
         if language == "python":
             return [f"for first in range({limit}):", f"    for second in range(first + 1, {limit}):",

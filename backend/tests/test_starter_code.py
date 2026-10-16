@@ -38,7 +38,7 @@ class StarterCodeTests(DatabaseTestCase):
                             self.assertEqual((data["slug"], data["approachId"], data["language"], data["level"]),
                                              (slug, approach["id"], language, level))
                             self.assertFalse(data["isAiGenerated"])
-                            self.assertEqual(data["policyVersion"], 5)
+                            self.assertEqual(data["policyVersion"], 6)
                             self.assertEqual(data["levelName"], {1: "Kickstart", 2: "Guided", 3: "Strong Scaffold"}[level])
                             self.assertIn("TODO", data["code"])
                             self.assertNotIn("```", data["code"])
@@ -117,7 +117,7 @@ class StarterCodeTests(DatabaseTestCase):
             response = self.request(level=3, language="java")
         self.assertEqual(response.status_code, 200, response.text)
         self.assertTrue(response.json()["isAiGenerated"])
-        self.assertEqual(response.json()["policyVersion"], 5)
+        self.assertEqual(response.json()["policyVersion"], 6)
         self.assertEqual(len(calls), 1)
         sent = json.loads(calls[0]["messages"][1]["content"])
         self.assertEqual((sent["context"]["approach"]["id"], sent["language"], sent["level"]),

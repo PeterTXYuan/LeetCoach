@@ -149,8 +149,8 @@ class StarterPhase2Tests(DatabaseTestCase):
             self.assertTrue(all("this.pairs = []" in item["code"] for item in responses))
             self.assertTrue(all("this.values" not in item["code"] and "this.minimums" not in item["code"]
                                 for item in responses))
-            self.assertTrue(all(item["policyVersion"] == 5 for item in responses))
-        self.assertIn("backend already owns the authoritative submission signature", STARTER_SYSTEM_PROMPT)
-        self.assertIn("lines array must contain exactly ONE", STARTER_SYSTEM_PROMPT)
-        self.assertIn("not state an if/lookup/return/store recipe", STARTER_SYSTEM_PROMPT)
+            self.assertTrue(all(item["policyVersion"] == 6 for item in responses))
+        self.assertIn("trusted unfinished Starter Code", STARTER_SYSTEM_PROMPT)
+        self.assertIn("either code, guidance, or both", STARTER_SYSTEM_PROMPT)
+        self.assertIn("Do not duplicate existing code", STARTER_SYSTEM_PROMPT)
 

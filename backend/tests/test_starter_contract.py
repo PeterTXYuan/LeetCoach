@@ -136,9 +136,6 @@ class StarterContractTests(DatabaseTestCase):
             ({"edits": [{"slot": "todo-1", "lines": ["count = 0"]}]}, "EMPTY_AI_CONTRIBUTION"),
             ({"edits": [{"slot": "todo-1", "lines": ["seen = {}"]}]}, "UNSAFE_STRUCTURE_MODIFICATION"),
             ({"edits": [{"slot": "todo-1", "lines": ["def other(nums):"]}]}, "UNSAFE_STRUCTURE_MODIFICATION"),
-            ({"edits": [{"slot": "todo-1", "lines": ["count = len(nums)"],
-                         "guidance": "For each value, determine the complement needed to reach the target."}]},
-             "EMPTY_AI_CONTRIBUTION"),
         ]
         for plan, reason in cases:
             with self.subTest(plan=plan):
@@ -243,3 +240,84 @@ class StarterContractTests(DatabaseTestCase):
         self.assertFalse(response.json()["isAiGenerated"])
         self.assertTrue(response.json()["usedFallback"])
         self.assertEqual(events[-1]["reason"], "INVALID_GENERATION_PLAN")
+
+    def test_flat_code_guidance_and_guidance_only_preserve_trusted_scaffold(self):
+        context = self.context("two-sum", "hash-map", "python")
+        baseline = trusted_starter(context, "python", 2)
+        template = context["problem"]["submissionTemplate"]["code"]
+        plan = {"slot": "todo-1", "code": "gap = target - current",
+                "guidance": "# TODO: What detail should a later step remember?"}
+        code = assemble_starter_plan(plan, baseline, template, "python", 2)
+        self.assertIn("gap = target - current", code)
+        self.assertIn("# TODO: What detail should a later step remember?", code)
+        self.assertEqual(sum(line.strip() == "gap = target - current" for line in code.splitlines()), 1)
+        self.assertTrue(all(line in code.splitlines() for line in baseline.splitlines()))
+        guidance_only = assemble_starter_plan(
+            {"slot": "todo-1", "guidance": "What detail from an earlier number matters here?"},
+            baseline, template, "python", 2)
+        self.assertIn("# TODO: What detail from an earlier number matters here?", guidance_only)
+        self.assertEqual(len(guidance_only.splitlines()), len(baseline.splitlines()) + 1)
+        with patch("app.main.get_llm_provider", return_value=self.fake_provider(
+                {"slot": "todo-1", "guidance": "What detail from an earlier number matters here?"})):
+            response = self.client.post("/api/problems/two-sum/approaches/hash-map/starter-code",
+                                        json={"language": "python", "level": 2})
+        self.assertTrue(response.json()["isAiGenerated"])
+        self.assertNotIn("usedFallback", response.json())
+        self.assertIn("What detail from an earlier number matters here?", response.json()["code"])
+
+    def test_optional_redundant_or_unsafe_guidance_is_omitted_without_losing_valid_code(self):
+        context = self.context("number-of-islands", "depth-first-flood-fill", "python")
+        baseline = trusted_starter(context, "python", 1)
+        template = context["problem"]["submissionTemplate"]["code"]
+        for guidance in ("# TODO: Scan every grid cell.",
+                         "Return the full count and update visited for every land cell."):
+            with self.subTest(guidance=guidance):
+                code = assemble_starter_plan(
+                    {"slot": "todo-1", "code": "rows = len(grid)", "guidance": guidance},
+                    baseline, template, "python", 1)
+                self.assertIn("rows = len(grid)", code)
+                self.assertEqual(code.count("# TODO: Scan every grid cell."), 1)
+                self.assertNotIn("Return the full count", code)
+                self.assertEqual(len(code.splitlines()), len(baseline.splitlines()) + 1)
+        events = []
+        token = starter_observer.set(events.append)
+        try:
+            assemble_starter_plan({"slot": "todo-1", "code": "rows = len(grid)",
+                                   "guidance": "# TODO: Scan every grid cell."},
+                                  baseline, template, "python", 1)
+        finally:
+            starter_observer.reset(token)
+        self.assertEqual(events, [{"kind": "partial_acceptance", "stage": "validation",
+                                   "reason": "OPTIONAL_GUIDANCE_OMITTED"}])
+
+    def test_flat_contract_rejects_unsafe_or_invalid_code_even_with_safe_guidance(self):
+        context = self.context("two-sum", "hash-map", "python")
+        baseline = trusted_starter(context, "python", 1)
+        template = context["problem"]["submissionTemplate"]["code"]
+        bad = (
+            {"slot": "missing", "code": "count = len(nums)"},
+            {"slot": "todo-1", "code": "seen[target] = 0"},
+            {"slot": "todo-1", "code": "count = len(missing)"},
+            {"slot": "todo-1", "code": "first = nums[0]"},
+            {"slot": "todo-1", "code": "first = nums[target]"},
+            {"slot": "todo-1", "code": "answer = pending.top()"},
+            {"slot": "todo-1", "code": "return [0, 1]"},
+            {"slot": "todo-1", "code": "def twoSum(self, nums, target):"},
+            {"slot": "todo-1", "code": "count = len(nums)\nreturn [0, 1]"},
+            {"edits": [{"slot": "todo-1", "lines": ["count = len(nums)"]},
+                       {"slot": "todo-1", "lines": ["other = len(nums)"]}]},
+        )
+        for edit in bad:
+            with self.subTest(edit=edit), self.assertRaises(StarterOutputDiagnostic):
+                assemble_starter_plan({**edit, "guidance": "What input detail matters?"}
+                                      if "slot" in edit else edit,
+                                      baseline, template, "python", 1)
+        with self.assertRaises(StarterOutputDiagnostic):
+            GroqLLMProvider.parse_starter_content("{broken", context, "python", 1)
+        tree_context = self.context("maximum-depth-of-binary-tree", "depth-first-search", "python")
+        tree_baseline = trusted_starter(tree_context, "python", 2)
+        with self.assertRaises(StarterOutputDiagnostic):
+            assemble_starter_plan({"slot": "todo-1", "code": "right_child = root.right"},
+                                  tree_baseline,
+                                  tree_context["problem"]["submissionTemplate"]["code"],
+                                  "python", 2)

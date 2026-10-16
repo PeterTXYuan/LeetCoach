@@ -16,7 +16,8 @@ from app.database import BACKEND_DIR, SessionLocal
 from app.llm.starter_diagnostics import starter_observer, starter_raw_capture
 from app.main import app
 from app.services.problem_repository import find_problem_context
-from evaluation.cases import CASES, CONTRACT_STARTER_CASES, PREVIOUS_STARTER_FALLBACK_IDS, validate_matrix
+from evaluation.cases import (CASES, CONTRACT_STARTER_CASES, FINAL_MVP_STARTER_CASES,
+                              PREVIOUS_STARTER_FALLBACK_IDS, validate_matrix)
 from evaluation.correctness import execute_solution, probe_sandbox
 from evaluation.reporting import write_reports
 from evaluation.validators import evaluate_hints, evaluate_progression, evaluate_solution, evaluate_starter
@@ -37,6 +38,8 @@ def parse_args(argv=None):
                         help="Select exactly the seven Starter Code cases that fell back in the baseline")
     parser.add_argument("--contract-starter-matrix", action="store_true",
                         help="Select original nine Starter Code cases plus four holdouts (13 calls)")
+    parser.add_argument("--final-mvp-matrix", action="store_true",
+                        help="Select the frozen 19-case Starter Code matrix (hard cap: 19 calls)")
     parser.add_argument("--capture-raw", action="store_true",
                         help="Save raw Starter Code model text to the ignored local evaluation directory")
     args = parser.parse_args(argv)
@@ -54,6 +57,10 @@ def parse_args(argv=None):
         parser.error("--contract-starter-matrix cannot be combined with other case selection")
     if args.contract_starter_matrix and args.max_calls > 13:
         parser.error("Contract matrix requires --max-calls 13 or less")
+    if args.final_mvp_matrix and (args.contract_starter_matrix or args.previous_starter_fallbacks or args.feature):
+        parser.error("Final MVP matrix cannot be combined with other case selection")
+    if args.final_mvp_matrix and args.max_calls > 19:
+        parser.error("Final MVP matrix requires --max-calls 19 or less")
     return args
 
 
@@ -136,7 +143,8 @@ def _request(client: TestClient, case) -> tuple[int | None, dict | None, str | N
 def run(argv=None) -> int:
     args = parse_args(argv)
     load_dotenv(BACKEND_DIR / ".env", override=False)
-    selected = (list(CONTRACT_STARTER_CASES) if args.contract_starter_matrix else
+    selected = (list(FINAL_MVP_STARTER_CASES) if args.final_mvp_matrix else
+                list(CONTRACT_STARTER_CASES) if args.contract_starter_matrix else
                 [case for case in CASES if not args.feature or case.feature in args.feature])
     if args.previous_starter_fallbacks:
         selected = [case for case in CASES if case.key in PREVIOUS_STARTER_FALLBACK_IDS]

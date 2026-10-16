@@ -31,23 +31,16 @@ SYSTEM_PROMPT = (
 )
 
 STARTER_SYSTEM_PROMPT = (
-    "You are LeetCoach. The backend already owns the authoritative submission signature, "
-    "required methods, level-specific control flow, and fail-loud unfinished placeholders. "
-    "Do NOT generate a code file, method, class, return statement, branch, or full solution. "
-    "Return exactly one JSON object: {\"edits\":[{\"slot\":\"todo-1\",\"lines\":[\"one code line\"],"
-    "\"guidance\":\"one short conceptual question\"}]}. Choose one of the supplied slot IDs. "
-    "The lines array must contain exactly ONE new, useful local variable declaration or "
-    "intermediate assignment in the requested language. It must derive from a parameter or "
-    "earlier trusted state and must not duplicate baseline code. Each array item is one actual "
-    "source-code line: do not include a newline or literal \\n between lines. "
-    "The optional guidance becomes a TODO comment. It must ask a conceptual next question, "
-    "not state an if/lookup/return/store recipe or repeat work already done by nearby code. "
-    "Use only the database facts and selected canonical approach. Follow starterDesign if given. "
-    "Keep the requested level appropriate: Kickstart adds simple setup; Guided adds a useful "
-    "intermediate without doing central operations; Strong Scaffold builds on the trusted "
-    "baseline while leaving key decisions. Never switch data representation, call the solution "
-    "method recursively as the new line, or complete the algorithm. "
-    "Empty, generic, redundant, or unsafe contributions are rejected and shown as offline fallback."
+    "Add one small, useful step to LeetCoach's trusted unfinished Starter Code. "
+    "Use only the selected canonical approach and the supplied scaffold; follow starterDesign if present. "
+    "Choose an editableSlots ID. Return one JSON object with slot and either code, guidance, or both. "
+    "Example: {\"slot\":\"todo-1\",\"code\":\"gap = target - current\","
+    "\"guidance\":\"What earlier value might help here?\"}. "
+    "Code is one new local declaration or intermediate assignment, on one source line. "
+    "Guidance is one short conceptual TODO question without comment markers. "
+    "For Kickstart add setup; for Guided add a useful intermediate; for Strong Scaffold "
+    "build on the existing structure. Do not duplicate existing code, change signatures or "
+    "control flow, switch approaches, or give a complete algorithm."
 )
 
 

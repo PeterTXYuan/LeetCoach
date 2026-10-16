@@ -1,13 +1,14 @@
-"""Trusted Starter Code assembly with one bounded, additive AI edit.
+"""Trusted Starter Code assembly with one bounded, additive AI contribution.
 
 The offline scaffold owns signatures, methods, control flow and fail-loud paths.
-The model can add one executable intermediate at a named TODO slot; it cannot
-replace or remove any trusted source line.
+The model can add one executable intermediate or conceptual TODO at a named
+slot; it cannot replace or remove any trusted source line.
 """
 import re
 
 from app.llm.base import StarterOutputDiagnostic, validate_starter_code
 from app.llm.mock_provider import MockLLMProvider
+from app.llm.starter_diagnostics import observe
 
 
 _TODO = re.compile(r"^\s*(?:#|//)\s*TODO\b", re.IGNORECASE)
@@ -65,14 +66,21 @@ def _balanced_expression(expr: str) -> bool:
     return not opened and quote is None
 
 
-def _validate_contribution(edit: dict, baseline: str, slot: dict,
-                           language: str) -> tuple[str, str | None]:
-    if not isinstance(edit, dict) or set(edit) - {"slot", "lines", "guidance"}:
-        raise StarterOutputDiagnostic("Invalid starter edit plan", "INVALID_GENERATION_PLAN")
-    lines = edit.get("lines")
-    if not isinstance(lines, list) or len(lines) != 1 or not isinstance(lines[0], str):
-        raise StarterOutputDiagnostic("Starter edit needs one executable line", "EMPTY_AI_CONTRIBUTION")
-    line = lines[0].strip()
+def _inside_guard(rows: list[str], slot_line: int, pattern: str) -> bool:
+    """Only trust a preceding guard if its indented block still contains the slot."""
+    slot_indent = len(rows[slot_line]) - len(rows[slot_line].lstrip())
+    for index, row in enumerate(rows[:slot_line]):
+        indent = len(row) - len(row.lstrip())
+        if indent >= slot_indent or not re.search(pattern, row):
+            continue
+        if all(not later.strip() or later.lstrip().startswith(("#", "//"))
+               or len(later) - len(later.lstrip()) > indent
+               for later in rows[index + 1:slot_line]):
+            return True
+    return False
+
+
+def _validate_code(line: str, baseline: str, slot: dict, language: str) -> str:
     if (not line or len(line) > 180 or any(char in line for char in "\r\n{}#")
             or "//" in line or "```" in line):
         raise StarterOutputDiagnostic("Unsafe starter edit line", "UNSAFE_STRUCTURE_MODIFICATION")
@@ -83,6 +91,7 @@ def _validate_contribution(edit: dict, baseline: str, slot: dict,
     name, expr = match.group("name"), match.group("expr").strip()
     if (not expr or len(expr) > 120 or _UNSAFE_EXPRESSION.search(expr) or ";" in expr
             or re.search(r"(?<![=!<>])=(?!=)", expr) or not _balanced_expression(expr)
+            or re.search(r"\[\s*\d+\s*\]", expr)
             or not re.fullmatch(r"[A-Za-z0-9_\s.\[\]()<>+\-*/%:!,\"'\\]*", expr)):
         raise StarterOutputDiagnostic("Unsafe starter edit expression", "UNSAFE_STRUCTURE_MODIFICATION")
     if any(call not in {"len", "size"} for call in
@@ -95,10 +104,21 @@ def _validate_contribution(edit: dict, baseline: str, slot: dict,
         raise StarterOutputDiagnostic("Starter edit duplicates trusted setup", "EMPTY_AI_CONTRIBUTION")
     # A new intermediate must derive from a parameter or earlier trusted state,
     # rather than being a generic constant or unrelated statement.
-    prior = "\n".join(baseline.splitlines()[:slot["line"]])
+    rows = baseline.splitlines()
+    prior = "\n".join(rows[:slot["line"]])
+    for receiver in re.findall(r"\b(root|head|current|first|second|list1|list2)\s*\.\s*(?:next|left|right|val)\b", expr):
+        if not _inside_guard(rows, slot["line"],
+                             rf"\bwhile\b.*\b{re.escape(receiver)}\b\s*(?:is\s+not|!=)\s*(?:None|nullptr|null)"):
+            raise StarterOutputDiagnostic("Unguarded node access in starter edit",
+                                          "UNSAFE_STRUCTURE_MODIFICATION")
     known = set(_IDENTIFIER.findall("\n".join(row for row in prior.splitlines()
                                               if not row.lstrip().startswith(("#", "//")))))
     expression_without_strings = re.sub(r'"(?:\\.|[^"\\])*"|\'(?:\\.|[^\'\\])*\'', '', expr)
+    loop_guard = _inside_guard(rows, slot["line"], r"^\s*(?:for|while)\b")
+    for receiver, _index in re.findall(r"\b([A-Za-z_]\w*)\s*\[\s*([A-Za-z_]\w*)\s*\]", expression_without_strings):
+        if receiver not in {"nums", "numbers", "s", "prices", "grid", "temperatures", "strs"} or not loop_guard:
+            raise StarterOutputDiagnostic("Unguarded container access in starter edit",
+                                          "UNSAFE_STRUCTURE_MODIFICATION")
     expression_identifiers = set(_IDENTIFIER.findall(expression_without_strings))
     referenced = {word for word in expression_identifiers if not re.search(
         rf"\.\s*{re.escape(word)}\b", expression_without_strings)}
@@ -106,41 +126,86 @@ def _validate_contribution(edit: dict, baseline: str, slot: dict,
     if not (known & referenced) or referenced - known:
         raise StarterOutputDiagnostic("Starter edit is not grounded in this scaffold",
                                       "EMPTY_AI_CONTRIBUTION")
-    guidance = edit.get("guidance")
-    if guidance is not None:
-        if (not isinstance(guidance, str) or not guidance.strip() or len(guidance) > 120
-                or any(char in guidance for char in "\r\n") or "TODO" in guidance.upper()
-                or _GENERIC_GUIDANCE.search(guidance.strip()) or _DIRECT_GUIDANCE.search(guidance)):
-            raise StarterOutputDiagnostic("Invalid educational guidance", "INVALID_GENERATION_PLAN")
-        guidance = guidance.strip()
-        existing = set(re.findall(r"[a-z]{4,}", slot["existingTodo"].lower())) - {"todo", "which", "what", "could", "would", "this", "that"}
-        proposed = set(re.findall(r"[a-z]{4,}", guidance.lower())) - {"which", "what", "could", "would", "this", "that"}
-        if existing and proposed and len(existing & proposed) / min(len(existing), len(proposed)) >= 0.6:
-            raise StarterOutputDiagnostic("Starter guidance repeats trusted TODO",
-                                          "EMPTY_AI_CONTRIBUTION")
-    return line, guidance
+    return line
+
+
+def _validate_guidance(value: object, existing_todo: str) -> str | None:
+    """Treat optional low-value prose independently from an otherwise safe edit."""
+    if not isinstance(value, str) or not value.strip() or len(value) > 150 or "```" in value:
+        return None
+    guidance = re.sub(r"^\s*(?:(?:#|//)\s*)?(?:TODO\s*:\s*)?", "", value).strip()
+    if (not guidance or len(guidance) > 120 or any(char in guidance for char in "\r\n{};")
+            or _GENERIC_GUIDANCE.search(guidance) or _DIRECT_GUIDANCE.search(guidance)
+            or re.search(r"\b(?:if|then|otherwise|else)\b", guidance, re.I)
+            or re.search(r"\b(?:if|else|for|while|def|class|throw|raise)\b\s*[(]", guidance, re.I)):
+        return None
+    existing = set(re.findall(r"[a-z]{4,}", existing_todo.lower())) - {
+        "todo", "which", "what", "could", "would", "this", "that"}
+    proposed = set(re.findall(r"[a-z]{4,}", guidance.lower())) - {
+        "which", "what", "could", "would", "this", "that"}
+    if existing and proposed and len(existing & proposed) / min(len(existing), len(proposed)) >= 0.6:
+        return None
+    return guidance
+
+
+def _single_edit(plan: object) -> dict:
+    """Accept the new flat response and the prior one-edit envelope for replay."""
+    if not isinstance(plan, dict):
+        raise StarterOutputDiagnostic("Invalid starter edit plan", "INVALID_GENERATION_PLAN")
+    if "edits" in plan:
+        if (set(plan) != {"edits"} or not isinstance(plan["edits"], list)
+                or len(plan["edits"]) != 1):
+            raise StarterOutputDiagnostic("Starter edit is empty or too broad", "EMPTY_AI_CONTRIBUTION")
+        edit = plan["edits"][0]
+        if not isinstance(edit, dict) or set(edit) - {"slot", "lines", "guidance"}:
+            raise StarterOutputDiagnostic("Invalid starter edit plan", "INVALID_GENERATION_PLAN")
+        lines = edit.get("lines")
+        if lines is not None and (not isinstance(lines, list) or len(lines) != 1
+                                  or not isinstance(lines[0], str)):
+            raise StarterOutputDiagnostic("Starter edit needs one line", "EMPTY_AI_CONTRIBUTION")
+        return {"slot": edit.get("slot"), "code": lines[0] if lines else None,
+                "guidance": edit.get("guidance")}
+    if set(plan) - {"slot", "code", "guidance"}:
+        raise StarterOutputDiagnostic("Invalid starter edit plan", "INVALID_GENERATION_PLAN")
+    return plan
 
 
 def assemble_starter_plan(plan: object, baseline: str, template: str,
                           language: str, level: int) -> str:
     """Apply a single safe insertion before a known TODO, preserving all old lines."""
-    if not isinstance(plan, dict) or set(plan) != {"edits"} or not isinstance(plan["edits"], list):
-        raise StarterOutputDiagnostic("Invalid starter edit plan", "INVALID_GENERATION_PLAN")
-    if len(plan["edits"]) != 1:
-        raise StarterOutputDiagnostic("Starter edit is empty or too broad", "EMPTY_AI_CONTRIBUTION")
-    edit = plan["edits"][0]
-    if not isinstance(edit, dict) or not isinstance(edit.get("slot"), str):
+    edit = _single_edit(plan)
+    if not isinstance(edit.get("slot"), str):
         raise StarterOutputDiagnostic("Invalid starter edit target", "INVALID_GENERATION_PLAN")
     slot = next((slot for slot in starter_slots(baseline) if slot["id"] == edit["slot"]), None)
     if slot is None:
         raise StarterOutputDiagnostic("Unknown starter edit target", "UNKNOWN_EDIT_TARGET")
-    line, guidance = _validate_contribution(edit, baseline, slot, language)
+    raw_code = edit.get("code")
+    if raw_code is not None and not isinstance(raw_code, str):
+        raise StarterOutputDiagnostic("Invalid starter code contribution", "INVALID_GENERATION_PLAN")
+    line = _validate_code(raw_code.strip(), baseline, slot, language) if raw_code and raw_code.strip() else None
+    raw_guidance = edit.get("guidance")
+    guidance = _validate_guidance(raw_guidance, slot["existingTodo"])
+    if not line and not guidance:
+        raise StarterOutputDiagnostic("Starter edit adds nothing useful", "EMPTY_AI_CONTRIBUTION")
     rows = baseline.splitlines()
     indent = re.match(r"\s*", rows[slot["line"]]).group()
     comment = "#" if language == "python" else "//"
-    additions = [indent + line]
+    additions = [indent + line] if line else []
     if guidance:
         additions.append(indent + f"{comment} TODO: {guidance}")
     rows[slot["line"]:slot["line"]] = additions
     assembled = "\n".join(rows)
-    return validate_starter_code(assembled, template, language, level)
+    try:
+        code = validate_starter_code(assembled, template, language, level)
+    except StarterOutputDiagnostic:
+        if not line or not guidance:
+            raise
+        # Optional prose must never turn a valid executable edit into fallback.
+        rows = baseline.splitlines()
+        rows[slot["line"]:slot["line"]] = [indent + line]
+        code = validate_starter_code("\n".join(rows), template, language, level)
+        guidance = None
+    if raw_guidance is not None and not guidance:
+        observe({"kind": "partial_acceptance", "stage": "validation",
+                 "reason": "OPTIONAL_GUIDANCE_OMITTED"})
+    return code

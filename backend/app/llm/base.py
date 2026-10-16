@@ -38,7 +38,7 @@ class StarterProviderDiagnostic(ProviderUnavailableError):
 
 SUPPORTED_STARTER_LANGUAGES = frozenset({"python", "java", "javascript", "cpp"})
 STARTER_LEVEL_NAMES = {1: "Kickstart", 2: "Guided", 3: "Strong Scaffold"}
-STARTER_CODE_POLICY_VERSION = 5
+STARTER_CODE_POLICY_VERSION = 6
 
 
 MAX_HINT_WORDS = 18

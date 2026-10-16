@@ -88,7 +88,7 @@ beforeEach(() => {
     if (path.endsWith("/starter-code")) {
       const body = JSON.parse(fetchMock.mock.lastCall![1].body as string);
       return json({ slug, approachId: parts[5], language: body.language, level: body.level,
-        policyVersion: 5,
+        policyVersion: 6,
         levelName: ["", "Kickstart", "Guided", "Strong Scaffold"][body.level],
         isAiGenerated: false, code: `// TODO: ${slug} ${parts[5]} ${body.language} ${body.level}`,
         notice: "Complete the TODOs." });
@@ -157,7 +157,7 @@ describe("persistent Coach workspaces", () => {
       if (url.endsWith("/starter-code")) {
         const version = ++versions.starter;
         return Promise.resolve(json({ slug: "two-sum", approachId: "hash-map",
-          ...JSON.parse(options!.body as string), policyVersion: 5, levelName: "Kickstart",
+          ...JSON.parse(options!.body as string), policyVersion: 6, levelName: "Kickstart",
           isAiGenerated: true, code: `Starter version ${version}`, notice: "Complete the TODOs." }));
       }
       if (url.endsWith("/solution")) {
@@ -227,6 +227,59 @@ describe("persistent Coach workspaces", () => {
     click("Regenerate answer");
     await screen.findByText(/Your previous answer is still available/);
     expect(screen.getByText("two-sum hash-map python full solution")).toBeTruthy();
+  });
+
+  it("blocks duplicate regeneration clicks and leaves other starter levels and answer languages cached", async () => {
+    await mount();
+    click("Approach 2");
+    click("Get first hint");
+    await screen.findByText("two-sum hash-map hint 1");
+    let resolveHints!: (value: Response) => void;
+    fetchMock.mockImplementationOnce(() => new Promise((resolve) => { resolveHints = resolve; }));
+    click("Regenerate hints");
+    expect((screen.getByRole("button", { name: "Regenerating hints..." }) as HTMLButtonElement).disabled).toBe(true);
+    click("Regenerating hints...");
+    expect(hintRequests()).toBe(2);
+    await act(async () => resolveHints(json({ slug: "two-sum", approachId: "hash-map",
+      hints: ["Fresh hint one", "Fresh hint two"] })));
+    expect(await screen.findByText("Fresh hint one")).toBeTruthy();
+
+    click("Get starter code");
+    click("Generate Starter Code");
+    await screen.findByText("// TODO: two-sum hash-map python 1");
+    fireEvent.click(screen.getByRole("button", { name: /Level 2/ }));
+    click("Generate Starter Code");
+    await screen.findByText("// TODO: two-sum hash-map python 2");
+    fireEvent.click(screen.getByRole("button", { name: /Level 1/ }));
+    let resolveStarter!: (value: Response) => void;
+    fetchMock.mockImplementationOnce(() => new Promise((resolve) => { resolveStarter = resolve; }));
+    click("Regenerate starter code");
+    expect((screen.getByRole("button", { name: "Regenerating starter code..." }) as HTMLButtonElement).disabled).toBe(true);
+    click("Regenerating starter code...");
+    expect(starterRequests()).toBe(3);
+    await act(async () => resolveStarter(json({ slug: "two-sum", approachId: "hash-map",
+      language: "python", level: 1, levelName: "Kickstart", policyVersion: 6,
+      isAiGenerated: true, code: "Fresh starter", notice: "Complete the TODOs." })));
+    expect(await screen.findByText("Fresh starter")).toBeTruthy();
+    await waitFor(() => expect(storedWorkspace("two-sum")?.starterByApproach["hash-map"].responses["python:2"].code)
+      .toBe("// TODO: two-sum hash-map python 2"));
+
+    click("Generate answer in Python");
+    await screen.findByText("two-sum hash-map python full solution");
+    fireEvent.change(screen.getByLabelText("Language"), { target: { value: "java" } });
+    click("Generate answer in Java");
+    await screen.findByText("two-sum hash-map java full solution");
+    fireEvent.change(screen.getByLabelText("Language"), { target: { value: "python" } });
+    let resolveAnswer!: (value: Response) => void;
+    fetchMock.mockImplementationOnce(() => new Promise((resolve) => { resolveAnswer = resolve; }));
+    click("Regenerate answer");
+    expect((screen.getByRole("button", { name: "Regenerating answer..." }) as HTMLButtonElement).disabled).toBe(true);
+    click("Regenerating answer...");
+    expect(solutionRequests()).toBe(3);
+    await act(async () => resolveAnswer(json({ ...solution("two-sum", "hash-map", "python"), code: "Fresh answer" })));
+    expect(await screen.findByText("Fresh answer")).toBeTruthy();
+    await waitFor(() => expect(storedWorkspace("two-sum")?.solutionByApproach["hash-map"].responses.java.code)
+      .toBe("two-sum hash-map java full solution"));
   });
 
   it("collapses every reveal on approach changes but reuses each generated response", async () => {
@@ -476,7 +529,7 @@ describe("persistent Coach workspaces", () => {
       } },
       starterByApproach: { "hash-map": {
         language: "java", level: 2, isExpanded: true, isVisible: true,
-        responses: { "java:1": savedResponse(1, 5), "java:2": savedResponse(2, 4),
+        responses: { "java:1": savedResponse(1, 6), "java:2": savedResponse(2, 5),
           "java:3": savedResponse(3, 3) }
       } }
     } });
@@ -535,7 +588,7 @@ describe("persistent Coach workspaces", () => {
   it("retains a fallback across remounts but lets the user retry AI explicitly", async () => {
     const view = await mount();
     fetchMock.mockResolvedValueOnce(json({
-      slug: "two-sum", approachId: "hash-map", language: "python", level: 1, policyVersion: 5,
+      slug: "two-sum", approachId: "hash-map", language: "python", level: 1, policyVersion: 6,
       levelName: "Kickstart", isAiGenerated: false, usedFallback: true,
       code: "# TODO: offline fallback", notice: "AI starter code could not be used."
     }));
@@ -760,7 +813,7 @@ describe("persistent Coach workspaces", () => {
     await act(async () => {
       resolveHint(json({ slug: "two-sum", approachId: "hash-map", hints: ["Late hint"] }));
       resolveStarter(json({ slug: "two-sum", approachId: "hash-map", language: "python", level: 1,
-        policyVersion: 5, levelName: "Kickstart", isAiGenerated: false, code: "Late starter", notice: "TODO" }));
+        policyVersion: 6, levelName: "Kickstart", isAiGenerated: false, code: "Late starter", notice: "TODO" }));
       resolveAnswer(json(solution("two-sum", "hash-map", "python")));
     });
     click("Approach 2");
