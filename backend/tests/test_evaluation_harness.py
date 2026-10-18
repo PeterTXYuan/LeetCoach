@@ -17,9 +17,47 @@ from evaluation.reporting import write_reports
 from evaluation.run_evaluation import _empty_record, run
 from evaluation.run_evaluation import _classify, parse_args
 from app.llm.starter_diagnostics import observe
+from app.llm.base import STARTER_CODE_POLICY_VERSION
+from app.llm.starter_contract import trusted_starter
+from app.services.problem_repository import find_problem_context
+from evaluation.validators import evaluate_starter
 
 
 class EvaluationHarnessTests(DatabaseTestCase):
+    def test_starter_evaluation_uses_current_policy_for_ai_and_fallback(self):
+        case = next(case for case in FINAL_MVP_STARTER_CASES
+                    if case.key == "starter-two-sum-hash-map-python-level-1")
+        with Session(self.engine) as session:
+            context = find_problem_context(session, case.slug, case.approach_id, case.language)
+        template = context["problem"]["submissionTemplate"]["code"]
+        baseline = trusted_starter(context, case.language, case.level)
+        payload = {"slug": case.slug, "approachId": case.approach_id,
+                   "language": case.language, "level": case.level,
+                   "policyVersion": STARTER_CODE_POLICY_VERSION, "code": baseline,
+                   "isAiGenerated": True, "usedFallback": False}
+        with tempfile.TemporaryDirectory() as temporary:
+            result = evaluate_starter(payload, case, template, Path(temporary))
+            self.assertEqual(result["structure"], "PASS")
+            self.assertEqual(result["syntax"]["status"], "PASS")
+
+            stale = evaluate_starter({**payload, "policyVersion": 5}, case, template,
+                                     Path(temporary))
+            self.assertEqual(stale["structure"], "FAIL")
+
+            fallback = evaluate_starter({**payload, "isAiGenerated": False,
+                                         "usedFallback": True}, case, template,
+                                        Path(temporary))
+            self.assertEqual(fallback["structure"], "PASS")
+            self.assertEqual(fallback["syntax"]["status"], "PASS")
+            self.assertTrue(any(check["criterion"] == "live AI scaffold" and
+                                check["status"] == "FAIL" for check in fallback["quality"]))
+
+            record = _empty_record(case)
+            record.update(request_status="EXECUTED", http_status=200, response=payload,
+                          validation=result)
+            _classify(record)
+            self.assertNotIn("structural_output", record["failure_categories"])
+
     def test_targeted_selection_capture_guard_and_failure_classification(self):
         with self.assertRaises(SystemExit):
             parse_args(["--capture-raw"])

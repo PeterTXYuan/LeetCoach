@@ -3,6 +3,7 @@ import re
 
 from app.llm.base import (
     LEVEL_CHARACTER_LIMITS, LEVEL_WORD_LIMITS, ProviderOutputError,
+    STARTER_CODE_POLICY_VERSION,
     SHORT_FALLBACK_HINTS, validate_hints, validate_starter_code,
 )
 from app.llm.solution_validation import validate_solution
@@ -69,7 +70,7 @@ def evaluate_starter(payload: dict, case, template: str, output_dir) -> dict:
     code = payload.get("code")
     try:
         structure = (_identity(payload, case) and
-                     payload.get("policyVersion") == 5 and
+                     payload.get("policyVersion") == STARTER_CODE_POLICY_VERSION and
                      isinstance(code, str) and
                      validate_starter_code(code, template, case.language, case.level) == code.strip())
     except (ProviderOutputError, KeyError, TypeError):

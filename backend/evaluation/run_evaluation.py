@@ -81,7 +81,7 @@ def _empty_record(case, status="NOT_RUN", reason="Not executed") -> dict:
         "correctness": {"status": "NOT_RUN", "cases": [], "summary": reason}
         if case.feature == "solution" else None,
         "failure_categories": [], "error_summary": reason,
-        "starter_diagnostic": None, "raw_artifact": None,
+        "starter_diagnostic": None, "starter_partial_acceptance": None, "raw_artifact": None,
     }
 
 
@@ -249,6 +249,8 @@ def run(argv=None) -> int:
                 if case.feature == "starter":
                     record["starter_diagnostic"] = next((event for event in events
                         if event["kind"] in {"failure", "accepted"}), None)
+                    record["starter_partial_acceptance"] = next((event for event in events
+                        if event["kind"] == "partial_acceptance"), None)
                     if args.capture_raw:
                         raw_event = next((event for event in events if event["kind"] == "raw_response"), None)
                         if raw_event is not None and isinstance(raw_event.get("content"), str):

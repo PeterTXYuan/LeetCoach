@@ -5,6 +5,8 @@ content without changing retained IDs or duplicating rows. Stale approaches,
 related cards, and bullet positions are removed within seeded problems only.
 Problems outside the curated dataset and their children are left alone.
 """
+from datetime import datetime
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -34,6 +36,15 @@ def seed_data(session: Session, problems=None, related_problems=None, problem_sp
         problem.title = spec["title"]
         problem.difficulty = spec["difficulty"]
         problem.summary = spec["summary"]
+        problem.leetcode_number = spec["leetcodeNumber"]
+        problem.description = spec["description"]
+        problem.description_source_url = spec["descriptionSourceUrl"]
+        problem.description_source_type = spec["descriptionSourceType"]
+        problem.description_verified_at = datetime.fromisoformat(spec["descriptionVerifiedAt"])
+        problem.time_limit_ms = spec["timeLimitMs"]
+        problem.memory_limit_mb = spec["memoryLimitMb"]
+        problem.time_complexity_instruction = spec["timeComplexityInstruction"]
+        problem.space_complexity_instruction = spec["spaceComplexityInstruction"]
 
         existing_constraints = {item.display_order: item for item in problem.constraints}
         for order, text in enumerate(spec["constraints"], start=1):

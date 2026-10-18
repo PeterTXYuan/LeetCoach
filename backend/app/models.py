@@ -1,5 +1,7 @@
 """Stable editorial metadata. Public approach IDs are keys, never DB IDs."""
-from sqlalchemy import Boolean, CheckConstraint, ForeignKey, JSON, String, Text, UniqueConstraint
+from datetime import datetime
+
+from sqlalchemy import Boolean, CheckConstraint, DateTime, ForeignKey, Integer, JSON, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -9,6 +11,11 @@ class Problem(Base):
     __tablename__ = "problems"
     __table_args__ = (
         CheckConstraint("difficulty IN ('Easy', 'Medium', 'Hard')", name="ck_problem_difficulty"),
+        UniqueConstraint("leetcode_number", name="uq_problem_leetcode_number"),
+        CheckConstraint("leetcode_number IS NULL OR leetcode_number > 0", name="ck_problem_leetcode_number"),
+        CheckConstraint("time_limit_ms IS NULL OR time_limit_ms > 0", name="ck_problem_time_limit"),
+        CheckConstraint("memory_limit_mb IS NULL OR memory_limit_mb > 0", name="ck_problem_memory_limit"),
+        CheckConstraint("description_source_type IS NULL OR description_source_type IN ('curated_restatement', 'official', 'authorized')", name="ck_problem_source_type"),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -16,6 +23,15 @@ class Problem(Base):
     title: Mapped[str] = mapped_column(String(255))
     difficulty: Mapped[str] = mapped_column(String(10))
     summary: Mapped[str] = mapped_column(Text)
+    leetcode_number: Mapped[int | None] = mapped_column(Integer)
+    description: Mapped[str | None] = mapped_column(Text)
+    description_source_url: Mapped[str | None] = mapped_column(Text)
+    description_source_type: Mapped[str | None] = mapped_column(String(32))
+    description_verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    time_limit_ms: Mapped[int | None] = mapped_column(Integer)
+    memory_limit_mb: Mapped[int | None] = mapped_column(Integer)
+    time_complexity_instruction: Mapped[str | None] = mapped_column(Text)
+    space_complexity_instruction: Mapped[str | None] = mapped_column(Text)
     approaches: Mapped[list["Approach"]] = relationship(
         back_populates="problem", cascade="all, delete-orphan", order_by="Approach.display_order"
     )

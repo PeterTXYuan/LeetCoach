@@ -56,6 +56,8 @@ class SeedSyncTests(DatabaseTestCase):
         for spec in specs.values():
             spec["title"] += " updated"
             spec["summary"] += " Updated."
+            spec["description"] += " Updated restatement."
+            spec["timeComplexityInstruction"] = "Updated complexity instruction."
             spec["constraints"][0] = "Updated constraint"
             spec["examples"][0]["output"] = "updated output"
             spec["submissionTemplates"]["python"] += "\n# updated"
@@ -75,6 +77,9 @@ class SeedSyncTests(DatabaseTestCase):
                                          (card["title"], card["reason"], category, order))
                 spec = specs[problem.slug]
                 self.assertEqual((problem.title, problem.summary), (spec["title"], spec["summary"]))
+                self.assertEqual(problem.description, spec["description"])
+                self.assertEqual(problem.description_source_url, spec["descriptionSourceUrl"])
+                self.assertEqual(problem.time_complexity_instruction, spec["timeComplexityInstruction"])
                 self.assertEqual(problem.constraints[0].text, "Updated constraint")
                 self.assertEqual(problem.examples[0].output_text, "updated output")
                 templates = {item.language: item.code for item in problem.submission_templates}
@@ -113,8 +118,9 @@ class SeedSyncTests(DatabaseTestCase):
                 expected_ids[RelatedProblem].difference_update(
                     r.id for r in problem.related_problems if r.slug not in retained_slugs
                 )
-                specs[slug]["constraints"].pop()
-                expected_ids[ProblemConstraint].remove(problem.constraints[-1].id)
+                if len(specs[slug]["constraints"]) > 1:
+                    specs[slug]["constraints"].pop()
+                    expected_ids[ProblemConstraint].remove(problem.constraints[-1].id)
                 if len(specs[slug]["examples"]) > 1:
                     specs[slug]["examples"].pop()
                     expected_ids[ProblemExample].remove(problem.examples[-1].id)
