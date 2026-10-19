@@ -17,6 +17,15 @@ const solution = (language: string) => ({
   warning: "Curated mock example", code: `${language} example code`, explanation: "Check each pair",
   timeComplexity: "O(n^2)", spaceComplexity: "O(1)"
 });
+const guidanceBundle = (language: string, approachId = "brute-force") => ({
+  slug: "two-sum", approachId, language, policyVersion: 9, generationId: "fixture-1",
+  kind: "linked", isAiGenerated: true,
+  level1: "// TODO: starter scaffold", level2: "// TODO: guided scaffold",
+  level3: "// TODO: strong scaffold", notice: "Complete the TODOs.",
+  solution: { code: `${language} example code`, explanation: "Check each pair",
+    timeComplexity: "O(n^2)", spaceComplexity: "O(1)" },
+  verification: { status: "NOT_RUN", summary: "Test fixture" }
+});
 const json = (data: unknown) => ({ ok: true, status: 200, json: async () => data } as Response);
 const fetchMock = vi.fn();
 
@@ -29,9 +38,15 @@ beforeEach(() => {
   } });
   fetchMock.mockReset().mockImplementation(async (url: string, options?: RequestInit) => {
     if (url.endsWith("/related")) return json({ slug: "two-sum", easier: [], similar: [], harder: [] });
-    if (url.endsWith("/starter-code")) return json({
+    if (url.endsWith("/guidance")) {
+      const language = JSON.parse(options!.body as string).language;
+      return json(guidanceBundle(language, url.includes("/brute-force/") ? "brute-force" : "hash-map"));
+    }
+    if (url.endsWith("/starter-code/batch")) return json({
       slug: "two-sum", approachId: "brute-force", ...JSON.parse(options!.body as string),
-      levelName: "Guided", isAiGenerated: false, code: "// TODO: starter scaffold", notice: "Complete the TODOs."
+      policyVersion: 8, isAiGenerated: false,
+      level1: "// TODO: starter scaffold", level2: "// TODO: guided scaffold", level3: "// TODO: strong scaffold",
+      notice: "Complete the TODOs."
     });
     if (url.endsWith("/solution")) return json(solution(JSON.parse(options!.body as string).language));
     if (url.endsWith("/hints")) return json(hints(url.includes("/brute-force/") ? "brute-force" : "hash-map"));
@@ -69,7 +84,7 @@ describe("global section navigation", () => {
     fireEvent.change(screen.getByLabelText("Starter language"), { target: { value: "cpp" } });
     fireEvent.click(screen.getByRole("button", { name: /Level 2/ }));
     click("Generate Starter Code");
-    await screen.findByText("// TODO: starter scaffold");
+    await screen.findByText("// TODO: guided scaffold");
     click("Reveal recognition signals");
     const coach = screen.getByRole("tabpanel", { name: "Coach" });
     const requestCount = fetchMock.mock.calls.length;
@@ -84,7 +99,7 @@ describe("global section navigation", () => {
       expect(screen.getByText("brute-force hint 1")).toBeTruthy();
       expect(screen.getByText("Think first")).toBeTruthy();
       expect(screen.getByText("java example code")).toBeTruthy();
-      expect(screen.getByText("// TODO: starter scaffold")).toBeTruthy();
+      expect(screen.getByText("// TODO: guided scaffold")).toBeTruthy();
       expect(screen.getByText("Recognize brute-force")).toBeTruthy();
       expect(screen.getByRole("button", { name: "Close starter code options" })).toBeTruthy();
       expect((screen.getByLabelText("Language") as HTMLSelectElement).value).toBe("java");
@@ -106,7 +121,7 @@ describe("global section navigation", () => {
     expect(screen.getByText("brute-force hint 1")).toBeTruthy();
     expect(screen.getByText("Think first")).toBeTruthy();
     expect(screen.getByText("java example code")).toBeTruthy();
-    expect(screen.getByText("// TODO: starter scaffold")).toBeTruthy();
+    expect(screen.getByText("// TODO: guided scaffold")).toBeTruthy();
     expect(screen.getByText("Recognize brute-force")).toBeTruthy();
     expect(fetchMock).toHaveBeenCalledTimes(requestsBeforeBrowserSwitch);
   });
@@ -170,7 +185,7 @@ describe("global section navigation", () => {
     await activateBrowserTab("https://example.com/");
     await screen.findByText("Open a LeetCode problem to use Coach and Practice.");
     expect(signal.aborted).toBe(false);
-    await act(async () => resolve(json(solution("python"))));
+    await act(async () => resolve(json(guidanceBundle("python"))));
     await activateBrowserTab("https://leetcode.com/problems/two-sum/", "Two Sum - LeetCode");
     await waitFor(() => expect(screen.getByRole("tab", { name: "Coach" }).getAttribute("aria-selected")).toBe("true"));
     expect(screen.getByText("python example code")).toBeTruthy();
@@ -307,8 +322,8 @@ describe("solution language changes", () => {
     click("Generate answer in Python");
     const signal = fetchMock.mock.lastCall![1].signal;
     chooseLanguage("javascript");
-    expect(signal.aborted).toBe(true);
-    await act(async () => resolve(json(solution("python"))));
+    expect(signal.aborted).toBe(false);
+    await act(async () => resolve(json(guidanceBundle("python"))));
     expect(screen.queryByText("python example code")).toBeNull();
     click("Generate answer in JavaScript");
     await screen.findByText("javascript example code");

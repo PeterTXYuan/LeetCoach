@@ -751,6 +751,25 @@ h2 {
   line-height: 1.5;
 }
 
+.guidance-feedback {
+  border: 1px solid var(--accent);
+  border-radius: 10px;
+  padding: 10px 14px;
+  color: var(--text);
+  background: var(--accent-soft);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.guidance-feedback ul {
+  margin: 6px 0 0;
+  padding-left: 18px;
+}
+
+.guidance-feedback li + li {
+  margin-top: 4px;
+}
+
 .code-block {
   min-width: 0;
   max-width: 100%;
@@ -871,6 +890,10 @@ h2 {
 .starter-result {
   min-width: 0;
   margin-top: 16px;
+}
+
+.starter-result .guidance-feedback {
+  margin: 10px 0 14px;
 }
 
 @keyframes reveal-fade-slide {

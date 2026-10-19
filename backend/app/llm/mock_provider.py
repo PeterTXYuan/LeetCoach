@@ -9,6 +9,37 @@ from app.services.solution_service import MOCK_SOLUTIONS
 class MockLLMProvider:
     is_ai_generated = False
 
+    def generate_starter_batch(self, context: dict, language: str) -> dict[str, str]:
+        """Offline fixtures only; never used as input or fallback for Groq batches."""
+        batch = {f"level{level}": self.generate_starter_code(context, language, level)
+                 for level in (1, 2, 3)}
+        for key, code in batch.items():
+            # Old bounded for-loop shells used pass. Policy 7 leaves every
+            # incomplete branch explicitly failing, even inside finite loops.
+            code = re.sub(r"(?m)^(\s*)pass\s*$", r'\1raise NotImplementedError("Complete this step")', code)
+            code = re.sub(r"(?m)^\s*(?:#|//) TODO: decide how operations use this shared state\.\n", "\n", code)
+            batch[key] = code
+        # This older offline progression prepared less state at L3 than
+        # L2. Retain the L2 setup in the new mock batch before its stronger flow.
+        if context["approach"]["id"] == "sorting":
+            setup = _mock_guided_flow(language, "s", context["problem"]["submissionTemplate"]["code"],
+                                     "#" if language == "python" else "//",
+                                     context["approach"]["thinkingSteps"], context["approach"]["pattern"],
+                                     context["approach"]["id"])
+            additions = [line for line in setup if "TODO" not in line and line.strip() not in batch["level3"]]
+            rows = batch["level3"].splitlines()
+            first_todo = next(i for i, line in enumerate(rows) if "TODO" in line)
+            indent = " " * (len(rows[first_todo]) - len(rows[first_todo].lstrip()))
+            rows[first_todo:first_todo] = [indent + line for line in additions]
+            batch["level3"] = "\n".join(rows)
+        if context["problem"]["slug"] == "two-sum" and context["approach"]["id"] == "hash-map" and language == "python":
+            batch["level3"] = batch["level3"].replace(
+                "            # TODO: decide whether the complement was seen earlier.",
+                "            if complement in seen:\n"
+                "                # TODO: construct the matching indices.\n"
+                '                raise NotImplementedError("Complete the pair result")')
+        return batch
+
     def generate_hints(self, context: dict) -> list[str]:
         approach = context["approach"]
         steps = approach.get("thinkingSteps", [])

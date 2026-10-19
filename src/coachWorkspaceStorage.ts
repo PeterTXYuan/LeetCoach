@@ -1,7 +1,8 @@
 import type { ApproachHintsResponse } from "./api/approachHints";
-import { normalizeStarterCode, starterCodePolicyVersion, type GuidanceLevel, type StarterCodeResponse } from "./api/starterCode";
-import { normalizeApproachSolutionResponse, type ApproachSolutionResponse, type SolutionLanguage } from "./api/approachSolution";
+import { starterCodePolicyVersion, type GuidanceLevel, type StarterCodeBatchResponse } from "./api/starterCode";
+import { type ApproachSolutionResponse, type SolutionLanguage } from "./api/approachSolution";
 import type { SectionId } from "./components/SectionNav";
+import { normalizeGuidanceBundle, type GuidanceBundle } from "./api/guidanceBundle";
 
 export const workspaceStorageKey = "leetcoach-workspaces-v1";
 
@@ -15,15 +16,15 @@ export type SavedStarter = {
   level: GuidanceLevel;
   isExpanded: boolean;
   isVisible: boolean;
-  responses: Record<string, StarterCodeResponse>;
+  batches: Record<string, StarterCodeBatchResponse>;
 };
 
 export function emptyStarter(): SavedStarter {
-  return { language: "python", level: 1, isExpanded: false, isVisible: false, responses: {} };
+  return { language: "python", level: 1, isExpanded: false, isVisible: false, batches: {} };
 }
 
-export function starterResponseKey(language: SolutionLanguage, level: GuidanceLevel): string {
-  return `${language}:${level}`;
+export function starterBatchKey(language: SolutionLanguage): string {
+  return `${language}:${starterCodePolicyVersion}`;
 }
 
 export const solutionPolicyVersion = 1;
@@ -46,6 +47,7 @@ export type CoachWorkspace = {
   hintsByApproach: Record<string, SavedHints>;
   starterByApproach: Record<string, SavedStarter>;
   solutionByApproach: Record<string, SavedSolution>;
+  guidanceByApproach?: Record<string, Partial<Record<SolutionLanguage, GuidanceBundle>>>;
   recognitionRevealedByApproach: Record<string, boolean>;
   disclosureRevision: number;
 };
@@ -63,6 +65,7 @@ export function emptyWorkspace(): CoachWorkspace {
     hintsByApproach: {},
     starterByApproach: {},
     solutionByApproach: {},
+    guidanceByApproach: {},
     recognitionRevealedByApproach: {},
     disclosureRevision: 0
   };
@@ -109,43 +112,27 @@ function parseSavedHints(value: unknown, slug: string, approachId: string): Save
   };
 }
 
-function parseSavedStarter(value: unknown, slug: string, approachId: string): SavedStarter | null {
-  if (!isRecord(value) || !isRecord(value.responses) ||
+function parseSavedStarter(value: unknown): SavedStarter | null {
+  if (!isRecord(value) ||
       !["python", "java", "javascript", "cpp"].includes(value.language as string) ||
       ![1, 2, 3].includes(value.level as number) ||
       typeof value.isExpanded !== "boolean" || typeof value.isVisible !== "boolean") return null;
-  const responses: Record<string, StarterCodeResponse> = {};
-  for (const [key, saved] of Object.entries(value.responses)) {
-    try {
-      const response = normalizeStarterCode(saved);
-      if (response.policyVersion !== starterCodePolicyVersion ||
-          response.slug !== slug || response.approachId !== approachId ||
-          key !== starterResponseKey(response.language, response.level)) continue;
-      responses[key] = response;
-    } catch { /* Drop one corrupted cache entry, keep the rest of the workspace. */ }
-  }
+  // Policy 8 starter batches have no lineage to a Policy 9 answer.
+  const batches: Record<string, StarterCodeBatchResponse> = {};
   return {
     language: value.language as SolutionLanguage, level: value.level as GuidanceLevel,
     isExpanded: false,
     isVisible: false,
-    responses
+    batches
   };
 }
 
-function parseSavedSolution(value: unknown, slug: string, approachId: string): SavedSolution | null {
+function parseSavedSolution(value: unknown): SavedSolution | null {
   if (!isRecord(value) || value.policyVersion !== solutionPolicyVersion ||
       !["python", "java", "javascript", "cpp"].includes(value.language as string) ||
       !isRecord(value.responses) || !isRecord(value.visibleByLanguage)) return null;
+  // Standalone answers cannot prove that they complete a Policy 9 scaffold.
   const responses: SavedSolution["responses"] = {};
-  for (const language of ["python", "java", "javascript", "cpp"] as const) {
-    try {
-      const saved = value.responses[language];
-      if (saved === undefined) continue;
-      const response = normalizeApproachSolutionResponse(saved);
-      if (response.slug !== slug || response.approachId !== approachId || response.language !== language) continue;
-      responses[language] = response;
-    } catch { /* Keep healthy language entries when one saved answer is corrupt. */ }
-  }
   return { policyVersion: solutionPolicyVersion, language: value.language as SolutionLanguage,
     visibleByLanguage: {}, responses };
 }
@@ -170,7 +157,7 @@ function parseWorkspace(value: unknown, slug: string): CoachWorkspace | null {
   if (value.starterByApproach !== undefined && isRecord(value.starterByApproach)) {
     for (const [approachId, saved] of Object.entries(value.starterByApproach)) {
       if (!canonicalKey.test(approachId)) continue;
-      const parsed = parseSavedStarter(saved, slug, approachId);
+      const parsed = parseSavedStarter(saved);
       if (parsed) starterByApproach[approachId] = parsed;
     }
   }
@@ -178,8 +165,24 @@ function parseWorkspace(value: unknown, slug: string): CoachWorkspace | null {
   if (value.solutionByApproach !== undefined && isRecord(value.solutionByApproach)) {
     for (const [approachId, saved] of Object.entries(value.solutionByApproach)) {
       if (!canonicalKey.test(approachId)) continue;
-      const parsed = parseSavedSolution(saved, slug, approachId);
+      const parsed = parseSavedSolution(saved);
       if (parsed) solutionByApproach[approachId] = parsed;
+    }
+  }
+  const guidanceByApproach: NonNullable<CoachWorkspace["guidanceByApproach"]> = {};
+  if (isRecord(value.guidanceByApproach)) {
+    for (const [approachId, languages] of Object.entries(value.guidanceByApproach)) {
+      if (!canonicalKey.test(approachId) || !isRecord(languages)) continue;
+      const valid: Partial<Record<SolutionLanguage, GuidanceBundle>> = {};
+      for (const language of ["python", "java", "javascript", "cpp"] as const) {
+        try {
+          if (languages[language] === undefined) continue;
+          const bundle = normalizeGuidanceBundle(languages[language]);
+          if (bundle.slug === slug && bundle.approachId === approachId && bundle.language === language)
+            valid[language] = bundle;
+        } catch { /* Discard only this corrupt or old-policy entry. */ }
+      }
+      if (Object.keys(valid).length) guidanceByApproach[approachId] = valid;
     }
   }
   return {
@@ -189,6 +192,7 @@ function parseWorkspace(value: unknown, slug: string): CoachWorkspace | null {
     hintsByApproach,
     starterByApproach,
     solutionByApproach,
+    guidanceByApproach,
     recognitionRevealedByApproach: {},
     disclosureRevision: 0
   };

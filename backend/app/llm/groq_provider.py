@@ -1,6 +1,7 @@
 """Structured Groq requests for progressive hints and starter code."""
 import json
 import re
+import time
 
 from app.llm.base import (
     ProviderOutputError, ProviderUnavailableError, StarterOutputDiagnostic,
@@ -10,6 +11,7 @@ from app.llm.base import (
 from app.llm.starter_diagnostics import observe, provider_reason, starter_raw_capture
 from app.llm.starter_contract import assemble_starter_plan, starter_slots, trusted_starter
 from app.llm.solution_validation import validate_solution
+from app.llm.starter_batch import model_context, validate_starter_batch
 
 
 SYSTEM_PROMPT = (
@@ -30,7 +32,7 @@ SYSTEM_PROMPT = (
     "long explanations. Do not use external URLs or a memorized problem statement."
 )
 
-STARTER_SYSTEM_PROMPT = (
+LEGACY_STARTER_SYSTEM_PROMPT = (
     "Add one small, useful step to LeetCoach's trusted unfinished Starter Code. "
     "Use only the selected canonical approach and the supplied scaffold; follow starterDesign if present. "
     "Choose an editableSlots ID. Return one JSON object with slot and either code, guidance, or both. "
@@ -42,6 +44,40 @@ STARTER_SYSTEM_PROMPT = (
     "build on the existing structure. Do not duplicate existing code, change signatures or "
     "control flow, switch approaches, or give a complete algorithm."
 )
+
+STARTER_SYSTEM_PROMPT = """You are LeetCoach, an AI coding tutor.
+Using the problem description, examples, constraints, selected algorithm approach, and LeetCode code template, generate three progressively more helpful Starter Code versions in the requested language.
+Level 1 — Kickstart: Add a small amount of useful setup. Leave most of the algorithm for the student.
+Level 2 — Guided: Add initial algorithm structure, such as variables, loops, or helper setup. Leave important decisions unfinished.
+Level 3 — Strong Scaffold: Provide most of the algorithm structure, but leave the central logic or operations for the student to complete.
+Rules:
+1. Follow only the selected approach and keep a compatible design across levels.
+2. Preserve every required class, constructor, method signature, and return type from the template. Additional helpers must be private or named with a leading underscore.
+3. Use syntactically valid code with meaningful TODO comments.
+4. Leave genuine algorithm work unfinished at every level. Never provide a complete solution.
+5. Make each level progressively more helpful.
+6. Incomplete execution paths must fail clearly with an exception, not loop forever or silently return misleading results. Placeholders must be reachable.
+7. Never use pass or an empty/default result as unfinished logic; do not label already-complete code as TODO.
+8. Keep TODO paths reachable. Avoid fake conditions and loops that cannot advance or stop.
+9. Explain intent in comments, but never hide executable answer steps or a complete algorithm there.
+10. Each level must retain and extend the useful structure of the previous level.
+Return only JSON containing level1, level2, and level3, each holding complete source code, without Markdown fences."""
+
+LINKED_GUIDANCE_PROMPT = """You are LeetCoach. Return exactly one JSON object with level1, level2,
+level3 (complete starter-code strings), and solution (an object with code, explanation,
+timeComplexity, spaceComplexity strings). Use the supplied problem facts, selected approach,
+and exact LeetCode submission signatures. Produce ONE implementation in four successive stages:
+L1 offers useful setup; L2 adds variables and initial flow; L3 adds most control flow but
+leaves meaningful algorithm work; solution completes L3. Preserve working code, variable
+names, data structures, and helpers as each stage adds code. Do not replace the algorithm
+between stages. In L2/L3, add short comments explaining the purpose of provided loops,
+state, and branches so a student who opens L3 directly can follow it. Comments must not
+give executable answers for the missing steps or hide a complete solution.
+Every starter has a meaningful TODO and a reachable explicit exception on unfinished paths.
+No silent pass, empty/default placeholder return, fake condition, unreachable TODO,
+non-progressing loop, or complete algorithm in comments. The full solution has no TODO,
+placeholder, unfinished branch, or exception used as a placeholder. Give correct code and
+brief complexity explanations for the selected approach. Return JSON only, no code fences."""
 
 
 def _starter_design(context: dict) -> str | None:
@@ -126,6 +162,7 @@ class GroqLLMProvider:
         ]
 
     def generate_starter_code(self, context: dict, language: str, level: int) -> str:
+        """Policy-6 rollback operation; the primary API uses generate_starter_batch."""
         baseline = trusted_starter(context, language, level)
         payload = {"context": context, "language": language, "level": level,
                    "baselineScaffold": baseline,
@@ -138,7 +175,7 @@ class GroqLLMProvider:
             response = self.client.chat.completions.create(
                 model=self.model,
                 messages=[
-                    {"role": "system", "content": STARTER_SYSTEM_PROMPT},
+                    {"role": "system", "content": LEGACY_STARTER_SYSTEM_PROMPT},
                     {"role": "user", "content": json.dumps(payload, ensure_ascii=False)},
                 ],
                 response_format={"type": "json_object"},
@@ -154,6 +191,82 @@ class GroqLLMProvider:
         if starter_raw_capture.get():
             observe({"kind": "raw_response", "content": content})
         return self.parse_starter_content(content, context, language, level, baseline=baseline)
+
+    def generate_starter_batch(self, context: dict, language: str) -> dict[str, str]:
+        payload = model_context(context, language)
+        started = time.perf_counter()
+        try:
+            observe({"kind": "request", "contract": "starter-batch-v8"})
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=[{"role": "system", "content": STARTER_SYSTEM_PROMPT},
+                          {"role": "user", "content": json.dumps(payload, ensure_ascii=False)}],
+                response_format={"type": "json_object"}, temperature=0.2,
+                max_completion_tokens=10000,
+            )
+        except Exception as exc:
+            raise StarterProviderDiagnostic(provider_reason(exc)) from exc
+        finally:
+            observe({"kind": "provider_timing", "durationMs": round((time.perf_counter() - started) * 1000, 1)})
+        try:
+            content = response.choices[0].message.content
+        except (AttributeError, IndexError, TypeError, KeyError) as exc:
+            raise StarterOutputDiagnostic("Invalid starter batch", "INVALID_OUTPUT_TYPE", "response") from exc
+        if starter_raw_capture.get():
+            observe({"kind": "raw_response", "content": content})
+        usage = getattr(response, "usage", None)
+        if usage:
+            observe({"kind": "usage", **{key: getattr(usage, key, None)
+                                         for key in ("prompt_tokens", "completion_tokens", "total_tokens")}})
+        if not isinstance(content, str) or len(content) > 80000:
+            raise StarterOutputDiagnostic("Invalid starter batch", "INVALID_OUTPUT_TYPE", "response")
+        try:
+            parsed = json.loads(content)
+        except (TypeError, ValueError, RecursionError) as exc:
+            raise StarterOutputDiagnostic("Invalid starter batch", "INVALID_JSON", "parsing") from exc
+        return validate_starter_batch(parsed, context, language, check_compilers=False)
+
+    def generate_guidance_bundle(self, context: dict, language: str) -> dict:
+        payload = model_context(context, language)
+        started = time.perf_counter()
+        observe({"kind": "request", "contract": "linked-guidance-v9"})
+        try:
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=[{"role": "system", "content": LINKED_GUIDANCE_PROMPT},
+                          {"role": "user", "content": json.dumps(payload, ensure_ascii=False)}],
+                response_format={"type": "json_object"}, temperature=0.2,
+                max_completion_tokens=10000, timeout=30.0,
+            )
+        except Exception as exc:
+            raise StarterProviderDiagnostic(provider_reason(exc)) from exc
+        latency = round((time.perf_counter() - started) * 1000, 1)
+        try:
+            choice = response.choices[0]
+            content = choice.message.content
+            finish_reason = choice.finish_reason
+        except (AttributeError, IndexError, TypeError, KeyError) as exc:
+            raise StarterOutputDiagnostic("Invalid linked guidance response", "INVALID_OUTPUT_TYPE", "response") from exc
+        usage = getattr(response, "usage", None)
+        metrics = {"promptTokens": getattr(usage, "prompt_tokens", None),
+                   "completionTokens": getattr(usage, "completion_tokens", None),
+                   "totalTokens": getattr(usage, "total_tokens", None),
+                   "latencyMs": latency, "outputChars": len(content) if isinstance(content, str) else 0,
+                   "finishReason": finish_reason}
+        observe({"kind": "linked_usage", **metrics})
+        if finish_reason == "length":
+            raise StarterOutputDiagnostic("Linked guidance was truncated", "TOKEN_LIMIT_TRUNCATION", "response")
+        if finish_reason not in ("stop", None):
+            raise StarterOutputDiagnostic("Linked guidance did not complete", "INCOMPLETE_RESPONSE", "response")
+        if not isinstance(content, str) or len(content) > 160000:
+            raise StarterOutputDiagnostic("Invalid linked guidance response", "INVALID_OUTPUT_TYPE", "response")
+        if starter_raw_capture.get():
+            observe({"kind": "raw_response", "content": content})
+        try:
+            parsed = json.loads(content)
+        except (TypeError, ValueError, RecursionError) as exc:
+            raise StarterOutputDiagnostic("Invalid linked guidance JSON", "INVALID_JSON", "parsing") from exc
+        return {"output": parsed, "usage": metrics}
 
     @staticmethod
     def parse_starter_content(content, context: dict, language: str, level: int,

@@ -38,7 +38,9 @@ class StarterProviderDiagnostic(ProviderUnavailableError):
 
 SUPPORTED_STARTER_LANGUAGES = frozenset({"python", "java", "javascript", "cpp"})
 STARTER_LEVEL_NAMES = {1: "Kickstart", 2: "Guided", 3: "Strong Scaffold"}
-STARTER_CODE_POLICY_VERSION = 6
+LEGACY_STARTER_CODE_POLICY_VERSION = 6
+STARTER_CODE_POLICY_VERSION = 8
+LINKED_GUIDANCE_POLICY_VERSION = 9
 
 
 MAX_HINT_WORDS = 18
@@ -91,7 +93,11 @@ class LLMProvider(Protocol):
 
     def generate_starter_code(self, context: dict, language: str, level: int) -> str: ...
 
+    def generate_starter_batch(self, context: dict, language: str) -> dict[str, str]: ...
+
     def generate_solution(self, context: dict, language: str) -> dict[str, str]: ...
+
+    def generate_guidance_bundle(self, context: dict, language: str) -> dict: ...
 
 
 def validate_starter_code(raw: Any, template: str, language: str, level: int) -> str:

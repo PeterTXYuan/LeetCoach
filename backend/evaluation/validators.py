@@ -3,7 +3,7 @@ import re
 
 from app.llm.base import (
     LEVEL_CHARACTER_LIMITS, LEVEL_WORD_LIMITS, ProviderOutputError,
-    STARTER_CODE_POLICY_VERSION,
+    LEGACY_STARTER_CODE_POLICY_VERSION as STARTER_CODE_POLICY_VERSION,
     SHORT_FALLBACK_HINTS, validate_hints, validate_starter_code,
 )
 from app.llm.solution_validation import validate_solution

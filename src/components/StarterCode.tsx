@@ -1,8 +1,10 @@
 import { useState } from "react";
 import type { SolutionLanguage } from "../api/approachSolution";
-import type { GuidanceLevel } from "../api/starterCode";
-import { emptyStarter, starterResponseKey, type SavedStarter } from "../coachWorkspaceStorage";
+import { starterCodePolicyVersion, starterLevel, type GuidanceLevel } from "../api/starterCode";
+import { emptyStarter, starterBatchKey, type SavedStarter } from "../coachWorkspaceStorage";
 import { useStarterCode } from "../hooks/useStarterCode";
+import type { GuidanceBundle } from "../api/guidanceBundle";
+import type { BundleStatus } from "../hooks/useGuidanceBundle";
 
 const languages: { value: SolutionLanguage; label: string }[] = [
   { value: "python", label: "Python" }, { value: "java", label: "Java" },
@@ -20,9 +22,14 @@ type StarterCodeProps = {
   approachNumber?: number;
   saved?: SavedStarter;
   onSave?: (update: (current: SavedStarter) => SavedStarter) => void;
+  linkedBundles?: Partial<Record<SolutionLanguage, GuidanceBundle>>;
+  linkedStatus?: (language: SolutionLanguage) => BundleStatus;
+  onRequestLinked?: (language: SolutionLanguage, force: boolean) => void;
+  onHideLinked?: () => void;
 };
 
-export function StarterCode({ slug, approachId, approachNumber, saved, onSave }: StarterCodeProps) {
+export function StarterCode({ slug, approachId, approachNumber, saved, onSave,
+  linkedBundles, linkedStatus, onRequestLinked, onHideLinked }: StarterCodeProps) {
   const [localSaved, setLocalSaved] = useState<SavedStarter>(emptyStarter);
   const settings = saved ?? localSaved;
   const updateSettings = (update: (current: SavedStarter) => SavedStarter) => {
@@ -30,30 +37,48 @@ export function StarterCode({ slug, approachId, approachNumber, saved, onSave }:
     else setLocalSaved(update);
   };
   const { language, level, isExpanded } = settings;
-  const candidate = settings.responses[starterResponseKey(language, level)];
-  const cached = candidate?.slug === slug && candidate.approachId === approachId ? candidate : undefined;
-  const { state, generate, clear } = useStarterCode({ slug, approachId, language, level,
-    onResult: (response) => updateSettings((current) => ({
-      ...current, isVisible: true,
-      responses: { ...current.responses, [starterResponseKey(response.language, response.level)]: response }
-    }))
+  const candidate = settings.batches[starterBatchKey(language)];
+  const legacyCached = candidate?.policyVersion === starterCodePolicyVersion &&
+    candidate.slug === slug && candidate.approachId === approachId ? starterLevel(candidate, level) : undefined;
+  const linked = linkedBundles?.[language];
+  const cached = onRequestLinked
+    ? linked && linked.slug === slug && linked.approachId === approachId
+      ? { ...linked, level, levelName: levels[level - 1].label,
+          code: linked[`level${level}`], usedFallback: false }
+      : undefined
+    : legacyCached;
+  const visibleWarnings = onRequestLinked && cached
+    ? linked?.warnings?.filter((warning) => warning.scope === `level${level}` || warning.scope === "bundle") ?? []
+    : [];
+  const { state, generate, clear } = useStarterCode({ slug, approachId, language,
+    onResult: (response) => {
+      if (response.policyVersion !== starterCodePolicyVersion ||
+          response.slug !== slug || response.approachId !== approachId) return;
+      updateSettings((current) => ({
+        ...current, isVisible: true,
+        batches: { ...current.batches, [starterBatchKey(response.language)]: response }
+      }));
+    }
   });
+  const currentStatus = onRequestLinked ? linkedStatus?.(language) ?? { status: "idle" } : state;
   const hideResult = () => {
-    clear();
+    if (!onRequestLinked) clear();
+    else onHideLinked?.();
     updateSettings((current) => ({ ...current, isVisible: false }));
   };
   const chooseLanguage = (next: SolutionLanguage) => {
     updateSettings((current) => ({ ...current, language: next,
-      isVisible: Boolean(current.responses[starterResponseKey(next, current.level)]) }));
+      isVisible: Boolean(onRequestLinked ? linkedBundles?.[next] : current.batches[starterBatchKey(next)]) }));
   };
   const chooseLevel = (next: GuidanceLevel) => {
     updateSettings((current) => ({ ...current, level: next,
-      isVisible: Boolean(current.responses[starterResponseKey(current.language, next)]) }));
+      isVisible: Boolean(onRequestLinked ? linkedBundles?.[current.language] : current.batches[starterBatchKey(current.language)]) }));
   };
   const handleGenerate = () => {
     if (cached) {
       updateSettings((current) => ({ ...current, isVisible: true }));
-    } else void generate();
+    } else if (onRequestLinked) onRequestLinked(language, false);
+    else void generate();
   };
 
   return (
@@ -76,7 +101,7 @@ export function StarterCode({ slug, approachId, approachNumber, saved, onSave }:
             )}
           </div>
         </div>
-        {(settings.isVisible || state.status !== "idle") && (
+        {(settings.isVisible || currentStatus.status !== "idle") && (
           <button className="text-action" type="button" onClick={hideResult}>Hide starter code</button>
         )}
       </div>
@@ -117,26 +142,34 @@ export function StarterCode({ slug, approachId, approachNumber, saved, onSave }:
           {levels.find((option) => option.value === level)?.description}
         </p>
         {!approachId && <p className="analysis-message">Choose an approach to generate starter code.</p>}
-        <button className="primary-action" type="button" disabled={!approachId || state.status === "loading"}
+        <button className="primary-action" type="button" disabled={!approachId || currentStatus.status === "loading"}
           onClick={handleGenerate}>
-          {state.status === "loading" ? "Generating starter code..." : "Generate Starter Code"}
+          {currentStatus.status === "loading" ? "Generating starter code..." : "Generate Starter Code"}
         </button>
-        {state.status === "loading" && <p className="analysis-message" role="status">Loading your scaffold...</p>}
-        {state.status === "not_found" && <p className="analysis-message" role="alert">Starter code is not available for this problem and approach yet.</p>}
-        {state.status === "invalid_options" && <p className="analysis-message" role="alert">This language or guidance level is not supported. Choose another option and generate again.</p>}
-        {state.status === "error" && (
+        {currentStatus.status === "loading" && <p className="analysis-message" role="status">Loading your scaffold...</p>}
+        {currentStatus.status === "not_found" && <p className="analysis-message" role="alert">Starter code is not available for this problem and approach yet.</p>}
+        {currentStatus.status === "invalid_options" && <p className="analysis-message" role="alert">This language or guidance level is not supported. Choose another option and generate again.</p>}
+        {currentStatus.status === "error" && (
           <div className="answer-error" role="alert">
             <p>{settings.isVisible && cached
               ? "Unable to regenerate starter code. Your previous scaffold is still available."
               : "Unable to load starter code. Please try again."}</p>
             {!(settings.isVisible && cached) && (
-              <button className="secondary-action" type="button" onClick={() => void generate()}>Retry starter code</button>
+              <button className="secondary-action" type="button" onClick={() => onRequestLinked
+                ? onRequestLinked(language, false) : void generate()}>Retry starter code</button>
             )}
           </div>
         )}
         {settings.isVisible && cached && (
           <article className="starter-result reveal-motion" aria-label="Generated starter code">
             <p className="starter-notice">{cached.notice}</p>
+            {visibleWarnings.length > 0 && (
+              <div className="guidance-feedback" role="note" aria-label="Starter code warnings">
+                <strong>Review this scaffold before running it.</strong>
+                <ul>{visibleWarnings.map((warning) =>
+                  <li key={`${warning.scope}:${warning.code}`}>{warning.message}</li>)}</ul>
+              </div>
+            )}
             <pre className="code-block">
               <span className="code-language">
                 {languages.find((option) => option.value === cached.language)?.label}
@@ -144,11 +177,12 @@ export function StarterCode({ slug, approachId, approachNumber, saved, onSave }:
               </span>
               <code>{cached.code}</code>
             </pre>
-            <button className="secondary-action" type="button" disabled={state.status === "loading"}
-              onClick={() => void generate()}>
-              {state.status === "loading" ? "Regenerating starter code..." :
+            <button className="secondary-action" type="button" disabled={currentStatus.status === "loading"}
+              onClick={() => onRequestLinked ? onRequestLinked(language, true) : void generate()}>
+              {currentStatus.status === "loading" ? "Regenerating starter code..." :
                 cached.usedFallback ? "Try AI generation again" : "Regenerate starter code"}
             </button>
+            {onRequestLinked && <p className="section-copy">Regenerating refreshes all three starter levels and the full answer together.</p>}
           </article>
         )}
       </div>

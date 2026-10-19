@@ -11,7 +11,7 @@ import { SectionNav, type SectionId, type SectionOption } from "./components/Sec
 import { StarterCode } from "./components/StarterCode";
 import { ThinkingProcess } from "./components/ThinkingProcess";
 import { useApproachHints } from "./hooks/useApproachHints";
-import { useApproachSolution } from "./hooks/useApproachSolution";
+import { useGuidanceBundle } from "./hooks/useGuidanceBundle";
 import { useCoachWorkspaces } from "./hooks/useCoachWorkspaces";
 import { collapseWorkspaceDisclosure, emptySolution, emptyStarter } from "./coachWorkspaceStorage";
 import { useActiveProblem, type ActiveProblemState } from "./useActiveProblem";
@@ -142,22 +142,52 @@ export default function App() {
   const hintApproachNumber = approaches.findIndex((approach) => approach.id === hintApproachId) + 1;
   const starterApproachId = selectedApproachId ?? primaryApproachId;
   const starterApproachNumber = approaches.findIndex((approach) => approach.id === starterApproachId) + 1;
-  const approachSolution = useApproachSolution({
-    slug: workspaceReady && visibleProblemAnalysis.status === "success" ? workspaceSlug : undefined,
-    approachId: selectedApproachId,
-    disclosureRevision: workspace?.disclosureRevision ?? 0,
-    saved: selectedApproachId ? workspace?.solutionByApproach[selectedApproachId] ?? emptySolution() : undefined,
-    onSave: (update) => {
-      if (!workspaceSlug || !selectedApproachId) return;
-      updateWorkspace(workspaceSlug, (current) => ({
-        ...current,
-        solutionByApproach: {
-          ...current.solutionByApproach,
-          [selectedApproachId]: update(current.solutionByApproach[selectedApproachId] ?? emptySolution())
-        }
-      }));
-    }
-  });
+  const guidance = useGuidanceBundle(workspace ?? undefined, updateWorkspace);
+  const solutionSaved = selectedApproachId
+    ? workspace?.solutionByApproach[selectedApproachId] ?? emptySolution() : emptySolution();
+  const solutionLanguage = solutionSaved.language;
+  const answerBundle = guidance.bundleFor(selectedApproachId, solutionLanguage);
+  const answerStatus = workspaceSlug
+    ? guidance.statusFor(workspaceSlug, selectedApproachId, solutionLanguage, "answer") : { status: "idle" as const };
+  const answerVisible = Boolean(solutionSaved.visibleByLanguage[solutionLanguage] && answerBundle?.solution);
+  const answerResponse = answerBundle?.solution && workspaceSlug && selectedApproachId ? {
+    slug: workspaceSlug, approachId: selectedApproachId, language: solutionLanguage,
+    isAiGenerated: answerBundle.isAiGenerated,
+    warning: answerBundle.kind === "linked"
+      ? "Full solution revealed. Try solving the problem yourself before relying on this answer."
+      : "Offline curated full answer; it was prepared separately from this starter code.",
+    ...answerBundle.solution
+  } : null;
+  const solutionState = answerVisible && answerResponse
+    ? { status: "success" as const, response: answerResponse }
+    : answerStatus.status === "loading" ? { status: "loading" as const }
+    : answerStatus.status === "not_found" ? { status: "not_found" as const }
+    : answerStatus.status === "error" ? { status: "error" as const,
+        message: answerStatus.message ?? "Unable to generate guidance. Please retry." }
+    : { status: "idle" as const };
+  const requestAnswer = (force: boolean) => {
+    if (workspaceSlug && selectedApproachId)
+      void guidance.request(workspaceSlug, selectedApproachId, solutionLanguage, "answer", force);
+  };
+  const changeSolutionLanguage = (language: typeof solutionLanguage) => {
+    if (!workspaceSlug || !selectedApproachId) return;
+    updateWorkspace(workspaceSlug, (current) => {
+      const previous = current.solutionByApproach[selectedApproachId] ?? emptySolution();
+      return { ...current, solutionByApproach: { ...current.solutionByApproach,
+        [selectedApproachId]: { ...previous, language } } };
+    });
+  };
+  const hideAnswer = () => {
+    if (!workspaceSlug || !selectedApproachId) return;
+    guidance.cancelDisclosure(workspaceSlug, selectedApproachId, solutionLanguage, "answer");
+    updateWorkspace(workspaceSlug, (current) => {
+      const previous = current.solutionByApproach[selectedApproachId] ?? emptySolution();
+      return { ...current,
+        solutionByApproach: { ...current.solutionByApproach,
+        [selectedApproachId]: { ...previous,
+          visibleByLanguage: { ...previous.visibleByLanguage, [solutionLanguage]: false } } } };
+    });
+  };
 
   const selectedApproach = useMemo(() => {
     if (visibleProblemAnalysis.status !== "success" || !selectedApproachId) {
@@ -261,6 +291,18 @@ export default function App() {
                       approachId={starterApproachId}
                       approachNumber={starterApproachNumber || undefined}
                       saved={starterApproachId ? workspace?.starterByApproach[starterApproachId] ?? emptyStarter() : undefined}
+                      linkedBundles={starterApproachId ? workspace?.guidanceByApproach?.[starterApproachId] : undefined}
+                      linkedStatus={(language) => guidance.statusFor(workspaceSlug ?? "", starterApproachId, language, "starter")}
+                      onRequestLinked={(language, force) => {
+                        if (workspaceSlug && starterApproachId)
+                          void guidance.request(workspaceSlug, starterApproachId, language, "starter", force);
+                      }}
+                      onHideLinked={() => {
+                        if (workspaceSlug && starterApproachId) {
+                          const language = (workspace?.starterByApproach[starterApproachId] ?? emptyStarter()).language;
+                          guidance.cancelDisclosure(workspaceSlug, starterApproachId, language, "starter");
+                        }
+                      }}
                       onSave={(update) => {
                         if (!workspaceSlug || !starterApproachId) return;
                         updateWorkspace(workspaceSlug, (current) => ({
@@ -300,14 +342,18 @@ export default function App() {
                           />
                         )}
                         <GenerateAnswer
-                          language={approachSolution.language}
-                          onLanguageChange={approachSolution.chooseLanguage}
-                          onGenerate={approachSolution.generateSolution}
-                          onRetry={approachSolution.retrySolution}
-                          onRegenerate={approachSolution.regenerateSolution}
-                          regenerationStatus={approachSolution.regenerationStatus}
-                          onHide={approachSolution.hideSolution}
-                          solutionState={approachSolution.solutionState}
+                          language={solutionLanguage}
+                          onLanguageChange={changeSolutionLanguage}
+                          onGenerate={() => requestAnswer(false)}
+                          onRetry={() => requestAnswer(false)}
+                          onRegenerate={() => requestAnswer(true)}
+                          regenerationStatus={answerVisible && answerStatus.status === "loading"
+                            ? { status: "loading" } : answerVisible && answerStatus.status === "error"
+                              ? { status: "error", message: answerStatus.message } : null}
+                          onHide={hideAnswer}
+                          solutionState={solutionState}
+                          verification={answerBundle?.verification}
+                          warnings={answerBundle?.warnings}
                         />
                         <ThinkingProcess
                           approach={selectedApproach}

@@ -35,9 +35,9 @@ def validate_solution(raw: Any, template: str, language: str) -> dict[str, str]:
         raise ProviderOutputError("Invalid solution fields") from exc
 
     code = fields.code
-    if "```" in code or re.search(r"\b(?:TODO|FIXME|NotImplementedError|UnsupportedOperationException)\b", code, re.I):
+    if "```" in code or re.search(r"\b(?:TODO|FIXME|NotImplementedError|UnsupportedOperationException|NotImplemented|placeholder)\b", code, re.I):
         raise ProviderOutputError("Incomplete or fenced full solution")
-    if re.search(r"\b(?:throw|raise)\b[^\n]*(?:complete|implement|placeholder|todo)", code, re.I):
+    if re.search(r"\b(?:throw|raise)\b[^\n]*(?:complete|implement|placeholder|todo|unfinished|pending|later|stub)", code, re.I):
         raise ProviderOutputError("Unfinished solution branch")
 
     signatures = [line.strip().rstrip(" {") for line in template.splitlines() if "(" in line]
@@ -79,4 +79,7 @@ def validate_solution(raw: Any, template: str, language: str) -> dict[str, str]:
         if language == "javascript" and "function" not in code:
             raise ProviderOutputError("JavaScript submission entry point is missing")
 
+    from app.llm.starter_syntax import check_syntax
+    if check_syntax(code, language)["status"] == "FAIL":
+        raise ProviderOutputError("Invalid full solution syntax")
     return fields.model_dump()

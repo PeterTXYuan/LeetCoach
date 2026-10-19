@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from db_test_support import DatabaseTestCase
 from app.llm.base import StarterOutputDiagnostic, validate_starter_code
-from app.llm.groq_provider import GroqLLMProvider, STARTER_SYSTEM_PROMPT, _starter_design
+from app.llm.groq_provider import GroqLLMProvider, LEGACY_STARTER_SYSTEM_PROMPT as STARTER_SYSTEM_PROMPT, _starter_design
 from app.llm.mock_provider import MockLLMProvider
 from app.services.problem_repository import find_problem_context
 

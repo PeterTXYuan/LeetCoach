@@ -1,4 +1,5 @@
 import type { SolutionLanguage } from "../api/approachSolution";
+import type { GuidanceWarning } from "../api/guidanceBundle";
 import type { ApproachSolutionState } from "../hooks/useApproachSolution";
 
 type GenerateAnswerProps = {
@@ -10,6 +11,8 @@ type GenerateAnswerProps = {
   regenerationStatus: { status: "idle" | "loading" | "error"; message?: string } | null;
   onLanguageChange: (language: SolutionLanguage) => void;
   onHide: () => void;
+  verification?: { status: "PASS" | "FAIL" | "NOT_RUN"; summary: string };
+  warnings?: GuidanceWarning[];
 };
 
 const languageOptions: Array<{
@@ -30,9 +33,13 @@ export function GenerateAnswer({
   onRegenerate,
   regenerationStatus,
   onLanguageChange,
-  onHide
+  onHide,
+  verification,
+  warnings
 }: GenerateAnswerProps) {
   const isLoading = solutionState.status === "loading" || regenerationStatus?.status === "loading";
+  const visibleWarnings = warnings?.filter((warning) =>
+    warning.scope === "solution" || warning.scope === "bundle") ?? [];
 
   return (
     <section className="generate-answer" aria-labelledby="generate-answer-title">
@@ -126,6 +133,17 @@ export function GenerateAnswer({
           <p className="answer-warning" role="note">
             {solutionState.response.warning}
           </p>
+          {visibleWarnings.length > 0 && (
+            <div className="guidance-feedback" role="note" aria-label="Full answer warnings">
+              <strong>Review this generated answer before using it.</strong>
+              <ul>{visibleWarnings.map((warning) =>
+                <li key={`${warning.scope}:${warning.code}`}>{warning.message}</li>)}</ul>
+            </div>
+          )}
+          {verification && <p className="section-copy" role="note">
+            Representative checks: {verification.status === "PASS" ? "passed" :
+              verification.status === "NOT_RUN" ? "not tested" : "failed"}. {verification.summary}
+          </p>}
           <pre className="code-block">
             <span className="code-language">{getLanguageLabel(solutionState.response.language)}</span>
             <code>{solutionState.response.code}</code>
@@ -147,6 +165,7 @@ export function GenerateAnswer({
           <button className="secondary-action" type="button" onClick={onRegenerate} disabled={isLoading}>
             {regenerationStatus?.status === "loading" ? "Regenerating answer..." : "Regenerate answer"}
           </button>
+          {verification && <p className="section-copy">Regenerating refreshes the full answer and all three Starter Code levels together.</p>}
           {regenerationStatus?.status === "loading" && (
             <p className="analysis-message" role="status">Generating a new answer...</p>
           )}

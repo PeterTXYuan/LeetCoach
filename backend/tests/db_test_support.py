@@ -1,5 +1,6 @@
 """File-backed, migrated SQLite per test; never use the developer's DB."""
 import sys
+import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -22,6 +23,10 @@ from app.seed import seed_data
 
 class DatabaseTestCase(unittest.TestCase):
     def setUp(self):
+        # Historical single-level regression suites explicitly exercise rollback.
+        legacy = patch.dict(os.environ, {"LEETCOACH_ENABLE_LEGACY_STARTER": "true"})
+        legacy.start()
+        self.addCleanup(legacy.stop)
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)
         self.url = URL.create("sqlite", database=str(Path(temporary.name) / "test.db"))

@@ -17,7 +17,7 @@ from evaluation.reporting import write_reports
 from evaluation.run_evaluation import _empty_record, run
 from evaluation.run_evaluation import _classify, parse_args
 from app.llm.starter_diagnostics import observe
-from app.llm.base import STARTER_CODE_POLICY_VERSION
+from app.llm.base import LEGACY_STARTER_CODE_POLICY_VERSION as STARTER_CODE_POLICY_VERSION
 from app.llm.starter_contract import trusted_starter
 from app.services.problem_repository import find_problem_context
 from evaluation.validators import evaluate_starter

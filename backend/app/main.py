@@ -1,4 +1,6 @@
 import logging
+import os
+from uuid import uuid4
 
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -7,14 +9,18 @@ from sqlalchemy.orm import Session
 
 from app.database import get_session
 from app.llm.base import (
-    ProviderConfigurationError, ProviderOutputError, ProviderUnavailableError,
-    STARTER_CODE_POLICY_VERSION, STARTER_LEVEL_NAMES, SUPPORTED_STARTER_LANGUAGES,
+    ProviderConfigurationError, ProviderOutputError, ProviderUnavailableError, StarterOutputDiagnostic,
+    STARTER_CODE_POLICY_VERSION, LEGACY_STARTER_CODE_POLICY_VERSION,
+    LINKED_GUIDANCE_POLICY_VERSION,
+    STARTER_LEVEL_NAMES, SUPPORTED_STARTER_LANGUAGES,
     validate_hints, validate_starter_code,
 )
 from app.llm.provider_factory import get_llm_provider
 from app.llm.mock_provider import MockLLMProvider
 from app.llm.starter_diagnostics import failure_metadata, observe
 from app.llm.solution_validation import validate_solution
+from app.llm.starter_batch import model_context, validate_starter_batch
+from app.llm.linked_guidance import validate_linked_bundle, check_linked_correctness
 from app.services.problem_repository import (
     find_hint_problem_context, find_problem_analysis, find_problem_context, find_related_problems,
 )
@@ -38,6 +44,70 @@ class SolutionRequest(BaseModel):
 class StarterCodeRequest(BaseModel):
     language: str
     level: int = Field(strict=True, ge=1, le=3)
+
+
+class StarterBatchRequest(BaseModel):
+    language: str
+
+
+@app.post("/api/problems/{slug}/approaches/{approach_id}/guidance")
+def generate_linked_guidance(
+    slug: str, approach_id: str, request: StarterBatchRequest,
+    session: Session = Depends(get_session),
+):
+    analysis = find_problem_analysis(session, slug)
+    if analysis is None:
+        raise HTTPException(status_code=404, detail="This problem is not available in the local LeetCoach dataset yet.")
+    if not any(item["id"] == approach_id for item in analysis["approaches"]):
+        raise HTTPException(status_code=404, detail="This approach is not available for the requested LeetCoach problem.")
+    language = request.language.lower()
+    if language not in SUPPORTED_STARTER_LANGUAGES:
+        raise HTTPException(status_code=400, detail="Unsupported guidance language.")
+    context = find_problem_context(session, slug, approach_id, language)
+    if context is None:
+        raise HTTPException(status_code=404, detail="Submission template is not available.")
+    try:
+        model_context(context, language)
+        provider = get_llm_provider()
+        if provider.is_ai_generated:
+            generated = provider.generate_guidance_bundle(context, language)
+            bundle = validate_linked_bundle(generated["output"], context, language)
+            verification = check_linked_correctness(slug, language, bundle["solution"]["code"])
+            if verification["status"] == "FAIL":
+                bundle["warnings"].append({
+                    "scope": "solution", "code": "CORRECTNESS_FIXTURE_FAILED",
+                    "message": "The full answer failed representative test cases. Review or regenerate it."
+                })
+            kind = "linked"
+            usage = generated["usage"]
+        else:
+            # The offline fixtures predate linked generation. Never claim lineage.
+            batch = validate_starter_batch(provider.generate_starter_batch(context, language),
+                                           context, language)
+            bundle = {**batch, "solution": None, "warnings": []}
+            try:
+                bundle["solution"] = provider.generate_solution(context, language)
+            except ProviderUnavailableError:
+                pass
+            verification = {"status": "NOT_RUN", "summary": "Offline curated responses are separate fixtures"}
+            kind = "starterOnlyMock"
+            usage = None
+    except ProviderConfigurationError:
+        raise HTTPException(status_code=503, detail="Guidance provider is not configured.")
+    except (ProviderUnavailableError, ProviderOutputError) as exc:
+        diagnostic = failure_metadata(exc)
+        observe({"kind": "failure", **diagnostic})
+        logger.warning("Linked guidance rejected slug=%s approach=%s language=%s reason=%s",
+                       slug, approach_id, language, diagnostic["reason"])
+        raise HTTPException(status_code=503 if isinstance(exc, ProviderUnavailableError) else 502,
+                            detail={"message": "Guidance could not be generated. Previous content is retained.",
+                                    **diagnostic})
+    return {"slug": slug, "approachId": approach_id, "language": language,
+            "policyVersion": LINKED_GUIDANCE_POLICY_VERSION, "generationId": str(uuid4()),
+            "kind": kind, "isAiGenerated": provider.is_ai_generated,
+            "notice": ("Starter code leaves work for you; the matching full answer stays hidden."
+                       if kind == "linked" else "Offline mock starter code; its curated answer is separate."),
+            "verification": verification, "usage": usage, **bundle}
 
 
 UNAVAILABLE_DETAIL = "This problem is not available in the local LeetCoach dataset yet."
@@ -161,6 +231,8 @@ def get_problem_starter_code(
     slug: str, approach_id: str, request: StarterCodeRequest,
     session: Session = Depends(get_session),
 ):
+    if os.environ.get("LEETCOACH_ENABLE_LEGACY_STARTER", "").lower() != "true":
+        raise HTTPException(status_code=409, detail="Use the Starter Code batch endpoint. Policy 6 is disabled.")
     analysis = find_problem_analysis(session, slug)
     if analysis is None:
         raise HTTPException(status_code=404, detail=UNAVAILABLE_DETAIL)
@@ -212,7 +284,7 @@ def get_problem_starter_code(
     result = {
         "slug": slug, "approachId": approach_id, "language": language,
         "level": request.level, "levelName": STARTER_LEVEL_NAMES[request.level],
-        "policyVersion": STARTER_CODE_POLICY_VERSION,
+        "policyVersion": LEGACY_STARTER_CODE_POLICY_VERSION,
         "isAiGenerated": provider.is_ai_generated and not used_fallback,
         "code": code,
         "notice": (
@@ -225,3 +297,49 @@ def get_problem_starter_code(
     if used_fallback:
         result["usedFallback"] = True
     return result
+
+
+@app.post("/api/problems/{slug}/approaches/{approach_id}/starter-code/batch")
+def get_problem_starter_batch(
+    slug: str, approach_id: str, request: StarterBatchRequest,
+    session: Session = Depends(get_session),
+):
+    analysis = find_problem_analysis(session, slug)
+    if analysis is None:
+        raise HTTPException(status_code=404, detail=UNAVAILABLE_DETAIL)
+    if not any(item["id"] == approach_id for item in analysis["approaches"]):
+        raise HTTPException(status_code=404, detail=APPROACH_UNAVAILABLE_DETAIL)
+    language = request.language.lower()
+    if language not in SUPPORTED_STARTER_LANGUAGES:
+        raise HTTPException(status_code=400, detail="Unsupported starter language.")
+    context = find_problem_context(session, slug, approach_id, language)
+    if context is None:
+        raise HTTPException(status_code=404, detail="Submission template is not available.")
+    try:
+        model_context(context, language)  # Fail explicitly before a paid request.
+        provider = get_llm_provider()
+        batch = provider.generate_starter_batch(context, language)
+        # Compile/parse once at the API boundary for every provider, without
+        # ever running a generated program.
+        batch = validate_starter_batch(batch, context, language)
+    except ProviderConfigurationError:
+        raise HTTPException(status_code=503, detail="Starter code provider is not configured.")
+    except (ProviderUnavailableError, ProviderOutputError) as exc:
+        diagnostic = failure_metadata(exc)
+        observe({"kind": "failure", **diagnostic})
+        logger.warning("Starter batch rejected slug=%s approach=%s language=%s stage=%s reason=%s",
+                       slug, approach_id, language, diagnostic["stage"], diagnostic["reason"])
+        status = 503 if isinstance(exc, ProviderUnavailableError) else 502
+        if diagnostic["stage"] == "context": status = 409
+        raise HTTPException(status_code=status, detail={
+            "message": "Starter code could not be generated. Please retry; previous code is retained.",
+            **diagnostic,
+        })
+    observe({"kind": "accepted", "stage": "accepted", "reason": None})
+    return {"slug": slug, "approachId": approach_id, "language": language,
+            "policyVersion": STARTER_CODE_POLICY_VERSION, "isAiGenerated": provider.is_ai_generated,
+            "usedFallback": False,
+            "notice": ("Starter code, not a full solution. Complete the TODOs before running."
+                       if provider.is_ai_generated else
+                       "Offline mock starter code. Complete the TODOs before running."),
+            **batch}
