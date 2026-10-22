@@ -41,6 +41,26 @@ OFFICIAL_COUNTS = {
     "maximum-depth-of-binary-tree": (104, 2, 2),
     "number-of-islands": (200, 2, 4),
     "climbing-stairs": (70, 2, 1),
+    "product-of-array-except-self": (238, 2, 3),
+    "top-k-frequent-elements": (347, 3, 4),
+    "longest-consecutive-sequence": (128, 3, 2),
+    "valid-sudoku": (36, 2, 3),
+    "container-with-most-water": (11, 2, 3),
+    "evaluate-reverse-polish-notation": (150, 3, 2),
+    "generate-parentheses": (22, 2, 1),
+    "car-fleet": (853, 3, 6),
+    "find-minimum-in-rotated-sorted-array": (153, 3, 5),
+    "search-a-2d-matrix": (74, 2, 4),
+    "koko-eating-bananas": (875, 3, 3),
+    "time-based-key-value-store": (981, 1, 5),
+    "permutation-in-string": (567, 2, 2),
+    "invert-binary-tree": (226, 3, 2),
+    "same-tree": (100, 3, 2),
+    "diameter-of-binary-tree": (543, 2, 2),
+    "balanced-binary-tree": (110, 3, 2),
+    "rotting-oranges": (994, 3, 4),
+    "house-robber": (198, 2, 2),
+    "coin-change": (322, 3, 3),
 }
 
 
@@ -113,10 +133,10 @@ class ProblemSpecTests(DatabaseTestCase):
             self.assertEqual(context["approach"]["id"], "hash-map")
         self.assertEqual(provider.calls[0][1]["approach"]["id"], "hash-map")
 
-    def test_all_twenty_problems_persist_complete_ordered_specs(self):
+    def test_all_forty_problems_persist_complete_ordered_specs(self):
         with Session(self.engine) as session:
             problems = list(session.scalars(select(Problem).order_by(Problem.slug)))
-            self.assertEqual(len(problems), 20)
+            self.assertEqual(len(problems), 40)
             for problem in problems:
                 with self.subTest(slug=problem.slug):
                     source = CURATED_PROBLEM_SPECS[problem.slug]
@@ -128,7 +148,10 @@ class ProblemSpecTests(DatabaseTestCase):
                     self.assertEqual(problem.description, source["description"])
                     self.assertEqual(problem.description_source_url, source["descriptionSourceUrl"])
                     self.assertEqual(problem.description_source_type, "curated_restatement")
-                    self.assertEqual(problem.description_verified_at.date().isoformat(), "2026-10-18")
+                    self.assertEqual(
+                        problem.description_verified_at.date().isoformat(),
+                        source["descriptionVerifiedAt"][:10],
+                    )
                     self.assertIsNone(problem.time_limit_ms)
                     self.assertIsNone(problem.memory_limit_mb)
                     self.assertEqual(problem.time_complexity_instruction, source["timeComplexityInstruction"])
@@ -200,7 +223,7 @@ class ProblemSpecTests(DatabaseTestCase):
         self.assertNotIn("problem_constraints", inspector.get_table_names())
         self.assertNotIn("title", {column["name"] for column in inspector.get_columns("problems")})
         with Session(self.engine) as session:
-            self.assertEqual(len(session.execute(select(Problem.slug)).all()), 20)
+            self.assertEqual(len(session.execute(select(Problem.slug)).all()), 40)
 
         self.migrate("upgrade", "0002")
         inspector = inspect(self.engine)

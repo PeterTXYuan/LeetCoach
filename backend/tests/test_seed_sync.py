@@ -31,7 +31,7 @@ class SeedSyncTests(DatabaseTestCase):
         before = self.snapshot_ids()
         self.run_seed(CURATED_PROBLEMS, CURATED_RELATED_PROBLEMS, CURATED_PROBLEM_SPECS)
         self.assertEqual(self.snapshot_ids(), before)
-        self.assertEqual(len(before[Problem]), 20)
+        self.assertEqual(len(before[Problem]), 40)
 
     def test_source_content_changes_update_existing_rows_in_place(self):
         problems = deepcopy(CURATED_PROBLEMS)
@@ -101,14 +101,15 @@ class SeedSyncTests(DatabaseTestCase):
             untouched_related = {r.slug: r.id for r in untouched.related_problems}
             for slug, source in problems.items():
                 problem = session.scalar(select(Problem).where(Problem.slug == slug))
-                removed = next(a for a in source["approaches"] if not a["isPrimary"])
-                source["approaches"].remove(removed)
-                for order, retained in enumerate(source["approaches"], 1):
-                    retained["displayOrder"] = order
-                row = next(a for a in problem.approaches if a.approach_key == removed["id"])
-                expected_ids[Approach].remove(row.id)
-                expected_ids[RecognitionSignals].remove(row.recognition_signals.id)
-                expected_ids[RecognitionSignalBullet].difference_update(b.id for b in row.recognition_signals.bullets)
+                removed = next((a for a in source["approaches"] if not a["isPrimary"]), None)
+                if removed is not None:
+                    source["approaches"].remove(removed)
+                    for order, retained in enumerate(source["approaches"], 1):
+                        retained["displayOrder"] = order
+                    row = next(a for a in problem.approaches if a.approach_key == removed["id"])
+                    expected_ids[Approach].remove(row.id)
+                    expected_ids[RecognitionSignals].remove(row.recognition_signals.id)
+                    expected_ids[RecognitionSignalBullet].difference_update(b.id for b in row.recognition_signals.bullets)
                 # Cover both a partial removal and an entirely empty collection.
                 related[slug]["easier"].clear()
                 if slug == "two-sum":

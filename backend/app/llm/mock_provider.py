@@ -4,6 +4,8 @@ import re
 from app.llm.base import ProviderUnavailableError, validate_hints, validate_starter_code
 from app.llm.solution_validation import validate_solution
 from app.services.solution_service import MOCK_SOLUTIONS
+from app.catalog_expansion_40 import NEW_EDITORIAL
+from app.llm.catalog_mock import generate_catalog_mock
 
 
 class MockLLMProvider:
@@ -56,6 +58,10 @@ class MockLLMProvider:
         template = context["problem"]["submissionTemplate"]["code"]
         approach = context["approach"]
         slug = context["problem"]["slug"]
+        if slug in NEW_EDITORIAL:
+            return validate_starter_code(
+                generate_catalog_mock(context, language, level), template, language, level,
+            )
         if slug == "min-stack":
             return _min_stack_scaffold(template, approach["id"], language, level)
         comment = "#" if language == "python" else "//"

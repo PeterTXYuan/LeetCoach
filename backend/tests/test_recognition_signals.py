@@ -34,7 +34,7 @@ class RecognitionSignalTests(DatabaseTestCase):
                         distinct_bullets.add(tuple(signals["bullets"]))
                         self.assertNotIn("hints", served[approach["id"]])
                     self.assertEqual(len(distinct_bullets), len(problem["approaches"]))
-        self.assertGreaterEqual(count, 20)
+        self.assertEqual(count, 64)
 
 
 if __name__ == "__main__":

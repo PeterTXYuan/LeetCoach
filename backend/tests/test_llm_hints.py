@@ -86,7 +86,7 @@ class HintRouteTests(DatabaseTestCase):
         self.assertEqual(response.json()["approachId"], "scan")
         self.assertEqual(provider.contexts[0]["problem"]["constraints"], [])
 
-    def test_all_twenty_seeded_problems_are_eligible_for_mock_hints(self):
+    def test_all_forty_seeded_problems_are_eligible_for_mock_hints(self):
         for slug in CURATED_PROBLEMS:
             with self.subTest(slug=slug):
                 response = self.client.get(f"/api/problems/{slug}/hints")

@@ -26,13 +26,13 @@ from evaluation.starter_v2 import MATRIX, offline_syntax, parse_args, run
 TWO_SUM = {
     "level1": '''from typing import List
 class Solution:
-    def twoSum(self, nums: List[int], target: int) -> List[int]:
+    def twoSum(self, nums: list[int], target: int) -> list[int]:
         seen = {}
         # TODO: decide what information belongs in seen.
         raise NotImplementedError("Complete the search")''',
     "level2": '''from typing import List
 class Solution:
-    def twoSum(self, nums: List[int], target: int) -> List[int]:
+    def twoSum(self, nums: list[int], target: int) -> list[int]:
         seen = {}
         for index, value in enumerate(nums):
             # TODO: determine which earlier value could form a pair.
@@ -40,7 +40,7 @@ class Solution:
         raise NotImplementedError("Handle the result")''',
     "level3": '''from typing import List
 class Solution:
-    def twoSum(self, nums: List[int], target: int) -> List[int]:
+    def twoSum(self, nums: list[int], target: int) -> list[int]:
         seen = {}
         for index, value in enumerate(nums):
             complement = target - value
@@ -148,7 +148,7 @@ class StarterV2Tests(DatabaseTestCase):
         python = self.context()
         mutations = [
             TWO_SUM["level2"].replace("target: int", "target: str"),
-            TWO_SUM["level2"].replace("-> List[int]", "-> int"),
+            TWO_SUM["level2"].replace("-> list[int]", "-> int"),
             TWO_SUM["level2"].replace("    def twoSum", "    @staticmethod\n    def twoSum"),
             TWO_SUM["level2"] + "\n    def solve(self):\n        return 0",
             TWO_SUM["level2"] + "\n    def __init__(self, required):\n        self.required = required",
@@ -171,7 +171,7 @@ class StarterV2Tests(DatabaseTestCase):
         context = self.context()
         complete = '''from typing import List
 class Solution:
-    def twoSum(self, nums: List[int], target: int) -> List[int]:
+    def twoSum(self, nums: list[int], target: int) -> list[int]:
         seen = {}
         # TODO: review this answer.
         for index, value in enumerate(nums):
@@ -248,7 +248,7 @@ class Solution:
 
     def test_recursive_helpers_and_normal_collection_operations_are_allowed(self):
         context = self.context("maximum-depth-of-binary-tree", "depth-first-search", "python")
-        signature = "    def maxDepth(self, root: Optional[TreeNode]) -> int:"
+        signature = "    def maxDepth(self, root: TreeNode | None) -> int:"
         def scaffold(body, helper=""):
             return "from typing import Optional\nclass Solution:\n" + signature + "\n" + body + helper
         batch = {
@@ -276,7 +276,7 @@ class Solution:
         context = self.context("binary-search", "binary-search", "python")
         code = '''from typing import List
 class Solution:
-    def search(self, nums: List[int], target: int) -> int:
+    def search(self, nums: list[int], target: int) -> int:
         left, right = 0, len(nums) - 1
         while left <= right:
             middle = (left + right) // 2
@@ -350,7 +350,7 @@ class Solution:
                     with self.subTest(slug=slug, approach=approach["id"], language=language):
                         self.assertEqual(validate_starter_batch(batch, context, language, check_compilers=False), batch)
                     count += 1
-        self.assertEqual(count, 164)
+        self.assertEqual(count, 256)
 
     def test_representative_fake_groq_batches_and_available_compilers(self):
         for slug, approach, language in REPRESENTATIVE:

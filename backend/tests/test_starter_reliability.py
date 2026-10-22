@@ -42,7 +42,7 @@ class StarterReliabilityTests(DatabaseTestCase):
         self.assertIn("base-case result for the empty input", depth)
         self.assertNotIn("Compute both child depths", depth)
 
-    def test_all_492_scaffolds_and_while_placeholders(self):
+    def test_all_768_scaffolds_and_while_placeholders(self):
         count = 0
         for slug, problem in CURATED_PROBLEMS.items():
             for approach in problem["approaches"]:
@@ -71,7 +71,7 @@ class StarterReliabilityTests(DatabaseTestCase):
                                                 break
                                             body.append(following)
                                         self.assertTrue(any("throw " in row for row in body))
-        self.assertEqual(count, 492)
+        self.assertEqual(count, 768)
 
     def test_representative_unfinished_paths_in_isolated_runtime(self):
         available, reason = probe_sandbox()

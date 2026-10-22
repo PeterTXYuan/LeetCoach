@@ -45,8 +45,16 @@ Database
 
 AI
 - Current: deterministic offline MockLLMProvider or live GroqLLMProvider for Hints, Starter Code, and Full Solution
-- Offline Full Solution fixtures cover the original seven approaches across three problems; Groq uses all 20 seeded problems and 41 canonical approaches
+- Offline Full Solution fixtures cover the original seven approaches across three problems; Groq uses all 40 seeded problems and 64 canonical approaches
 - Future providers may include OpenAI, Gemini, or OpenRouter
+
+---
+
+## Phase 1 Catalog Expansion: 40 Problems (October 21, 2026 Pacific)
+
+The SQLite seed now contains exactly 40 distinct LeetCode problems and 64 stable canonical approaches. The 20 additions contribute 23 approaches, 50 ordered official examples, 60 ordered constraints, and 80 four-language submission shells. Original descriptions and paraphrased explanations accompany factual inputs, outputs, limits, and source provenance verified against each official problem page. Mandatory runtime requirements are distinguished from optional follow-ups; no execution time or memory limits were inferred. TreeNode methods and TimeMap's constructor, `set`, and `get` signatures use the platform's supplied structures.
+
+The original 20 catalog records and approach keys remain unchanged. `app/catalog_40_facts.py` holds the new source-audited facts and signature shells, `app/catalog_expansion_40.py` holds original editorial metadata, and `app/stable_data.py` and `app/verified_problem_specs.py` merge them into the existing exact-sync seed. No Alembic schema change was needed. The new generic offline mock path provides starter-only shells without inventing 92 approach/language full answers; Policy 9 Groq generation, validators, caching, and warning behavior remain unchanged. Local migration and two seed runs succeeded; 138 backend tests, 100 frontend tests, the production build, and `git diff --check` passed. A separately authorized live evaluation is still needed before claiming generated teaching quality or correctness across the larger catalog. See [backend/catalog_expansion_40_report.md](backend/catalog_expansion_40_report.md) for the per-problem source audit and verification results.
 
 ---
 
@@ -383,11 +391,11 @@ Generated Answer Flow
 
 ## Known Limitations
 
-- Practice offers manually curated related problems stored in SQLite for all 20 seeded problems. Opening a related problem does not imply full mock guidance is available for it. Progress remains a placeholder; no learning-history persistence is implemented yet.
+- Practice offers manually curated related problems stored in SQLite for all 40 seeded problems. Opening a related problem does not imply full mock guidance is available for it. Progress remains a placeholder; no learning-history persistence is implemented yet.
 - Chrome side-panel interactions still need manual browser verification after reloading the unpacked extension.
 - Hints, Starter Code, and Full Solution all use SQLite grounding and the existing mock/Groq provider. Live generation requires Groq configuration and network access. Policy 9 now blocks malformed responses, changed submission signatures, and detectable syntax errors, while teaching-quality and failed-fixture findings appear as scoped warnings with regeneration available. A warned answer may still be incorrect or unsafe to run; human review remains necessary, and representative isolated fixtures do not prove general correctness.
 - The contract-first Starter Code edit gate prevents model changes to signatures and required baseline structure, but one additive intermediate can still be unhelpful, semantically wrong, or invalid in a language whose compiler is unavailable at request time. Targeted recipe checks cannot prove all pedagogical quality. The narrower one-line contract may also reject useful AI additions; a new live run is required to measure acceptance and teaching value. Earlier Phase 2 full-file heuristics and historical live acceptance numbers cannot be treated as verification of this new contract.
-- Offline Full Solution coverage remains only Two Sum, Valid Parentheses, and Longest Substring Without Repeating Characters (seven approaches total). The other seeded approaches require configured Groq for full answers; they return 503 in offline mock mode. Hints and Starter Code still cover all 20 seeded problems.
+- Offline Full Solution coverage remains only Two Sum, Valid Parentheses, and Longest Substring Without Repeating Characters (seven approaches total). The other seeded approaches require configured Groq for full answers; they return 503 in offline mock mode. Hints and starter-only mock shells cover all 40 seeded problems; new mock shells are generic development fixtures rather than reviewed teaching content.
 - No PostgreSQL, authentication, cloud deployment, or user history yet.
 - The extension assumes the local backend is available at `http://localhost:8000`.
 

@@ -1,9 +1,10 @@
-"""Source-audited, approach-neutral restatements of the 20 supported problems.
+"""Source-audited, approach-neutral restatements of the supported problems.
 
 Descriptions and explanations are original editorial prose. Example inputs,
 outputs, and numeric constraints are factual data checked against the linked
-public LeetCode problem pages on 2026-10-18 (UTC). No page text is scraped at
-runtime, and these descriptions are not presented as verbatim LeetCode copy.
+public LeetCode problem pages. The original 20 were verified on 2026-10-18
+(UTC); the expansion has its own timestamp. No page text is fetched at
+runtime, and descriptions are not presented as verbatim LeetCode copy.
 """
 
 VERIFIED_AT = "2026-10-18T05:45:28+00:00"
@@ -63,7 +64,7 @@ VERIFIED_PROBLEM_SPECS = {
                  '[["bat"],["nat","tan"],["ate","eat","tea"]]',
                  "The six strings form three anagram groups; their ordering may vary."),
          example('strs = [""]', '[[""]]'),
-         example('strs = ["a"]', '[["a"]')]),
+         example('strs = ["a"]', '[["a"]]')]),
     "valid-palindrome": verified(
         "valid-palindrome", 125,
         "Given a printable-ASCII string s, ignore characters that are not letters or digits and compare the remaining characters without regard to letter case. Return true if that normalized sequence reads the same in both directions; otherwise return false. A sequence with no retained characters is a palindrome.",
@@ -153,7 +154,7 @@ VERIFIED_PROBLEM_SPECS = {
         time_instruction="Required: O(log n) runtime."),
     "reverse-linked-list": verified(
         "reverse-linked-list", 206,
-        "Given the head of a singly linked list, reverse the direction of its links and return the head of the resulting list. A null head represents an empty list and should produce an empty result. Each node stores a value and a reference to the next node; the result contains the same values in reverse order.",
+        "Given the head of a singly linked list, reverse the direction of its links and return the head of the resulting list. A null head represents an empty list and should produce an empty result. Each node stores a value and a reference to the next node; the result contains the same values in reverse order. Optional follow-up: implement both iterative and recursive reversal.",
         ["The linked list has 0 to 5000 nodes.", "-5000 <= Node.val <= 5000"],
         [example("head = [1,2,3,4,5]", "[5,4,3,2,1]"),
          example("head = [1,2]", "[2,1]"), example("head = []", "[]")]),
@@ -185,3 +186,20 @@ VERIFIED_PROBLEM_SPECS = {
         [example("n = 2", "2", "The move sequences are 1+1 and 2."),
          example("n = 3", "3", "The move sequences are 1+1+1, 1+2, and 2+1.")]),
 }
+
+
+# The expansion has its own fixed verification time. Keep the original 20
+# records and their provenance unchanged.
+from app.catalog_40_facts import CATALOG_40_VERIFIED_AT, NEW_FACTS
+from app.catalog_expansion_40 import NEW_EDITORIAL
+
+for _slug, _facts in NEW_FACTS.items():
+    _editorial = NEW_EDITORIAL[_slug]
+    _spec = verified(
+        _slug, _facts["leetcodeNumber"], _editorial["description"],
+        _facts["constraints"], _facts["examples"],
+        time_instruction=_editorial["timeComplexityInstruction"],
+        space_instruction=_editorial["spaceComplexityInstruction"],
+    )
+    _spec["descriptionVerifiedAt"] = CATALOG_40_VERIFIED_AT
+    VERIFIED_PROBLEM_SPECS[_slug] = _spec

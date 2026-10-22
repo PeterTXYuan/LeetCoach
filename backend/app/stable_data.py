@@ -2,6 +2,8 @@
 import re
 
 from app.verified_problem_specs import VERIFIED_PROBLEM_SPECS
+from app.catalog_40_facts import NEW_FACTS
+from app.catalog_expansion_40 import NEW_EDITORIAL
 
 
 def approach(key, name, pattern, summary, primary, order, quote, signals, thinking):
@@ -72,13 +74,13 @@ CURATED_PROBLEMS = {
     "valid-anagram": problem(
         "valid-anagram",
         approach("sorting", "Sort and Compare", "Sorting",
-                 "Sort both strings so equal character collections line up.", False, 1, "an anagram of t",
+                 "Sort both strings so equal character collections line up.", False, 1, "t is an anagram of s",
                  ["Anagrams contain the same characters in a different order.",
                   "Sorting removes the importance of the original order."],
                  ["Reject strings with different lengths.", "Sort both strings.",
                   "Compare the sorted results."]),
         approach("frequency-count", "Character Frequency Count", "Frequency Map",
-                 "Count each character and verify the counts balance.", True, 2, "using all the original letters exactly once",
+                 "Count each character and verify the counts balance.", True, 2, "t is an anagram of s",
                  ["The word “exactly” points to comparing character counts.",
                   "The positions do not matter, but the number of each character does."],
                  ["Count characters in the first string.", "Subtract counts using the second string.",
@@ -133,13 +135,13 @@ CURATED_PROBLEMS = {
         "3sum",
         approach("brute-force", "Try Every Triplet", "Nested Loops",
                  "Check every group of three indices and keep unique zero-sum triplets.", False, 1,
-                 "three integers such that their sum is zero", ["The problem asks for groups of exactly three values.",
+                 "return all the triplets", ["The problem asks for groups of exactly three values.",
                   "Trying every triplet establishes a straightforward baseline."],
                  ["Choose three distinct indices.", "Check whether their values total zero.",
                   "Avoid returning the same value triplet twice."]),
         approach("sort-and-two-pointers", "Sort with Two Pointers", "Sorting + Two Pointers",
                  "Fix one sorted value and find the remaining pair with two pointers.", True, 2,
-                 "unique triplets", ["Fixing one value turns the task into a two-number sum.",
+                 "must not contain duplicate triplets", ["Fixing one value turns the task into a two-number sum.",
                   "Sorting helps move toward the target and skip duplicate triplets."],
                  ["Sort the values and fix one position.", "Search the remaining range from both ends.",
                   "Move pointers by the sum and skip duplicates."]),
@@ -148,7 +150,7 @@ CURATED_PROBLEMS = {
         "best-time-to-buy-and-sell-stock",
         approach("brute-force", "Try Every Buy and Sell Day", "Nested Loops",
                  "Compare every earlier buy day with every later sell day.", False, 1,
-                 "choose a single day to buy ... and a different day in the future to sell",
+                 "choosing a single day to buy one stock",
                  ["The answer depends on an ordered pair of days.",
                   "Trying every valid buy-before-sell pair is a direct baseline."],
                  ["Choose each possible buy day.", "Check every later sell day.",
@@ -186,7 +188,7 @@ CURATED_PROBLEMS = {
         "longest-repeating-character-replacement",
         approach("brute-force-windows", "Check Every Window", "Brute Force",
                  "Test every substring by counting how many replacements it needs.", False, 1,
-                 "replace any character ... at most k times", ["The answer is a continuous substring.",
+                 "at most k times", ["The answer is a continuous substring.",
                   "Any chosen window is valid if only a small number of its characters must change."],
                  ["Choose every substring.", "Find its most common character.",
                   "Compare required replacements with k."]),
@@ -214,8 +216,8 @@ CURATED_PROBLEMS = {
     ),
     "min-stack": problem(
         "min-stack",
-        approach("scan-for-minimum", "Scan for the Minimum", "Stack + Linear Scan",
-                 "A simple baseline that scans for the minimum; it does not meet the required O(1) getMin time.", False, 1,
+        approach("scan-for-minimum", "Scan for the Minimum (Teaching-Only Baseline)", "Stack + Linear Scan",
+                 "Teaching-only baseline: scanning for the minimum does not meet the required O(1) getMin time and is not a submission-compliant solution.", False, 1,
                  "retrieving the minimum element", ["A regular stack already handles push, pop, and top.",
                   "Scanning all stored values is a simple baseline for minimum."],
                  ["Keep a normal stack.", "Use normal stack operations.",
@@ -231,7 +233,7 @@ CURATED_PROBLEMS = {
         "daily-temperatures",
         approach("forward-scan", "Scan Future Days", "Nested Loops",
                  "For each day, scan forward until a warmer temperature appears.", False, 1,
-                 "how many days you have to wait", ["Each answer asks about a later position.",
+                 "number of days you have to wait", ["Each answer asks about a later position.",
                   "Looking forward from every day is the direct baseline."],
                  ["Start from each day.", "Move forward until a warmer day appears.",
                   "Record the distance or zero."]),
@@ -244,8 +246,8 @@ CURATED_PROBLEMS = {
     ),
     "binary-search": problem(
         "binary-search",
-        approach("linear-scan", "Linear Scan", "Array Traversal",
-                 "A correctness baseline that checks values in order; it does not meet the required O(log n) time.", False, 1,
+        approach("linear-scan", "Linear Scan (Teaching-Only Baseline)", "Array Traversal",
+                 "Teaching-only baseline: checking values in order does not meet the required O(log n) time and is not a submission-compliant solution.", False, 1,
                  "sorted in ascending order", ["A scan works even without using the sorted order.",
                   "It is a useful correctness baseline."],
                  ["Visit each index.", "Compare its value with target.", "Return the matching index or -1."]),
@@ -258,9 +260,9 @@ CURATED_PROBLEMS = {
     ),
     "search-in-rotated-sorted-array": problem(
         "search-in-rotated-sorted-array",
-        approach("linear-scan", "Linear Scan", "Array Traversal",
-                 "A correctness baseline that checks every value; it does not meet the required O(log n) time.", False, 1,
-                 "return its index", ["A direct scan always finds a target if it exists.",
+        approach("linear-scan", "Linear Scan (Teaching-Only Baseline)", "Array Traversal",
+                 "Teaching-only baseline: checking every value does not meet the required O(log n) time and is not a submission-compliant solution.", False, 1,
+                 "return the index of target", ["A direct scan always finds a target if it exists.",
                   "It provides a baseline before using the array's structure."],
                  ["Visit each index.", "Compare with target.", "Return -1 if no value matches."]),
         approach("modified-binary-search", "Modified Binary Search", "Binary Search",
@@ -335,7 +337,7 @@ CURATED_PROBLEMS = {
         "climbing-stairs",
         approach("memoized-recursion", "Memoized Recursion", "Dynamic Programming",
                  "Cache the number of ways from each step so repeated subproblems are solved once.", False, 1,
-                 "either 1 or 2 steps", ["Every route starts with a one-step or two-step choice.",
+                 "climb 1 or 2 steps", ["Every route starts with a one-step or two-step choice.",
                   "Those choices lead to the same smaller stair counts many times."],
                  ["Define ways for the remaining steps.", "Add the one-step and two-step cases.",
                   "Cache each result."]),
@@ -349,12 +351,18 @@ CURATED_PROBLEMS = {
 }
 
 
+CURATED_PROBLEMS.update({
+    slug: problem(slug, *editorial["approaches"])
+    for slug, editorial in NEW_EDITORIAL.items()
+})
+
+
 CURATED_PROBLEM_SPECS = {
     "two-sum": {
         "title": "Two Sum", "difficulty": "Easy",
         "summary": "Given an integer array and a target, return the indices of two distinct elements whose values add up to the target.",
         "submissionTemplates": method_templates(
-            "twoSum(self, nums: List[int], target: int) -> List[int]",
+            "twoSum(self, nums: list[int], target: int) -> list[int]",
             "int[] twoSum(int[] nums, int target)",
             "twoSum = function(nums, target)",
             "vector<int> twoSum(vector<int>& nums, int target)"),
@@ -363,7 +371,7 @@ CURATED_PROBLEM_SPECS = {
         "title": "Contains Duplicate", "difficulty": "Easy",
         "summary": "Given an integer array, return whether any value occurs at least twice.",
         "submissionTemplates": method_templates(
-            "containsDuplicate(self, nums: List[int]) -> bool",
+            "containsDuplicate(self, nums: list[int]) -> bool",
             "boolean containsDuplicate(int[] nums)",
             "containsDuplicate = function(nums)",
             "bool containsDuplicate(vector<int>& nums)"),
@@ -381,7 +389,7 @@ CURATED_PROBLEM_SPECS = {
         "title": "Group Anagrams", "difficulty": "Medium",
         "summary": "Given a list of strings, group together strings that are anagrams of one another.",
         "submissionTemplates": method_templates(
-            "groupAnagrams(self, strs: List[str]) -> List[List[str]]",
+            "groupAnagrams(self, strs: list[str]) -> list[list[str]]",
             "List<List<String>> groupAnagrams(String[] strs)",
             "groupAnagrams = function(strs)",
             "vector<vector<string>> groupAnagrams(vector<string>& strs)"),
@@ -399,7 +407,7 @@ CURATED_PROBLEM_SPECS = {
         "title": "Two Sum II - Input Array Is Sorted", "difficulty": "Medium",
         "summary": "Given a non-decreasing integer array and a target, return the one-based indices of two distinct elements whose values add up to the target.",
         "submissionTemplates": method_templates(
-            "twoSum(self, numbers: List[int], target: int) -> List[int]",
+            "twoSum(self, numbers: list[int], target: int) -> list[int]",
             "int[] twoSum(int[] numbers, int target)",
             "twoSum = function(numbers, target)",
             "vector<int> twoSum(vector<int>& numbers, int target)"),
@@ -408,7 +416,7 @@ CURATED_PROBLEM_SPECS = {
         "title": "3Sum", "difficulty": "Medium",
         "summary": "Given an integer array, return all unique value triplets whose sum is zero.",
         "submissionTemplates": method_templates(
-            "threeSum(self, nums: List[int]) -> List[List[int]]",
+            "threeSum(self, nums: list[int]) -> list[list[int]]",
             "List<List<Integer>> threeSum(int[] nums)",
             "threeSum = function(nums)",
             "vector<vector<int>> threeSum(vector<int>& nums)"),
@@ -417,7 +425,7 @@ CURATED_PROBLEM_SPECS = {
         "title": "Best Time to Buy and Sell Stock", "difficulty": "Easy",
         "summary": "Given daily stock prices, return the largest profit from one buy followed by one later sale, or zero if no profit is possible.",
         "submissionTemplates": method_templates(
-            "maxProfit(self, prices: List[int]) -> int",
+            "maxProfit(self, prices: list[int]) -> int",
             "int maxProfit(int[] prices)",
             "maxProfit = function(prices)",
             "int maxProfit(vector<int>& prices)"),
@@ -453,17 +461,17 @@ CURATED_PROBLEM_SPECS = {
         "title": "Min Stack", "difficulty": "Medium",
         "summary": "Design a stack supporting push, pop, top, and retrieval of the current minimum element, with each operation running in constant time.",
         "submissionTemplates": {
-            "python": "class MinStack:\n    def __init__(self):\n        pass\n\n    def push(self, val: int) -> None:\n        pass\n\n    def pop(self) -> None:\n        pass\n\n    def top(self) -> int:\n        pass\n\n    def getMin(self) -> int:\n        pass",
-            "java": "class MinStack {\n    public MinStack() {\n\n    }\n\n    public void push(int val) {\n\n    }\n\n    public void pop() {\n\n    }\n\n    public int top() {\n\n    }\n\n    public int getMin() {\n\n    }\n}",
-            "javascript": "var MinStack = function() {\n\n};\n\nMinStack.prototype.push = function(val) {\n\n};\n\nMinStack.prototype.pop = function() {\n\n};\n\nMinStack.prototype.top = function() {\n\n};\n\nMinStack.prototype.getMin = function() {\n\n};",
-            "cpp": "class MinStack {\npublic:\n    MinStack() {\n\n    }\n\n    void push(int val) {\n\n    }\n\n    void pop() {\n\n    }\n\n    int top() {\n\n    }\n\n    int getMin() {\n\n    }\n};",
+            "python": "class MinStack:\n    def __init__(self):\n        pass\n\n    def push(self, value: int) -> None:\n        pass\n\n    def pop(self) -> None:\n        pass\n\n    def top(self) -> int:\n        pass\n\n    def getMin(self) -> int:\n        pass",
+            "java": "class MinStack {\n    public MinStack() {\n\n    }\n\n    public void push(int value) {\n\n    }\n\n    public void pop() {\n\n    }\n\n    public int top() {\n\n    }\n\n    public int getMin() {\n\n    }\n}",
+            "javascript": "var MinStack = function() {\n\n};\n\nMinStack.prototype.push = function(value) {\n\n};\n\nMinStack.prototype.pop = function() {\n\n};\n\nMinStack.prototype.top = function() {\n\n};\n\nMinStack.prototype.getMin = function() {\n\n};",
+            "cpp": "class MinStack {\npublic:\n    MinStack() {\n\n    }\n\n    void push(int value) {\n\n    }\n\n    void pop() {\n\n    }\n\n    int top() {\n\n    }\n\n    int getMin() {\n\n    }\n};",
         },
     },
     "daily-temperatures": {
         "title": "Daily Temperatures", "difficulty": "Medium",
         "summary": "For each daily temperature, return how many days must pass before a warmer temperature occurs, using zero when none occurs.",
         "submissionTemplates": method_templates(
-            "dailyTemperatures(self, temperatures: List[int]) -> List[int]",
+            "dailyTemperatures(self, temperatures: list[int]) -> list[int]",
             "int[] dailyTemperatures(int[] temperatures)",
             "dailyTemperatures = function(temperatures)",
             "vector<int> dailyTemperatures(vector<int>& temperatures)"),
@@ -472,7 +480,7 @@ CURATED_PROBLEM_SPECS = {
         "title": "Binary Search", "difficulty": "Easy",
         "summary": "Given a sorted array of distinct integers and a target, return its index or -1 when it is absent.",
         "submissionTemplates": method_templates(
-            "search(self, nums: List[int], target: int) -> int",
+            "search(self, nums: list[int], target: int) -> int",
             "int search(int[] nums, int target)",
             "search = function(nums, target)",
             "int search(vector<int>& nums, int target)"),
@@ -481,7 +489,7 @@ CURATED_PROBLEM_SPECS = {
         "title": "Search in Rotated Sorted Array", "difficulty": "Medium",
         "summary": "Given a distinct ascending array that may have been rotated and a target, return the target index or -1 if absent.",
         "submissionTemplates": method_templates(
-            "search(self, nums: List[int], target: int) -> int",
+            "search(self, nums: list[int], target: int) -> int",
             "int search(int[] nums, int target)",
             "search = function(nums, target)",
             "int search(vector<int>& nums, int target)"),
@@ -490,7 +498,7 @@ CURATED_PROBLEM_SPECS = {
         "title": "Reverse Linked List", "difficulty": "Easy",
         "summary": "Given the head of a singly linked list, reverse the list and return its new head.",
         "submissionTemplates": method_templates(
-            "reverseList(self, head: Optional[ListNode]) -> Optional[ListNode]",
+            "reverseList(self, head: ListNode | None) -> ListNode | None",
             "ListNode reverseList(ListNode head)",
             "reverseList = function(head)",
             "ListNode* reverseList(ListNode* head)"),
@@ -499,7 +507,7 @@ CURATED_PROBLEM_SPECS = {
         "title": "Merge Two Sorted Lists", "difficulty": "Easy",
         "summary": "Merge two non-decreasing singly linked lists by reusing their nodes and return the head of the merged sorted list.",
         "submissionTemplates": method_templates(
-            "mergeTwoLists(self, list1: Optional[ListNode], list2: Optional[ListNode]) -> Optional[ListNode]",
+            "mergeTwoLists(self, list1: ListNode | None, list2: ListNode | None) -> ListNode | None",
             "ListNode mergeTwoLists(ListNode list1, ListNode list2)",
             "mergeTwoLists = function(list1, list2)",
             "ListNode* mergeTwoLists(ListNode* list1, ListNode* list2)"),
@@ -508,7 +516,7 @@ CURATED_PROBLEM_SPECS = {
         "title": "Maximum Depth of Binary Tree", "difficulty": "Easy",
         "summary": "Given a binary tree root, return the number of nodes on the longest path from the root to a leaf.",
         "submissionTemplates": method_templates(
-            "maxDepth(self, root: Optional[TreeNode]) -> int",
+            "maxDepth(self, root: TreeNode | None) -> int",
             "int maxDepth(TreeNode root)",
             "maxDepth = function(root)",
             "int maxDepth(TreeNode* root)"),
@@ -533,6 +541,16 @@ CURATED_PROBLEM_SPECS = {
     },
 }
 
+
+CURATED_PROBLEM_SPECS.update({
+    slug: {
+        "title": facts["title"],
+        "difficulty": facts["difficulty"],
+        "summary": NEW_EDITORIAL[slug]["summary"],
+        "submissionTemplates": facts["submissionTemplates"],
+    }
+    for slug, facts in NEW_FACTS.items()
+})
 
 if set(CURATED_PROBLEM_SPECS) != set(VERIFIED_PROBLEM_SPECS):
     raise ValueError("Every supported problem needs a source-audited specification.")
@@ -653,6 +671,19 @@ CURATED_RELATED_PROBLEMS = {
         "harder": [related("decode-ways", "Decode Ways", "Medium", "Count paths with more restrictive transitions.")],
     },
 }
+
+
+CURATED_RELATED_PROBLEMS.update({
+    slug: {
+        category: [
+            related(other_slug, CURATED_PROBLEM_SPECS[other_slug]["title"],
+                    CURATED_PROBLEM_SPECS[other_slug]["difficulty"], reason)
+            for other_slug, reason in editorial["related"][category]
+        ]
+        for category in ("easier", "similar", "harder")
+    }
+    for slug, editorial in NEW_EDITORIAL.items()
+})
 
 
 def validate_curated_data(

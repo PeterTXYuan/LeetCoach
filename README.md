@@ -19,7 +19,7 @@ The first milestone focuses on a small working loop:
 
 ## Current Status
 
-The React/TypeScript side panel supports progressive hints, three levels of approach-specific Starter Code, selected-approach thinking steps, and curated full answers. The local SQLite catalog covers 20 problems. The original three problems retain complete mock hints, Starter Code, and Full Solutions in Python, Java, JavaScript, and C++.
+The React/TypeScript side panel supports progressive hints, three levels of approach-specific Starter Code, selected-approach thinking steps, and curated full answers. The local SQLite catalog covers 40 problems. The original three problems retain complete mock hints, Starter Code, and Full Solutions in Python, Java, JavaScript, and C++; the expanded catalog uses lightweight offline starter-only shells or configured Policy 9 linked Groq guidance.
 
 After selecting an approach, reveal Recognition Signals inside Solutions, between Summary and Generate Answer, for short clues that connect the problem statement to that approach.
 

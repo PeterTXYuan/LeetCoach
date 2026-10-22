@@ -18,7 +18,7 @@ from app.services.problem_repository import find_problem_context
 ANSWER = {
     "code": '''from typing import List
 class Solution:
-    def twoSum(self, nums: List[int], target: int) -> List[int]:
+    def twoSum(self, nums: list[int], target: int) -> list[int]:
         seen = {}
         for index, value in enumerate(nums):
             complement = target - value
@@ -124,7 +124,7 @@ class LinkedGuidanceTests(DatabaseTestCase):
     def test_minimal_level_and_long_correct_complexity_text_are_accepted(self):
         output = self.payload()
         output["level1"] = ("from typing import List\nclass Solution:\n"
-            "    def twoSum(self, nums: List[int], target: int) -> List[int]:\n"
+            "    def twoSum(self, nums: list[int], target: int) -> list[int]:\n"
             "        # TODO: implement the hash-map approach\n"
             "        raise NotImplementedError('not implemented')")
         output["solution"]["timeComplexity"] = (
@@ -211,7 +211,7 @@ class LinkedGuidanceTests(DatabaseTestCase):
     def test_binary_search_stages_retain_bounds_and_complete_the_search(self):
         with Session(self.engine) as session:
             context = find_problem_context(session, "binary-search", "binary-search", "python")
-        head = "class Solution:\n    def search(self, nums: List[int], target: int) -> int:\n"
+        head = "class Solution:\n    def search(self, nums: list[int], target: int) -> int:\n"
         setup = "        left, right = 0, len(nums) - 1\n"
         levels = {
             "level1": head + setup + "        # TODO: search within the current bounds.\n        raise NotImplementedError('search')",
@@ -234,7 +234,7 @@ class LinkedGuidanceTests(DatabaseTestCase):
     def test_reverse_linked_list_stages_retain_pointer_state(self):
         with Session(self.engine) as session:
             context = find_problem_context(session, "reverse-linked-list", "iterative-pointers", "python")
-        head = "class Solution:\n    def reverseList(self, head: Optional[ListNode]) -> Optional[ListNode]:\n"
+        head = "class Solution:\n    def reverseList(self, head: ListNode | None) -> ListNode | None:\n"
         setup = "        previous = None\n        current = head\n"
         levels = {
             "level1": head + setup + "        # TODO: reverse each link.\n        raise NotImplementedError('links')",
@@ -299,11 +299,11 @@ class LinkedGuidanceTests(DatabaseTestCase):
         def version(level):
             push = (todo("store value with minimum") if level == 1 else
                     previous + (todo("finish pair insertion") if level == 2 else
-                    "    this.stack.push([val, Math.min(previous, val)]);"))
+                    "    this.stack.push([value, Math.min(previous, value)]);"))
             pop = todo("remove the last pair") if level < 4 else "    this.stack.pop();"
             top = todo("read the last value") if level < 3 else "    return this.stack[this.stack.length - 1][0];"
             minimum = todo("read the last minimum") if level < 4 else "    return this.stack[this.stack.length - 1][1];"
-            return (constructor + method("push", "val", push) + method("pop", "", pop) +
+            return (constructor + method("push", "value", push) + method("pop", "", pop) +
                     method("top", "", top) + method("getMin", "", minimum))
         levels = {"level1": version(1), "level2": version(2), "level3": version(3),
                   "solution": {**ANSWER, "code": version(4)}}

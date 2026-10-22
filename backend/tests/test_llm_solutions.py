@@ -34,7 +34,7 @@ class FullSolutionTests(DatabaseTestCase):
             return find_problem_context(session, slug, approach, language)
 
     def test_all_curated_problem_approach_language_contexts_resolve_from_db(self):
-        self.assertEqual(len(CURATED_PROBLEMS), 20)
+        self.assertEqual(len(CURATED_PROBLEMS), 40)
         for slug, problem in CURATED_PROBLEMS.items():
             for approach in problem["approaches"]:
                 for language in LANGUAGES:

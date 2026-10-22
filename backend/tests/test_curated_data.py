@@ -19,23 +19,30 @@ EXPECTED_SLUGS = {
     "daily-temperatures", "binary-search", "search-in-rotated-sorted-array",
     "reverse-linked-list", "merge-two-sorted-lists", "maximum-depth-of-binary-tree",
     "number-of-islands", "climbing-stairs",
+    "product-of-array-except-self", "top-k-frequent-elements",
+    "longest-consecutive-sequence", "valid-sudoku", "container-with-most-water",
+    "evaluate-reverse-polish-notation", "generate-parentheses", "car-fleet",
+    "find-minimum-in-rotated-sorted-array", "search-a-2d-matrix",
+    "koko-eating-bananas", "time-based-key-value-store", "permutation-in-string",
+    "invert-binary-tree", "same-tree", "diameter-of-binary-tree",
+    "balanced-binary-tree", "rotting-oranges", "house-robber", "coin-change",
 }
 
 
 class CuratedDataTests(unittest.TestCase):
-    def test_catalog_has_the_requested_twenty_problems_and_valid_approaches(self):
+    def test_catalog_has_the_requested_forty_problems_and_valid_approaches(self):
         validate_curated_data()
         self.assertEqual(set(CURATED_PROBLEMS), EXPECTED_SLUGS)
         self.assertEqual(set(CURATED_PROBLEM_SPECS), EXPECTED_SLUGS)
         self.assertEqual(set(CURATED_RELATED_PROBLEMS), EXPECTED_SLUGS)
-        self.assertEqual(sum(len(p["approaches"]) for p in CURATED_PROBLEMS.values()), 41)
+        self.assertEqual(sum(len(p["approaches"]) for p in CURATED_PROBLEMS.values()), 64)
         self.assertEqual(sum(
             len(a["recognitionSignals"]["bullets"])
             for p in CURATED_PROBLEMS.values() for a in p["approaches"]
-        ), 84)
+        ), 130)
         self.assertEqual(sum(
             len(cards) for groups in CURATED_RELATED_PROBLEMS.values() for cards in groups.values()
-        ), 68)
+        ), 108)
         for slug, spec in CURATED_PROBLEM_SPECS.items():
             with self.subTest(problem_spec=slug):
                 self.assertIn(spec["difficulty"], {"Easy", "Medium", "Hard"})

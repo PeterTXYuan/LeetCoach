@@ -51,7 +51,7 @@ class DatabaseTests(DatabaseTestCase):
 
     def test_seed_repeats_preserve_counts_ids_and_restore_curated_content(self):
         before = self.snapshot_ids()
-        self.assertEqual(len(before["problems"]), 20)
+        self.assertEqual(len(before["problems"]), 40)
         with Session(self.engine) as session, session.begin():
             session.scalar(select(Approach)).summary = "Changed summary"
             session.scalar(select(RecognitionSignals)).quote = "Changed quote"
@@ -64,8 +64,8 @@ class DatabaseTests(DatabaseTestCase):
             with Session(self.engine) as session, session.begin():
                 seed_data(session)
         after = self.snapshot_ids()
-        self.assertEqual(after["problems"][:20], before["problems"])
-        self.assertEqual(len(after["problems"]), 21)
+        self.assertEqual(after["problems"][:40], before["problems"])
+        self.assertEqual(len(after["problems"]), 41)
         for table in before.keys() - {"problems"}:
             self.assertEqual(after[table], before[table])
         self.test_existing_api_payloads_are_unchanged()
