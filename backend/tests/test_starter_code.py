@@ -271,7 +271,7 @@ class StarterCodeTests(DatabaseTestCase):
         codes = [MockLLMProvider().generate_starter_code(context, "java", level)
                  for level in (1, 2, 3)]
         for code in codes:
-            for signature in ("public MinStack()", "public void push(int val)",
+            for signature in ("public MinStack()", "public void push(int value)",
                               "public void pop()", "public int top()", "public int getMin()"):
                 self.assertIn(signature, code)
             self.assertIn("Deque<int[]> pairs", code)

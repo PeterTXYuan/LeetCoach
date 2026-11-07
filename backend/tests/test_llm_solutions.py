@@ -89,7 +89,7 @@ class FullSolutionTests(DatabaseTestCase):
                 self.received = (received, language)
                 return {
                     "code": "from typing import List\n\nclass Solution:\n"
-                            "    def containsDuplicate(self, nums: List[int]) -> bool:\n"
+                            "    def containsDuplicate(self, nums: list[int]) -> bool:\n"
                             "        return len(set(nums)) != len(nums)",
                     "explanation": "A set keeps each distinct value once. A shorter set means a duplicate exists.",
                     "timeComplexity": "O(n)", "spaceComplexity": "O(n)",
@@ -192,7 +192,7 @@ class FullSolutionTests(DatabaseTestCase):
         examples = (
             ("3sum", "sort-and-two-pointers", """from typing import List
 class Solution:
-    def threeSum(self, nums: List[int]) -> List[List[int]]:
+    def threeSum(self, nums: list[int]) -> list[list[int]]:
         nums.sort()
         result = []
         for i in range(len(nums) - 2):
@@ -221,7 +221,7 @@ assert solver.threeSum([0, 0, 0, 0]) == [[0, 0, 0]]
 assert solver.threeSum([1, 2, -2, -1]) == []""", "O(n^2)", "O(n) excluding output"),
             ("binary-search", "binary-search", """from typing import List
 class Solution:
-    def search(self, nums: List[int], target: int) -> int:
+    def search(self, nums: list[int], target: int) -> int:
         low, high = 0, len(nums) - 1
         while low <= high:
             mid = low + (high - low) // 2
@@ -242,9 +242,9 @@ assert solver.search([5], 4) == -1""", "O(log n)", "O(1)"),
     def __init__(self):
         self.values = []
 
-    def push(self, val: int) -> None:
-        minimum = min(val, self.values[-1][1]) if self.values else val
-        self.values.append((val, minimum))
+    def push(self, value: int) -> None:
+        minimum = min(value, self.values[-1][1]) if self.values else value
+        self.values.append((value, minimum))
 
     def pop(self) -> None:
         self.values.pop()

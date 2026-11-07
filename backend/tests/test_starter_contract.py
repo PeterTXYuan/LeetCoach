@@ -204,7 +204,7 @@ class StarterContractTests(DatabaseTestCase):
         template = context["problem"]["submissionTemplate"]["code"]
         historical = (
             "class Solution:\n"
-            "    def maxDepth(self, root: Optional[TreeNode]) -> int:\n"
+            "    def maxDepth(self, root: TreeNode | None) -> int:\n"
             "        if not root:\n            return 0\n"
             "        left_depth = self.maxDepth(root.left)\n"
             "        # TODO: compute depth of right subtree\n"

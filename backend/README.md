@@ -37,7 +37,7 @@ py -m uvicorn app.main:app --reload
 
 Relative SQLite paths resolve from `backend/`; an absolute URL such as `sqlite:///C:/path/to/leetcoach.db` also works. Parent directories must already exist. Restart the server after changing the URL. On Windows, `py` can replace `python` in all commands.
 
-The seed command runs in one transaction and currently syncs 20 problem specifications, 41 approaches, 41 recognition signal sets (84 ordered bullets), and 68 related cards. Stable editorial data lives in `app/stable_data.py`, independently of the three-problem mock guidance fixtures. For each problem present in the curated source, constraints, examples, submission templates, approaches, and related cards exactly match that source: missing children are inserted, existing children are updated, and stale children are deleted. Approach deletion also removes its recognition metadata; obsolete ordered rows are cleaned up. Retained records keep their internal IDs, including related cards moved between categories, and repeated runs create no duplicates. Problem rows outside the current seeded dataset and all their children are left untouched. This is a local editorial bootstrap, not a concurrent import service.
+The seed command runs in one transaction and currently syncs 40 problem specifications, 64 approaches, 64 recognition signal sets (130 ordered bullets), 108 related cards, 103 examples, 115 constraints, and 160 language templates. Stable editorial data lives in `app/stable_data.py` and `app/verified_problem_specs.py`, independently of the original three-problem mock guidance fixtures. For each problem present in the curated source, constraints, examples, submission templates, approaches, and related cards exactly match that source: missing children are inserted, existing children are updated, and stale children are deleted. Approach deletion also removes its recognition metadata; obsolete ordered rows are cleaned up. Retained records keep their internal IDs, including related cards moved between categories, and repeated runs create no duplicates. Problem rows outside the current seeded dataset and all their children are left untouched. This is a local editorial bootstrap, not a concurrent import service.
 
 For schema changes, edit `app/models.py`, then run:
 
@@ -49,6 +49,22 @@ python -m alembic check
 ```
 
 `python -m alembic current` reports the applied revision. `0001` creates stable approach metadata; `0002` adds Problem Specification / LLM-grounding data. A downgrade to `base` drops these tables and their data; upgrade/downgrade round trips are tested only on disposable test databases. Back up local data before destructive schema work.
+
+## Reviewed JSON catalog importer
+
+The importer MVP accepts one reviewed `<slug>.json` file per new problem in a local directory. It does not fetch web content or generate editorial text. Each file has `slug`, `spec`, `approaches`, `related`, and `provenance` keys. `spec` uses the same keys as `CURATED_PROBLEM_SPECS` in `app/stable_data.py`, including an original description, ordered constraints/examples, and nonempty `python`, `java`, `javascript`, and `cpp` submission templates. `approaches` uses the existing canonical approach IDs, thinking steps, and Recognition Signals shape. `related` has `easier`, `similar`, and `harder` arrays of the existing card shape. The synthetic fixtures in `tests/test_catalog_import.py` show complete JSON-compatible records; they are test data, not catalog additions.
+
+`provenance` must explicitly include `reviewed: true`, a nonempty `reviewedBy` and `permissionNote`, an HTTPS `sourceUrl` for the actual reference or licensed source, a timezone-aware `reviewedAt` matching `spec.descriptionVerifiedAt`, `collectionMethod` (`manual_review` or `authorized_export`), and `reuseBasis` (`original_editorial` or `authorized_reuse`). `spec.descriptionSourceUrl` remains the canonical problem URL required by the existing seed contract. These fields record editorial review; the importer cannot determine whether source facts or reuse permissions are correct.
+
+After migrations and the original seed, run from `backend/` with the same `LEETCOACH_DATABASE_URL` for every command:
+
+```bash
+python -m app.catalog_import validate --input-dir catalog/problems
+python -m app.catalog_import plan --input-dir catalog/problems
+python -m app.catalog_import apply --input-dir catalog/problems
+```
+
+`validate` reads JSON only. `plan` reads the database and reports slugs to create, update, or leave unchanged, plus child deletions within present slugs. `apply` uses one transaction and the existing exact-sync `seed_data()` for the present JSON slugs only. The original 40 are excluded, and a missing JSON file never deletes an existing Problem row. An empty or missing input directory is an error. A fresh database needs `app.seed` followed by this import; rerun the import to refresh previously imported problems. There are no real catalog JSON files in this MVP.
 
 ## Hint provider
 
@@ -95,7 +111,7 @@ SQLite foreign keys are enabled on every connection, with cascading deletion of 
 
 Hints, Starter Code, and Full Solution resolve canonical problem/approach IDs and factual context from SQLite, then use the configured mock/Groq provider. `/health` remains a process health check, not a database readiness check.
 
-The analysis response includes `recognitionSignals` on each canonical approach: an optional `quote` string and a `bullets` string array. All 41 seeded approaches have two or three short recognition cues. This metadata is stored directly with its approach and revealed locally in Coach, without an additional endpoint or request.
+The analysis response includes `recognitionSignals` on each canonical approach: an optional `quote` string and a `bullets` string array. All 64 seeded approaches have two or three short recognition cues. This metadata is stored directly with its approach and revealed locally in Coach, without an additional endpoint or request.
 
 ### Linked Coach guidance policy 9
 
@@ -137,7 +153,7 @@ py -B -m evaluation.starter_v2 --live --max-calls 8 --pace-seconds 12 --capture-
 
 The matrix spans Two Sum, 3Sum, Binary Search, Min Stack, Reverse Linked List, Maximum Depth, Number of Islands and Climbing Stairs across all four languages. Each row generates all three levels in one request. The harness records actual SDK call observations, API results, rejection reasons, per-level syntax/structural checks, human-review markers for progression/leakage/incomplete paths, latency and available token usage. Provider outages/rate limits stop the run; no automatic retries occur. Raw capture is explicit and output remains gitignored. Compare request and level denominators separately with the prior 19 single-level cases. This implementation does not establish better live model reliability.
 
-Related-problem responses include `slug` and three arrays: `easier`, `similar`, and `harder`. Each entry has `slug`, `title`, `difficulty` (`Easy`, `Medium`, or `Hard`), and an optional `reason`. All 20 seeded problems have manually curated SQLite rows from `app/stable_data.py`; an unknown source problem returns 404. A category may be empty when there is no useful recommendation. Group placement is editorial and does not compute prerequisites or learning paths. Related targets can be outside the Coach dataset.
+Related-problem responses include `slug` and three arrays: `easier`, `similar`, and `harder`. Each entry has `slug`, `title`, `difficulty` (`Easy`, `Medium`, or `Hard`), and an optional `reason`. The 40 seeded problems have manually curated SQLite rows; an unknown source problem returns 404. A category may be empty when there is no useful recommendation. Group placement is editorial and does not compute prerequisites or learning paths. Related targets can be outside the Coach dataset.
 
 ## Tests
 
@@ -148,7 +164,7 @@ python -m pip install -r backend/requirements-dev.txt
 python -B -m unittest discover -s backend/tests
 ```
 
-On Windows, use `py` if `python` is not on PATH. The suite checks the 20-problem catalog and specifications, all 80 language templates, full-answer snippets, all 164 mock Starter Code batches (492 levels), and the retained legacy scaffolds. Batch regressions test interface preservation, unfinished work, progression, normal library operations, recursive helpers, and representative compilation across all four languages. Providers are mocked; no real Groq calls are required. Database tests use disposable migrated SQLite files and preserve exact-sync, stable-ID and unrelated-row guarantees. Coverage includes revisions `0001` through `0003`, ordered facts, API parity, persistence, uniqueness, cascades, rollback, and migration/model consistency. Historical evaluation tests also inspect the existing local seeded DB, which must be migrated to head as described above.
+On Windows, use `py` if `python` is not on PATH. The suite checks the 40-problem catalog and specifications, all 160 language templates, curated full-answer snippets, all 256 offline Starter Code batches (768 levels), and the retained legacy scaffolds. Batch regressions test interface preservation, unfinished work, progression, normal library operations, recursive helpers, and representative compilation across all four languages. Providers are mocked; no real Groq calls are required. Database tests use disposable migrated SQLite files and preserve exact-sync, stable-ID and unrelated-row guarantees. Coverage includes revisions `0001` through `0003`, ordered facts, API parity, persistence, uniqueness, cascades, rollback, and migration/model consistency. Historical evaluation tests also inspect the existing local seeded DB, which must be migrated to head as described above.
 
 ## Live LLM evaluation
 

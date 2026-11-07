@@ -220,6 +220,15 @@ class Solution:
         for case in cases:
             slug, language = case["slug"], case["language"]
             context = self.context(slug, case["approachId"], language)
+            # Replay against the declarations used when these historical outputs
+            # were captured; the current catalog now uses official declarations.
+            template = context["problem"]["submissionTemplate"]
+            if (slug, language) == ("two-sum", "python"):
+                template["code"] = template["code"].replace("list[int]", "List[int]")
+            elif (slug, language) == ("reverse-linked-list", "python"):
+                template["code"] = template["code"].replace("ListNode | None", "Optional[ListNode]")
+            elif (slug, language) == ("min-stack", "javascript"):
+                template["code"] = template["code"].replace("function(value)", "function(val)")
             levels = case["levels"]
             with self.subTest(slug=slug, language=language):
                 decisions = tuple(verdict(lambda n=n, key=key: validate_level(levels[key], context, language, n))
