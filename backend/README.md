@@ -64,7 +64,20 @@ python -m app.catalog_import plan --input-dir catalog/problems
 python -m app.catalog_import apply --input-dir catalog/problems
 ```
 
-`validate` reads JSON only. `plan` reads the database and reports slugs to create, update, or leave unchanged, plus child deletions within present slugs. `apply` uses one transaction and the existing exact-sync `seed_data()` for the present JSON slugs only. The original 40 are excluded, and a missing JSON file never deletes an existing Problem row. An empty or missing input directory is an error. A fresh database needs `app.seed` followed by this import; rerun the import to refresh previously imported problems. There are no real catalog JSON files in this MVP.
+`validate` reads JSON only. `plan` reads the database and reports slugs to create, update, or leave unchanged, plus child deletions within present slugs. `apply` uses one transaction and the existing exact-sync `seed_data()` for the present JSON slugs only. The original 40 are excluded, and a missing JSON file never deletes an existing Problem row. An empty or missing input directory is an error. A fresh database needs `app.seed` followed by this import; rerun the import to refresh previously imported problems. The first ten reviewed JSON records live in `catalog/problems/`; see `catalog_import_pilot_50_report.md`.
+
+## Draft editorial generator
+
+`app.editorial_generator` drafts alternate editorial content from reviewed facts using the locally installed, ChatGPT-signed-in Codex CLI. It requests exactly `gpt-5.6-sol` at Medium reasoning, runs `codex exec` with a JSON output schema in a temporary read-only working directory, and copies factual fields, related cards, four submission templates, and source provenance itself. It never calls Groq or an OpenAI API key. A source record can use the existing importer shape or omit `approaches` and supply `spec.taskFacts` in place of `spec.description`; both forms require manually reviewed facts, examples, constraints, templates, and provenance. The model sees a compact factual prompt, not the repository or the submission templates.
+
+From `backend/`, first confirm `codex login status` reports ChatGPT sign-in. Then generate one pilot draft or a batch:
+
+```powershell
+py -B -m app.editorial_generator --input-dir catalog/problems --output-dir catalog/drafts --slug move-zeroes
+py -B -m app.editorial_generator --input-dir catalog/problems --output-dir catalog/drafts
+```
+
+The default `catalog/drafts/` location is ignored by Git. Each `<slug>.json` is a checkpoint; rerunning skips valid existing drafts and processes missing files. An invalid existing draft is reported for manual review; move or remove it explicitly to request a new version. `--slug` may be repeated, and `--limit N` caps a batch. `report.md` records results and available CLI token usage after each problem. A draft has `provenance.reviewed: false`, so the importer rejects it. A person must review the generated prose, approach correctness and complexity, originality, and source permissions, then explicitly approve the final file before moving it to an importer input directory and running `validate → plan → apply`. Generated text is never imported automatically. The generator does not fetch problem pages or establish legal permission by itself.
 
 ## Hint provider
 

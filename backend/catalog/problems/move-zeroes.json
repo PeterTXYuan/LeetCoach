@@ -1,0 +1,84 @@
+{
+  "slug": "move-zeroes",
+  "spec": {
+    "title": "Move Zeroes",
+    "difficulty": "Easy",
+    "summary": "Move every zero in an integer array behind its nonzero elements while preserving the nonzero elements' order.",
+    "leetcodeNumber": 283,
+    "description": "Move every zero in an integer array behind its nonzero elements while preserving the nonzero elements' order. Change the supplied array in place and do not create a separate array for the result. Minimizing the total number of operations is an optional follow-up, not a required bound.",
+    "descriptionSourceUrl": "https://leetcode.com/problems/move-zeroes/",
+    "descriptionSourceType": "curated_restatement",
+    "descriptionVerifiedAt": "2026-11-08T03:58:06+00:00",
+    "timeLimitMs": null,
+    "memoryLimitMb": null,
+    "timeComplexityInstruction": null,
+    "spaceComplexityInstruction": null,
+    "constraints": [
+      "1 <= nums.length <= 10^4",
+      "-2^31 <= nums[i] <= 2^31 - 1",
+      "Modify nums in place without copying the array."
+    ],
+    "examples": [
+      {
+        "input": "nums = [0,2,0,-1]",
+        "output": "[2,-1,0,0]",
+        "explanation": "The two nonzero values keep their order."
+      },
+      {
+        "input": "nums = [4,5]",
+        "output": "[4,5]",
+        "explanation": "There is no zero to move."
+      }
+    ],
+    "submissionTemplates": {
+      "python": "class Solution:\n    def moveZeroes(self, nums: list[int]) -> None:\n        # Modify nums in place; return nothing.\n        pass",
+      "java": "class Solution {\n    public void moveZeroes(int[] nums) {\n    }\n}",
+      "javascript": "var moveZeroes = function(nums) {\n};",
+      "cpp": "class Solution {\npublic:\n    void moveZeroes(vector<int>& nums) {\n    }\n};"
+    }
+  },
+  "approaches": [
+    {
+      "id": "write-pointer",
+      "name": "Compact Nonzero Values",
+      "pattern": "Two Pointers",
+      "summary": "Write nonzero values in order, then fill the rest with zeros.",
+      "isPrimary": true,
+      "displayOrder": 1,
+      "thinkingSteps": [
+        "Keep a write position for the next nonzero value.",
+        "Scan each element once, placing nonzeros at the write position.",
+        "Set all remaining positions to zero."
+      ],
+      "recognitionSignals": {
+        "quote": null,
+        "bullets": [
+          "Zeros must move to the end.",
+          "The nonzero order must stay the same.",
+          "You must change the original array."
+        ]
+      }
+    }
+  ],
+  "related": {
+    "easier": [],
+    "similar": [
+      {
+        "slug": "product-of-array-except-self",
+        "title": "Product of Array Except Self",
+        "difficulty": "Medium",
+        "reason": "Practice a careful array scan with planned output placement."
+      }
+    ],
+    "harder": []
+  },
+  "provenance": {
+    "reviewed": true,
+    "reviewedBy": "Codex manual source review",
+    "reviewedAt": "2026-11-08T03:58:06+00:00",
+    "sourceUrl": "https://leetcode.com/problems/move-zeroes/",
+    "collectionMethod": "manual_review",
+    "reuseBasis": "original_editorial",
+    "permissionNote": "Individual public page manually reviewed for facts and submission interface. Description, examples, explanations, and teaching text are original editorial writing; no statement text or code solution was copied. No redistribution license is claimed."
+  }
+}

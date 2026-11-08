@@ -1,0 +1,90 @@
+{
+  "slug": "validate-binary-search-tree",
+  "spec": {
+    "title": "Validate Binary Search Tree",
+    "difficulty": "Medium",
+    "summary": "Decide whether a nonempty binary tree satisfies the binary search tree rule at every node: all values anywhere in its left subtree are strictly smaller, all values anywhere in its right subtree are strictly larger, and both subtrees obey the same rule.",
+    "leetcodeNumber": 98,
+    "description": "Decide whether a nonempty binary tree satisfies the binary search tree rule at every node: all values anywhere in its left subtree are strictly smaller, all values anywhere in its right subtree are strictly larger, and both subtrees obey the same rule. Equal values are invalid.",
+    "descriptionSourceUrl": "https://leetcode.com/problems/validate-binary-search-tree/",
+    "descriptionSourceType": "curated_restatement",
+    "descriptionVerifiedAt": "2026-11-08T03:58:06+00:00",
+    "timeLimitMs": null,
+    "memoryLimitMb": null,
+    "timeComplexityInstruction": null,
+    "spaceComplexityInstruction": null,
+    "constraints": [
+      "1 <= number of nodes <= 10^4",
+      "-2^31 <= Node.val <= 2^31 - 1"
+    ],
+    "examples": [
+      {
+        "input": "root = [4,2,6,1,3]",
+        "output": "true",
+        "explanation": "Every descendant stays within its ancestor bounds."
+      },
+      {
+        "input": "root = [4,2,6,null,null,3,7]",
+        "output": "false",
+        "explanation": "The value 3 is in the right subtree of 4."
+      }
+    ],
+    "submissionTemplates": {
+      "python": "# TreeNode is supplied by LeetCode.\n# class TreeNode:\n#     def __init__(self, val=0, left=None, right=None):\n#         self.val, self.left, self.right = val, left, right\nclass Solution:\n    def isValidBST(self, root: TreeNode | None) -> bool:\n        pass",
+      "java": "/* TreeNode is supplied by LeetCode: int val; TreeNode left, right; */\nclass Solution {\n    public boolean isValidBST(TreeNode root) {\n    }\n}",
+      "javascript": "/** TreeNode is supplied by LeetCode with val, left, and right fields. */\nvar isValidBST = function(root) {\n};",
+      "cpp": "/* TreeNode is supplied by LeetCode: int val; TreeNode *left, *right; */\nclass Solution {\npublic:\n    bool isValidBST(TreeNode* root) {\n    }\n};"
+    }
+  },
+  "approaches": [
+    {
+      "id": "ancestor-bounds",
+      "name": "Carry Allowed Bounds",
+      "pattern": "Tree Depth-First Search",
+      "summary": "Pass each node an exclusive lower and upper bound inherited from its ancestors.",
+      "isPrimary": true,
+      "displayOrder": 1,
+      "thinkingSteps": [
+        "Begin with no lower or upper bound.",
+        "Reject a node outside its inherited open interval.",
+        "Narrow the interval for left and right children."
+      ],
+      "recognitionSignals": {
+        "quote": null,
+        "bullets": [
+          "The rule applies to all descendants, not only direct children.",
+          "Values equal to a bound are invalid.",
+          "An ancestor can rule out a distant node."
+        ]
+      }
+    }
+  ],
+  "related": {
+    "easier": [
+      {
+        "slug": "maximum-depth-of-binary-tree",
+        "title": "Maximum Depth of Binary Tree",
+        "difficulty": "Easy",
+        "reason": "Practice a tree traversal before carrying bounds."
+      }
+    ],
+    "similar": [
+      {
+        "slug": "balanced-binary-tree",
+        "title": "Balanced Binary Tree",
+        "difficulty": "Easy",
+        "reason": "Combine local checks with information from descendants."
+      }
+    ],
+    "harder": []
+  },
+  "provenance": {
+    "reviewed": true,
+    "reviewedBy": "Codex manual source review",
+    "reviewedAt": "2026-11-08T03:58:06+00:00",
+    "sourceUrl": "https://leetcode.com/problems/validate-binary-search-tree/",
+    "collectionMethod": "manual_review",
+    "reuseBasis": "original_editorial",
+    "permissionNote": "Individual public page manually reviewed for facts and submission interface. Description, examples, explanations, and teaching text are original editorial writing; no statement text or code solution was copied. No redistribution license is claimed."
+  }
+}

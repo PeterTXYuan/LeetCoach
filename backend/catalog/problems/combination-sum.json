@@ -1,0 +1,86 @@
+{
+  "slug": "combination-sum",
+  "spec": {
+    "title": "Combination Sum",
+    "difficulty": "Medium",
+    "summary": "Given distinct positive candidate integers and a positive target, list every distinct multiset of candidates whose sum equals the target.",
+    "leetcodeNumber": 39,
+    "description": "Given distinct positive candidate integers and a positive target, list every distinct multiset of candidates whose sum equals the target. A candidate may be used any number of times. Combination order does not create a new answer; return the combinations in any order. Test data has fewer than 150 valid combinations.",
+    "descriptionSourceUrl": "https://leetcode.com/problems/combination-sum/",
+    "descriptionSourceType": "curated_restatement",
+    "descriptionVerifiedAt": "2026-11-08T03:58:06+00:00",
+    "timeLimitMs": null,
+    "memoryLimitMb": null,
+    "timeComplexityInstruction": null,
+    "spaceComplexityInstruction": null,
+    "constraints": [
+      "1 <= candidates.length <= 30",
+      "2 <= candidates[i] <= 40",
+      "Candidates are pairwise distinct.",
+      "1 <= target <= 40",
+      "The number of valid combinations is less than 150."
+    ],
+    "examples": [
+      {
+        "input": "candidates = [2,4], target = 6",
+        "output": "[[2,2,2],[2,4]]",
+        "explanation": "The value 2 may be reused."
+      },
+      {
+        "input": "candidates = [3], target = 2",
+        "output": "[]",
+        "explanation": "No available value can reach the target."
+      }
+    ],
+    "submissionTemplates": {
+      "python": "class Solution:\n    def combinationSum(self, candidates: list[int], target: int) -> list[list[int]]:\n        pass",
+      "java": "class Solution {\n    public List<List<Integer>> combinationSum(int[] candidates, int target) {\n    }\n}",
+      "javascript": "var combinationSum = function(candidates, target) {\n};",
+      "cpp": "class Solution {\npublic:\n    vector<vector<int>> combinationSum(vector<int>& candidates, int target) {\n    }\n};"
+    }
+  },
+  "approaches": [
+    {
+      "id": "backtracking-reuse",
+      "name": "Backtrack With Reuse",
+      "pattern": "Backtracking",
+      "summary": "Choose candidates from a nondecreasing index range, allowing the same index again until the remaining target is zero.",
+      "isPrimary": true,
+      "displayOrder": 1,
+      "thinkingSteps": [
+        "Track the current combination and remaining sum.",
+        "When choosing a candidate, recurse from its own index so reuse is allowed.",
+        "Stop at zero remaining sum or when choices are too large."
+      ],
+      "recognitionSignals": {
+        "quote": null,
+        "bullets": [
+          "A number may be chosen repeatedly.",
+          "Reordering the same chosen numbers is not a new combination.",
+          "The target limits how deep a choice path can go."
+        ]
+      }
+    }
+  ],
+  "related": {
+    "easier": [
+      {
+        "slug": "subsets",
+        "title": "Subsets",
+        "difficulty": "Medium",
+        "reason": "Practice enumerating choices without repetition first."
+      }
+    ],
+    "similar": [],
+    "harder": []
+  },
+  "provenance": {
+    "reviewed": true,
+    "reviewedBy": "Codex manual source review",
+    "reviewedAt": "2026-11-08T03:58:06+00:00",
+    "sourceUrl": "https://leetcode.com/problems/combination-sum/",
+    "collectionMethod": "manual_review",
+    "reuseBasis": "original_editorial",
+    "permissionNote": "Individual public page manually reviewed for facts and submission interface. Description, examples, explanations, and teaching text are original editorial writing; no statement text or code solution was copied. No redistribution license is claimed."
+  }
+}

@@ -1,0 +1,93 @@
+{
+  "slug": "clone-graph",
+  "spec": {
+    "title": "Clone Graph",
+    "difficulty": "Medium",
+    "summary": "Given a node reference in a connected undirected graph, return a deep copy of every reachable node and edge.",
+    "leetcodeNumber": 133,
+    "description": "Given a node reference in a connected undirected graph, return a deep copy of every reachable node and edge. Each copied node must be a new object with the same value and corresponding copied neighbors. Return null for an empty graph. Node values are unique; the supplied reference is the node with value 1, and the test format represents edges with an adjacency list.",
+    "descriptionSourceUrl": "https://leetcode.com/problems/clone-graph/",
+    "descriptionSourceType": "curated_restatement",
+    "descriptionVerifiedAt": "2026-11-08T03:58:06+00:00",
+    "timeLimitMs": null,
+    "memoryLimitMb": null,
+    "timeComplexityInstruction": null,
+    "spaceComplexityInstruction": null,
+    "constraints": [
+      "0 <= number of nodes <= 100",
+      "1 <= Node.val <= 100",
+      "Node values are unique.",
+      "No duplicate edges or self-loops.",
+      "Every node is reachable from the supplied node when the graph is nonempty."
+    ],
+    "examples": [
+      {
+        "input": "adjList = [[2],[1]]",
+        "output": "[[2],[1]]",
+        "explanation": "Two distinct copied nodes remain connected in both directions."
+      },
+      {
+        "input": "adjList = []",
+        "output": "[]",
+        "explanation": "A missing input node yields no cloned graph."
+      }
+    ],
+    "submissionTemplates": {
+      "python": "# Node is supplied by LeetCode with val and neighbors.\nfrom typing import Optional\nclass Solution:\n    def cloneGraph(self, node: Optional['Node']) -> Optional['Node']:\n        pass",
+      "java": "/* Node is supplied by LeetCode with int val and List<Node> neighbors. */\nclass Solution {\n    public Node cloneGraph(Node node) {\n    }\n}",
+      "javascript": "/** LeetCode supplies _Node(val, neighbors). */\nvar cloneGraph = function(node) {\n};",
+      "cpp": "/* Node is supplied by LeetCode with int val and vector<Node*> neighbors. */\nclass Solution {\npublic:\n    Node* cloneGraph(Node* node) {\n    }\n};"
+    }
+  },
+  "approaches": [
+    {
+      "id": "dfs-node-map",
+      "name": "Clone While Traversing",
+      "pattern": "Graph Depth-First Search",
+      "summary": "Map each original node to one new node, then recursively connect its copied neighbors.",
+      "isPrimary": true,
+      "displayOrder": 1,
+      "thinkingSteps": [
+        "Return null if the input reference is absent.",
+        "Create and remember a clone before visiting neighbors, so cycles can revisit it safely.",
+        "Connect each clone to the clones of its original neighbors."
+      ],
+      "recognitionSignals": {
+        "quote": null,
+        "bullets": [
+          "The copy must use new node objects.",
+          "An undirected edge can lead back to an already visited node.",
+          "A map prevents duplicate clones of the same node."
+        ]
+      }
+    }
+  ],
+  "related": {
+    "easier": [
+      {
+        "slug": "binary-tree-level-order-traversal",
+        "title": "Binary Tree Level Order Traversal",
+        "difficulty": "Medium",
+        "reason": "Practice visiting linked nodes before handling graph cycles."
+      }
+    ],
+    "similar": [
+      {
+        "slug": "course-schedule",
+        "title": "Course Schedule",
+        "difficulty": "Medium",
+        "reason": "Track graph nodes already visited for a different goal."
+      }
+    ],
+    "harder": []
+  },
+  "provenance": {
+    "reviewed": true,
+    "reviewedBy": "Codex manual source review",
+    "reviewedAt": "2026-11-08T03:58:06+00:00",
+    "sourceUrl": "https://leetcode.com/problems/clone-graph/",
+    "collectionMethod": "manual_review",
+    "reuseBasis": "original_editorial",
+    "permissionNote": "Individual public page manually reviewed for facts and submission interface. Description, examples, explanations, and teaching text are original editorial writing; no statement text or code solution was copied. No redistribution license is claimed."
+  }
+}

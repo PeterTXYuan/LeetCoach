@@ -1,0 +1,84 @@
+{
+  "slug": "merge-intervals",
+  "spec": {
+    "title": "Merge Intervals",
+    "difficulty": "Medium",
+    "summary": "Merge overlapping or touching intervals into disjoint ranges.",
+    "leetcodeNumber": 56,
+    "description": "Each input interval includes its two endpoints. Return a collection of disjoint intervals whose union covers exactly the same points as the input. Intervals that overlap or touch at an endpoint belong together.",
+    "descriptionSourceUrl": "https://leetcode.com/problems/merge-intervals/",
+    "descriptionSourceType": "curated_restatement",
+    "descriptionVerifiedAt": "2026-11-08T03:58:06+00:00",
+    "timeLimitMs": null,
+    "memoryLimitMb": null,
+    "timeComplexityInstruction": null,
+    "spaceComplexityInstruction": null,
+    "constraints": [
+      "1 <= intervals.length <= 10^4",
+      "intervals[i].length == 2",
+      "0 <= intervals[i][0] <= intervals[i][1] <= 10^4"
+    ],
+    "examples": [
+      {
+        "input": "intervals = [[2,4],[4,7],[10,11]]",
+        "output": "[[2,7],[10,11]]",
+        "explanation": "The first two intervals share endpoint 4."
+      },
+      {
+        "input": "intervals = [[5,6],[1,2]]",
+        "output": "[[1,2],[5,6]]",
+        "explanation": "Neither interval overlaps the other."
+      }
+    ],
+    "submissionTemplates": {
+      "python": "class Solution:\n    def merge(self, intervals: list[list[int]]) -> list[list[int]]:\n        pass",
+      "java": "class Solution {\n    public int[][] merge(int[][] intervals) {\n    }\n}",
+      "javascript": "var merge = function(intervals) {\n};",
+      "cpp": "class Solution {\npublic:\n    vector<vector<int>> merge(vector<vector<int>>& intervals) {\n    }\n};"
+    }
+  },
+  "approaches": [
+    {
+      "id": "sort-and-sweep",
+      "name": "Sort and Sweep",
+      "pattern": "Sorting",
+      "summary": "Sort by start point, then extend the latest merged interval whenever ranges touch.",
+      "isPrimary": true,
+      "displayOrder": 1,
+      "thinkingSteps": [
+        "Sort intervals by their start points.",
+        "Keep the latest merged interval.",
+        "Extend it on overlap; otherwise start a new interval."
+      ],
+      "recognitionSignals": {
+        "quote": null,
+        "bullets": [
+          "Several ranges may cover the same values.",
+          "Touching endpoints count as overlap.",
+          "Sorting makes neighboring overlaps easy to combine."
+        ]
+      }
+    }
+  ],
+  "related": {
+    "easier": [
+      {
+        "slug": "move-zeroes",
+        "title": "Move Zeroes",
+        "difficulty": "Easy",
+        "reason": "Practice one ordered scan before processing intervals."
+      }
+    ],
+    "similar": [],
+    "harder": []
+  },
+  "provenance": {
+    "reviewed": true,
+    "reviewedBy": "Codex manual source review",
+    "reviewedAt": "2026-11-08T03:58:06+00:00",
+    "sourceUrl": "https://leetcode.com/problems/merge-intervals/",
+    "collectionMethod": "manual_review",
+    "reuseBasis": "original_editorial",
+    "permissionNote": "Individual public page manually reviewed for facts and submission interface. Description, examples, explanations, and teaching text are original editorial writing; no statement text or code solution was copied. No redistribution license is claimed."
+  }
+}

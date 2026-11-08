@@ -1,0 +1,104 @@
+{
+  "slug": "subsets",
+  "spec": {
+    "title": "Subsets",
+    "difficulty": "Medium",
+    "summary": "Return every subset of an array of distinct integers, including the empty subset and the entire array.",
+    "leetcodeNumber": 78,
+    "description": "Return every subset of an array of distinct integers, including the empty subset and the entire array. Each subset may appear once, and the subsets may be returned in any order.",
+    "descriptionSourceUrl": "https://leetcode.com/problems/subsets/",
+    "descriptionSourceType": "curated_restatement",
+    "descriptionVerifiedAt": "2026-11-08T03:58:06+00:00",
+    "timeLimitMs": null,
+    "memoryLimitMb": null,
+    "timeComplexityInstruction": null,
+    "spaceComplexityInstruction": null,
+    "constraints": [
+      "1 <= nums.length <= 10",
+      "-10 <= nums[i] <= 10",
+      "All nums[i] values are distinct."
+    ],
+    "examples": [
+      {
+        "input": "nums = [4,9]",
+        "output": "[[],[4],[9],[4,9]]",
+        "explanation": "Each value can be included or omitted."
+      },
+      {
+        "input": "nums = [-2]",
+        "output": "[[],[-2]]",
+        "explanation": "A single value gives two subsets."
+      }
+    ],
+    "submissionTemplates": {
+      "python": "class Solution:\n    def subsets(self, nums: list[int]) -> list[list[int]]:\n        pass",
+      "java": "class Solution {\n    public List<List<Integer>> subsets(int[] nums) {\n    }\n}",
+      "javascript": "var subsets = function(nums) {\n};",
+      "cpp": "class Solution {\npublic:\n    vector<vector<int>> subsets(vector<int>& nums) {\n    }\n};"
+    }
+  },
+  "approaches": [
+    {
+      "id": "backtracking",
+      "name": "Choose or Skip",
+      "pattern": "Backtracking",
+      "summary": "Build a partial subset and explore including or skipping each value.",
+      "isPrimary": true,
+      "displayOrder": 1,
+      "thinkingSteps": [
+        "Track the current subset and the next index.",
+        "Explore the choice to include the next number.",
+        "Explore the choice to leave it out and save complete choices."
+      ],
+      "recognitionSignals": {
+        "quote": null,
+        "bullets": [
+          "Every value can be chosen or left out.",
+          "The empty selection is also an answer.",
+          "The input has no duplicate values."
+        ]
+      }
+    },
+    {
+      "id": "iterative-expansion",
+      "name": "Expand Existing Subsets",
+      "pattern": "Iterative Construction",
+      "summary": "For each number, copy every existing subset with that number appended.",
+      "isPrimary": false,
+      "displayOrder": 2,
+      "thinkingSteps": [
+        "Start with the empty subset.",
+        "For each input value, extend a copy of every subset already found.",
+        "Return the accumulated subsets."
+      ],
+      "recognitionSignals": {
+        "quote": null,
+        "bullets": [
+          "Each new value doubles the available choices.",
+          "An empty subset gives a starting point."
+        ]
+      }
+    }
+  ],
+  "related": {
+    "easier": [],
+    "similar": [
+      {
+        "slug": "combination-sum",
+        "title": "Combination Sum",
+        "difficulty": "Medium",
+        "reason": "Explore choices with backtracking, but allow repeated values."
+      }
+    ],
+    "harder": []
+  },
+  "provenance": {
+    "reviewed": true,
+    "reviewedBy": "Codex manual source review",
+    "reviewedAt": "2026-11-08T03:58:06+00:00",
+    "sourceUrl": "https://leetcode.com/problems/subsets/",
+    "collectionMethod": "manual_review",
+    "reuseBasis": "original_editorial",
+    "permissionNote": "Individual public page manually reviewed for facts and submission interface. Description, examples, explanations, and teaching text are original editorial writing; no statement text or code solution was copied. No redistribution license is claimed."
+  }
+}

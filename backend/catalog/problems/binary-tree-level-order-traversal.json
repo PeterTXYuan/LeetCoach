@@ -1,0 +1,90 @@
+{
+  "slug": "binary-tree-level-order-traversal",
+  "spec": {
+    "title": "Binary Tree Level Order Traversal",
+    "difficulty": "Medium",
+    "summary": "Return a binary tree's values grouped by depth, beginning with the root.",
+    "leetcodeNumber": 102,
+    "description": "Return a binary tree's values grouped by depth, beginning with the root. Within each depth group, list values from left to right. An empty tree yields an empty outer list.",
+    "descriptionSourceUrl": "https://leetcode.com/problems/binary-tree-level-order-traversal/",
+    "descriptionSourceType": "curated_restatement",
+    "descriptionVerifiedAt": "2026-11-08T03:58:06+00:00",
+    "timeLimitMs": null,
+    "memoryLimitMb": null,
+    "timeComplexityInstruction": null,
+    "spaceComplexityInstruction": null,
+    "constraints": [
+      "0 <= number of nodes <= 2000",
+      "-1000 <= Node.val <= 1000"
+    ],
+    "examples": [
+      {
+        "input": "root = [8,3,10,1,6]",
+        "output": "[[8],[3,10],[1,6]]",
+        "explanation": "The last two nodes are on the same depth."
+      },
+      {
+        "input": "root = []",
+        "output": "[]",
+        "explanation": "An empty tree has no levels."
+      }
+    ],
+    "submissionTemplates": {
+      "python": "# TreeNode is supplied by LeetCode.\n# class TreeNode:\n#     def __init__(self, val=0, left=None, right=None):\n#         self.val, self.left, self.right = val, left, right\nclass Solution:\n    def levelOrder(self, root: TreeNode | None) -> list[list[int]]:\n        pass",
+      "java": "/* TreeNode is supplied by LeetCode: int val; TreeNode left, right; */\nclass Solution {\n    public List<List<Integer>> levelOrder(TreeNode root) {\n    }\n}",
+      "javascript": "/** TreeNode is supplied by LeetCode with val, left, and right fields. */\nvar levelOrder = function(root) {\n};",
+      "cpp": "/* TreeNode is supplied by LeetCode: int val; TreeNode *left, *right; */\nclass Solution {\npublic:\n    vector<vector<int>> levelOrder(TreeNode* root) {\n    }\n};"
+    }
+  },
+  "approaches": [
+    {
+      "id": "breadth-first-queue",
+      "name": "Visit One Level at a Time",
+      "pattern": "Breadth-First Search",
+      "summary": "Use a queue and its current size to group nodes by depth.",
+      "isPrimary": true,
+      "displayOrder": 1,
+      "thinkingSteps": [
+        "Return an empty list for an absent root.",
+        "For each queue batch, record exactly the nodes currently at that depth.",
+        "Enqueue their children from left to right for the next batch."
+      ],
+      "recognitionSignals": {
+        "quote": null,
+        "bullets": [
+          "The output is divided by depth.",
+          "Values within a level must go left to right.",
+          "A queue naturally keeps the current frontier together."
+        ]
+      }
+    }
+  ],
+  "related": {
+    "easier": [
+      {
+        "slug": "maximum-depth-of-binary-tree",
+        "title": "Maximum Depth of Binary Tree",
+        "difficulty": "Easy",
+        "reason": "Practice visiting every tree level without collecting groups."
+      }
+    ],
+    "similar": [
+      {
+        "slug": "rotting-oranges",
+        "title": "Rotting Oranges",
+        "difficulty": "Medium",
+        "reason": "Use breadth-first layers in a grid instead of a tree."
+      }
+    ],
+    "harder": []
+  },
+  "provenance": {
+    "reviewed": true,
+    "reviewedBy": "Codex manual source review",
+    "reviewedAt": "2026-11-08T03:58:06+00:00",
+    "sourceUrl": "https://leetcode.com/problems/binary-tree-level-order-traversal/",
+    "collectionMethod": "manual_review",
+    "reuseBasis": "original_editorial",
+    "permissionNote": "Individual public page manually reviewed for facts and submission interface. Description, examples, explanations, and teaching text are original editorial writing; no statement text or code solution was copied. No redistribution license is claimed."
+  }
+}

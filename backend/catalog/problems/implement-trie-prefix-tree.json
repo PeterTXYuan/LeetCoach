@@ -1,0 +1,79 @@
+{
+  "slug": "implement-trie-prefix-tree",
+  "spec": {
+    "title": "Implement Trie (Prefix Tree)",
+    "difficulty": "Medium",
+    "summary": "Build a Trie class for lowercase words.",
+    "leetcodeNumber": 208,
+    "description": "Build a Trie class for lowercase words. Its constructor creates an empty structure; insert stores a word; search reports whether the complete word was inserted; startsWith reports whether any inserted word begins with a prefix. A prefix alone need not be a stored word.",
+    "descriptionSourceUrl": "https://leetcode.com/problems/implement-trie-prefix-tree/",
+    "descriptionSourceType": "curated_restatement",
+    "descriptionVerifiedAt": "2026-11-08T03:58:06+00:00",
+    "timeLimitMs": null,
+    "memoryLimitMb": null,
+    "timeComplexityInstruction": null,
+    "spaceComplexityInstruction": null,
+    "constraints": [
+      "1 <= word.length, prefix.length <= 2000",
+      "Words and prefixes contain lowercase English letters only.",
+      "At most 3 * 10^4 total calls to insert, search, and startsWith."
+    ],
+    "examples": [
+      {
+        "input": "operations = [\"Trie\",\"insert\",\"search\",\"startsWith\",\"search\"], arguments = [[],[\"cat\"],[\"ca\"],[\"ca\"],[\"cat\"]]",
+        "output": "[null,null,false,true,true]",
+        "explanation": "The shorter prefix exists as a path but was never inserted as a complete word."
+      }
+    ],
+    "submissionTemplates": {
+      "python": "class Trie:\n    def __init__(self):\n        pass\n\n    def insert(self, word: str) -> None:\n        pass\n\n    def search(self, word: str) -> bool:\n        pass\n\n    def startsWith(self, prefix: str) -> bool:\n        pass",
+      "java": "class Trie {\n    public Trie() {\n    }\n    public void insert(String word) {\n    }\n    public boolean search(String word) {\n    }\n    public boolean startsWith(String prefix) {\n    }\n}",
+      "javascript": "var Trie = function() {\n};\nTrie.prototype.insert = function(word) {\n};\nTrie.prototype.search = function(word) {\n};\nTrie.prototype.startsWith = function(prefix) {\n};",
+      "cpp": "class Trie {\npublic:\n    Trie() {\n    }\n    void insert(string word) {\n    }\n    bool search(string word) {\n    }\n    bool startsWith(string prefix) {\n    }\n};"
+    }
+  },
+  "approaches": [
+    {
+      "id": "character-trie",
+      "name": "Character Trie",
+      "pattern": "Prefix Tree",
+      "summary": "Give each character a path node and mark nodes that end inserted words.",
+      "isPrimary": true,
+      "displayOrder": 1,
+      "thinkingSteps": [
+        "Create a root with no stored word.",
+        "On insert, follow or create one child for each character, then mark the final node.",
+        "On search and startsWith, follow the path; search also checks the end marker."
+      ],
+      "recognitionSignals": {
+        "quote": null,
+        "bullets": [
+          "The same prefixes are checked again and again.",
+          "A prefix can exist even when it is not a complete stored word.",
+          "The interface needs both exact-word and prefix queries."
+        ]
+      }
+    }
+  ],
+  "related": {
+    "easier": [],
+    "similar": [
+      {
+        "slug": "time-based-key-value-store",
+        "title": "Time Based Key-Value Store",
+        "difficulty": "Medium",
+        "reason": "Implement another multi-method data structure with stored query state."
+      }
+    ],
+    "harder": []
+  },
+  "provenance": {
+    "reviewed": true,
+    "reviewedBy": "Codex manual source review",
+    "reviewedAt": "2026-11-08T03:58:06+00:00",
+    "sourceUrl": "https://leetcode.com/problems/implement-trie-prefix-tree/",
+    "collectionMethod": "manual_review",
+    "reuseBasis": "original_editorial",
+    "permissionNote": "Individual public page manually reviewed for facts and submission interface. Description, examples, explanations, and teaching text are original editorial writing; no statement text or code solution was copied. No redistribution license is claimed."
+  }
+}

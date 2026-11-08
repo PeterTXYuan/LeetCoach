@@ -1,0 +1,113 @@
+{
+  "slug": "course-schedule",
+  "spec": {
+    "title": "Course Schedule",
+    "difficulty": "Medium",
+    "summary": "Courses are numbered from zero through numCourses minus one.",
+    "leetcodeNumber": 207,
+    "description": "Courses are numbered from zero through numCourses minus one. For each prerequisite pair [course, prerequisite], the second course must be taken before the first. Return whether some ordering lets you finish every course; a dependency cycle makes this impossible. Courses with no listed prerequisite still count.",
+    "descriptionSourceUrl": "https://leetcode.com/problems/course-schedule/",
+    "descriptionSourceType": "curated_restatement",
+    "descriptionVerifiedAt": "2026-11-08T03:58:06+00:00",
+    "timeLimitMs": null,
+    "memoryLimitMb": null,
+    "timeComplexityInstruction": null,
+    "spaceComplexityInstruction": null,
+    "constraints": [
+      "1 <= numCourses <= 2000",
+      "0 <= prerequisites.length <= 5000",
+      "prerequisites[i].length == 2",
+      "0 <= course, prerequisite < numCourses",
+      "Prerequisite pairs are unique."
+    ],
+    "examples": [
+      {
+        "input": "numCourses = 3, prerequisites = [[2,0],[2,1]]",
+        "output": "true",
+        "explanation": "Take courses 0 and 1 before course 2."
+      },
+      {
+        "input": "numCourses = 3, prerequisites = [[0,1],[1,2],[2,0]]",
+        "output": "false",
+        "explanation": "Every course in the cycle waits on another."
+      }
+    ],
+    "submissionTemplates": {
+      "python": "class Solution:\n    def canFinish(self, numCourses: int, prerequisites: list[list[int]]) -> bool:\n        pass",
+      "java": "class Solution {\n    public boolean canFinish(int numCourses, int[][] prerequisites) {\n    }\n}",
+      "javascript": "var canFinish = function(numCourses, prerequisites) {\n};",
+      "cpp": "class Solution {\npublic:\n    bool canFinish(int numCourses, vector<vector<int>>& prerequisites) {\n    }\n};"
+    }
+  },
+  "approaches": [
+    {
+      "id": "indegree-queue",
+      "name": "Remove Available Courses",
+      "pattern": "Topological Sort",
+      "summary": "Repeatedly take courses with no remaining prerequisites and remove their outgoing dependencies.",
+      "isPrimary": true,
+      "displayOrder": 1,
+      "thinkingSteps": [
+        "Count prerequisites for each course and build outgoing edges.",
+        "Queue every course with count zero.",
+        "Process the queue and check whether all courses were taken."
+      ],
+      "recognitionSignals": {
+        "quote": null,
+        "bullets": [
+          "A course can be taken only after its prerequisites.",
+          "A cycle leaves no available starting course.",
+          "Independent courses should also be counted."
+        ]
+      }
+    },
+    {
+      "id": "cycle-detection-dfs",
+      "name": "Detect a Dependency Cycle",
+      "pattern": "Graph Depth-First Search",
+      "summary": "Traverse prerequisites while tracking the current recursion path; any back-edge prevents completion.",
+      "isPrimary": false,
+      "displayOrder": 2,
+      "thinkingSteps": [
+        "Build a graph from courses to their prerequisites.",
+        "Mark nodes on the current path separately from completed nodes.",
+        "Reject a repeated node on the current path; otherwise finish every component."
+      ],
+      "recognitionSignals": {
+        "quote": null,
+        "bullets": [
+          "A circular prerequisite chain is impossible.",
+          "A course may have several paths leading to it."
+        ]
+      }
+    }
+  ],
+  "related": {
+    "easier": [
+      {
+        "slug": "binary-tree-level-order-traversal",
+        "title": "Binary Tree Level Order Traversal",
+        "difficulty": "Medium",
+        "reason": "Practice queue processing before dependency ordering."
+      }
+    ],
+    "similar": [
+      {
+        "slug": "clone-graph",
+        "title": "Clone Graph",
+        "difficulty": "Medium",
+        "reason": "Traverse a graph while tracking visited nodes."
+      }
+    ],
+    "harder": []
+  },
+  "provenance": {
+    "reviewed": true,
+    "reviewedBy": "Codex manual source review",
+    "reviewedAt": "2026-11-08T03:58:06+00:00",
+    "sourceUrl": "https://leetcode.com/problems/course-schedule/",
+    "collectionMethod": "manual_review",
+    "reuseBasis": "original_editorial",
+    "permissionNote": "Individual public page manually reviewed for facts and submission interface. Description, examples, explanations, and teaching text are original editorial writing; no statement text or code solution was copied. No redistribution license is claimed."
+  }
+}

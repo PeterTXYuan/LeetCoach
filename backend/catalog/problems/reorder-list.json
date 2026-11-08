@@ -1,0 +1,91 @@
+{
+  "slug": "reorder-list",
+  "spec": {
+    "title": "Reorder List",
+    "difficulty": "Medium",
+    "summary": "Rewire a singly linked list so its nodes alternate between the front and back of the original list: first, last, second, next-to-last, and so on.",
+    "leetcodeNumber": 143,
+    "description": "Rewire a singly linked list so its nodes alternate between the front and back of the original list: first, last, second, next-to-last, and so on. Change node links in place; do not change values stored in nodes. The head reference is not replaced by a return value.",
+    "descriptionSourceUrl": "https://leetcode.com/problems/reorder-list/",
+    "descriptionSourceType": "curated_restatement",
+    "descriptionVerifiedAt": "2026-11-08T03:58:06+00:00",
+    "timeLimitMs": null,
+    "memoryLimitMb": null,
+    "timeComplexityInstruction": null,
+    "spaceComplexityInstruction": null,
+    "constraints": [
+      "1 <= number of nodes <= 5 * 10^4",
+      "1 <= Node.val <= 1000",
+      "Reorder nodes without changing their values."
+    ],
+    "examples": [
+      {
+        "input": "head = [2,4,6,8]",
+        "output": "[2,8,4,6]",
+        "explanation": "Nodes alternate from the front and back."
+      },
+      {
+        "input": "head = [7]",
+        "output": "[7]",
+        "explanation": "A one-node list is unchanged."
+      }
+    ],
+    "submissionTemplates": {
+      "python": "# ListNode is supplied by LeetCode.\n# class ListNode:\n#     def __init__(self, val=0, next=None):\n#         self.val, self.next = val, next\nclass Solution:\n    def reorderList(self, head: ListNode | None) -> None:\n        # Rewire nodes in place; return nothing.\n        pass",
+      "java": "/* ListNode is supplied by LeetCode: int val; ListNode next; */\nclass Solution {\n    public void reorderList(ListNode head) {\n    }\n}",
+      "javascript": "/** ListNode is supplied by LeetCode with val and next fields. */\nvar reorderList = function(head) {\n};",
+      "cpp": "/* ListNode is supplied by LeetCode: int val; ListNode *next; */\nclass Solution {\npublic:\n    void reorderList(ListNode* head) {\n    }\n};"
+    }
+  },
+  "approaches": [
+    {
+      "id": "split-reverse-weave",
+      "name": "Split, Reverse, and Weave",
+      "pattern": "Linked List Pointers",
+      "summary": "Find the midpoint, reverse the second half, then alternate nodes from the two halves.",
+      "isPrimary": true,
+      "displayOrder": 1,
+      "thinkingSteps": [
+        "Use slow and fast pointers to locate the middle, then split the list.",
+        "Reverse links in the second half.",
+        "Weave nodes from the first and reversed second halves without losing next pointers."
+      ],
+      "recognitionSignals": {
+        "quote": null,
+        "bullets": [
+          "The output alternates front and back nodes.",
+          "Node values cannot be rewritten.",
+          "Reversing the back half makes its nodes available in the needed order."
+        ]
+      }
+    }
+  ],
+  "related": {
+    "easier": [
+      {
+        "slug": "reverse-linked-list",
+        "title": "Reverse Linked List",
+        "difficulty": "Easy",
+        "reason": "Practice the reversal used in the second half."
+      }
+    ],
+    "similar": [
+      {
+        "slug": "merge-two-sorted-lists",
+        "title": "Merge Two Sorted Lists",
+        "difficulty": "Easy",
+        "reason": "Practice weaving nodes from two lists."
+      }
+    ],
+    "harder": []
+  },
+  "provenance": {
+    "reviewed": true,
+    "reviewedBy": "Codex manual source review",
+    "reviewedAt": "2026-11-08T03:58:06+00:00",
+    "sourceUrl": "https://leetcode.com/problems/reorder-list/",
+    "collectionMethod": "manual_review",
+    "reuseBasis": "original_editorial",
+    "permissionNote": "Individual public page manually reviewed for facts and submission interface. Description, examples, explanations, and teaching text are original editorial writing; no statement text or code solution was copied. No redistribution license is claimed."
+  }
+}
