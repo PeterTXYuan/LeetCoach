@@ -5,6 +5,7 @@ person checks the prose, approach claims, source permissions, and examples.
 """
 import argparse
 import copy
+import hashlib
 import json
 import os
 import re
@@ -48,7 +49,9 @@ OUTPUT_SCHEMA = _object({
 
 
 class EditorialGeneratorError(ValueError):
-    pass
+    def __init__(self, message, *, usage=None):
+        super().__init__(message)
+        self.usage = usage
 
 
 def _cli_env():
@@ -172,6 +175,95 @@ def _usage(stdout):
     return usage
 
 
+def _fingerprint(source):
+    """Hash JSON values, not source formatting or key order."""
+    canonical = json.dumps(source, sort_keys=True, ensure_ascii=False,
+                           separators=(",", ":")).encode("utf-8")
+    return hashlib.sha256(canonical).hexdigest()
+
+
+def _checkpoint_path(output_dir, slug):
+    return output_dir / ".checkpoints" / f"{slug}.json"
+
+
+def _read_checkpoint(path):
+    if not path.exists():
+        return {"draftInputFingerprint": None, "attempts": []}
+    try:
+        checkpoint = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, ValueError) as exc:
+        raise EditorialGeneratorError(f"Unreadable checkpoint: {path.name}; existing draft and usage were preserved.") from exc
+    if (not isinstance(checkpoint, dict) or set(checkpoint) != {"draftInputFingerprint", "attempts"}
+            or not isinstance(checkpoint["attempts"], list)):
+        raise EditorialGeneratorError(f"Invalid checkpoint: {path.name}; existing draft and usage were preserved.")
+    for item in checkpoint["attempts"]:
+        if not isinstance(item, dict) or not isinstance(item.get("usage"), (dict, type(None))):
+            raise EditorialGeneratorError(f"Invalid usage checkpoint: {path.name}; existing data were preserved.")
+        if isinstance(item["usage"], dict) and any(
+            type(value) is not int or value < 0 for key, value in item["usage"].items()
+            if key in {"input_tokens", "output_tokens", "cached_input_tokens", "reasoning_output_tokens"}
+        ):
+            raise EditorialGeneratorError(f"Invalid token count in {path.name}; existing data were preserved.")
+    return checkpoint
+
+
+def _record_attempt(path, checkpoint, fingerprint, status, usage):
+    updated = copy.deepcopy(checkpoint)
+    updated["attempts"].append({"inputFingerprint": fingerprint, "status": status,
+                                "usage": copy.deepcopy(usage)})
+    if status == "generated":
+        updated["draftInputFingerprint"] = fingerprint
+    path.parent.mkdir(parents=True, exist_ok=True)
+    _write_json(path, updated)
+    return updated
+
+
+def _token_totals(attempts):
+    available = [item["usage"] for item in attempts if isinstance(item, dict)
+                 and isinstance(item.get("usage"), dict)]
+    if not available:
+        return None
+    return {key: sum(value.get(key, 0) for value in available)
+            for key in ("input_tokens", "output_tokens", "cached_input_tokens",
+                        "reasoning_output_tokens") if any(key in value for value in available)}
+
+
+def _all_token_totals(output_dir):
+    attempts = []
+    for path in sorted((output_dir / ".checkpoints").glob("*.json")):
+        attempts.extend(_read_checkpoint(path)["attempts"])
+    return _token_totals(attempts)
+
+
+def _migrate_legacy_report(output_dir):
+    """Retain usage from the old per-run Markdown report without trusting its draft freshness."""
+    report = output_dir / "report.md"
+    if not report.exists():
+        return
+    old = report.read_text(encoding="utf-8")
+    if "| Problem | Status | Input tokens | Output tokens | Note |" not in old:
+        return
+    backup = output_dir / "report.legacy.md"
+    if not backup.exists():
+        backup.write_text(old, encoding="utf-8")
+    for line in old.splitlines():
+        fields = [field.strip() for field in line.split("|")]
+        if len(fields) < 7 or fields[2] not in {"generated", "failed"}:
+            continue
+        slug, input_count, output_count = fields[1], fields[3], fields[4]
+        if (re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", slug) is None
+                or not input_count.isdecimal() or not output_count.isdecimal()):
+            continue
+        checkpoint_path = _checkpoint_path(output_dir, slug)
+        if checkpoint_path.exists():
+            continue
+        checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
+        _write_json(checkpoint_path, {"draftInputFingerprint": None, "attempts": [{
+            "inputFingerprint": None, "status": "legacy",
+            "usage": {"input_tokens": int(input_count), "output_tokens": int(output_count)},
+        }]})
+
+
 def run_codex(source, task_facts, *, run=subprocess.run):
     with tempfile.TemporaryDirectory(prefix="leetcoach-editorial-") as directory:
         root = Path(directory)
@@ -188,14 +280,16 @@ def run_codex(source, task_facts, *, run=subprocess.run):
                          env=_cli_env())
         except (OSError, subprocess.TimeoutExpired) as exc:
             raise EditorialGeneratorError("Codex CLI execution was unavailable or timed out.") from exc
+        usage = _usage(result.stdout)
         if result.returncode:
             # stderr may include the prompt or account details; do not persist it.
-            raise EditorialGeneratorError(f"Codex CLI exited with status {result.returncode}.")
+            raise EditorialGeneratorError(f"Codex CLI exited with status {result.returncode}.", usage=usage)
         try:
             editorial = json.loads(output_path.read_text(encoding="utf-8"))
         except (OSError, UnicodeError, ValueError) as exc:
-            raise EditorialGeneratorError("Codex CLI did not return structured editorial JSON.") from exc
-        return editorial, _usage(result.stdout)
+            raise EditorialGeneratorError("Codex CLI did not return structured editorial JSON.",
+                                          usage=usage) from exc
+        return editorial, usage
 
 
 def _nonempty(value):
@@ -270,13 +364,16 @@ def _write_json(path, value):
 
 def _write_report(path, outcomes):
     counts = {status: sum(item["status"] == status for item in outcomes)
-              for status in ("generated", "skipped", "failed")}
-    input_tokens = sum((item.get("usage") or {}).get("input_tokens", 0) for item in outcomes)
-    output_tokens = sum((item.get("usage") or {}).get("output_tokens", 0) for item in outcomes)
+              for status in ("generated", "skipped", "stale", "failed")}
+    totals = _all_token_totals(path.parent) or {}
     lines = ["# Editorial draft run", "", f"Model: `{MODEL}`; reasoning: `{EFFORT}`; authentication: local ChatGPT Codex CLI.",
-             f"Generated: {counts['generated']}; skipped: {counts['skipped']}; failed: {counts['failed']}.",
-             f"Reported tokens: input {input_tokens}, output {output_tokens} (only where CLI usage was available).", "",
-             "| Problem | Status | Input tokens | Output tokens | Note |", "| --- | --- | ---: | ---: | --- |"]
+             f"This run: generated {counts['generated']}; skipped {counts['skipped']}; stale {counts['stale']}; failed {counts['failed']}.",
+             f"Cumulative recorded Codex tokens: input {totals.get('input_tokens', '—')}, "
+             f"output {totals.get('output_tokens', '—')}; cached input {totals.get('cached_input_tokens', '—')}, "
+             f"reasoning output {totals.get('reasoning_output_tokens', '—')} "
+             "(all checkpointed attempts with available usage).", "",
+             "| Problem | Status | Cumulative input tokens | Cumulative output tokens | Note |",
+             "| --- | --- | ---: | ---: | --- |"]
     for item in outcomes:
         usage = item.get("usage") or {}
         lines.append(f"| {item['slug']} | {item['status']} | {usage.get('input_tokens', '—')} | "
@@ -307,33 +404,60 @@ def generate_batch(input_dir: Path, output_dir: Path, *, slugs=None, limit=None,
     if not files:
         raise EditorialGeneratorError("No reviewed JSON facts selected.")
     output_dir.mkdir(parents=True, exist_ok=True)
+    _migrate_legacy_report(output_dir)
     outcomes = []
     pending = [path for path in files if not (output_dir / path.name).exists()]
     if pending:
         cli_check()  # No model call is made if ChatGPT auth or exact model is unavailable.
     for path in files:
         target = output_dir / path.name
+        checkpoint_path = _checkpoint_path(output_dir, path.stem)
+        try:
+            source, task_facts = _load_fact_file(path)
+            fingerprint = _fingerprint(source)
+            checkpoint = _read_checkpoint(checkpoint_path)
+        except EditorialGeneratorError as exc:
+            outcomes.append({"slug": path.stem, "status": "failed", "note": str(exc).replace("|", "/")})
+            _write_report(output_dir / "report.md", outcomes)
+            continue
         if target.exists():
-            try:
-                existing = json.loads(target.read_text(encoding="utf-8"))
-                if existing.get("slug") != path.stem or existing.get("provenance", {}).get("reviewed") is not False:
-                    raise ValueError("not an unreviewed draft")
-                if existing["spec"]["summary"].strip().casefold().rstrip(".") == existing["spec"]["title"].strip().casefold():
-                    raise ValueError("title-only summary")
-                validate_draft(existing)
-                outcomes.append({"slug": path.stem, "status": "skipped", "note": "existing draft checkpoint"})
-            except (OSError, UnicodeError, ValueError, AttributeError, KeyError, EditorialGeneratorError):
-                outcomes.append({"slug": path.stem, "status": "failed", "note": "existing draft is invalid; review it manually"})
+            recorded = checkpoint["draftInputFingerprint"]
+            if recorded != fingerprint:
+                note = ("draft has no input fingerprint; preserve and review it manually"
+                        if recorded is None else
+                        "reviewed input changed; old draft preserved; move it before regenerating")
+                outcomes.append({"slug": path.stem, "status": "stale", "usage": _token_totals(checkpoint["attempts"]),
+                                 "note": note})
+            else:
+                try:
+                    existing = json.loads(target.read_text(encoding="utf-8"))
+                    if existing.get("slug") != path.stem or existing.get("provenance", {}).get("reviewed") is not False:
+                        raise ValueError("not an unreviewed draft")
+                    if existing["spec"]["summary"].strip().casefold().rstrip(".") == existing["spec"]["title"].strip().casefold():
+                        raise ValueError("title-only summary")
+                    validate_draft(existing)
+                    outcomes.append({"slug": path.stem, "status": "skipped",
+                                     "usage": _token_totals(checkpoint["attempts"]),
+                                     "note": "matching input fingerprint"})
+                except (OSError, UnicodeError, ValueError, AttributeError, KeyError, EditorialGeneratorError):
+                    outcomes.append({"slug": path.stem, "status": "failed", "usage": _token_totals(checkpoint["attempts"]),
+                                     "note": "existing draft is invalid; review it manually"})
         else:
+            usage = None
             try:
-                source, task_facts = _load_fact_file(path)
                 editorial, usage = generate(source, task_facts)
                 draft = assemble_draft(source, editorial)
                 validate_draft(draft)
                 _write_json(target, draft)
-                outcomes.append({"slug": path.stem, "status": "generated", "usage": usage})
+                checkpoint = _record_attempt(checkpoint_path, checkpoint, fingerprint, "generated", usage)
+                outcomes.append({"slug": path.stem, "status": "generated",
+                                 "usage": _token_totals(checkpoint["attempts"])})
             except EditorialGeneratorError as exc:
-                outcomes.append({"slug": path.stem, "status": "failed", "note": str(exc).replace("|", "/")})
+                checkpoint = _record_attempt(checkpoint_path, checkpoint, fingerprint,
+                                             "failed", usage if usage is not None else exc.usage)
+                outcomes.append({"slug": path.stem, "status": "failed",
+                                 "usage": _token_totals(checkpoint["attempts"]),
+                                 "note": str(exc).replace("|", "/")})
         _write_report(output_dir / "report.md", outcomes)  # Per-problem checkpoint.
     return outcomes
 
@@ -353,8 +477,9 @@ def main(argv=None):
         parser.exit(1, f"Editorial generation stopped: {exc}\n")
     print(f"Generated {sum(item['status'] == 'generated' for item in outcomes)}; "
           f"skipped {sum(item['status'] == 'skipped' for item in outcomes)}; "
+          f"stale {sum(item['status'] == 'stale' for item in outcomes)}; "
           f"failed {sum(item['status'] == 'failed' for item in outcomes)}. Report: {args.output_dir / 'report.md'}")
-    return int(any(item["status"] == "failed" for item in outcomes))
+    return int(any(item["status"] in {"stale", "failed"} for item in outcomes))
 
 
 if __name__ == "__main__":
