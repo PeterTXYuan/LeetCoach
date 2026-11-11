@@ -1,0 +1,111 @@
+{
+  "slug": "symmetric-tree",
+  "spec": {
+    "title": "Symmetric Tree",
+    "difficulty": "Easy",
+    "leetcodeNumber": 101,
+    "descriptionSourceUrl": "https://leetcode.com/problems/symmetric-tree/",
+    "descriptionSourceType": "curated_restatement",
+    "descriptionVerifiedAt": "2026-11-10T06:14:02+00:00",
+    "timeLimitMs": null,
+    "memoryLimitMb": null,
+    "timeComplexityInstruction": null,
+    "spaceComplexityInstruction": null,
+    "constraints": [
+      "1 <= number of nodes <= 1000",
+      "-100 <= Node.val <= 100"
+    ],
+    "examples": [
+      {
+        "input": "root = [1,2,2,4,null,null,4]",
+        "output": "true",
+        "explanation": "The two outer grandchildren match and the inner child positions are both absent."
+      },
+      {
+        "input": "root = [1,2,2,null,4,null,4]",
+        "output": "false",
+        "explanation": "Matching values occupy the same side, rather than mirrored positions."
+      }
+    ],
+    "submissionTemplates": {
+      "python": "class Solution:\n    def isSymmetric(self, root: 'TreeNode') -> bool:\n        pass",
+      "java": "class Solution {\n    public boolean isSymmetric(TreeNode root) {\n        return false;\n    }\n}",
+      "javascript": "var isSymmetric = function(root) {\n};",
+      "cpp": "class Solution {\npublic:\n    bool isSymmetric(TreeNode* root) {\n        return false;\n    }\n};"
+    },
+    "summary": "Determine whether a binary tree has equal values and mirrored child structure on opposite sides of its root.",
+    "description": "Return true if the binary tree mirrors itself about its root; every pair of corresponding nodes on opposite sides must have equal values, with each left child corresponding to the other node's right child and each right child corresponding to the other node's left child. Otherwise, return false. The tree contains 1 to 1000 nodes, and each node value is between -100 and 100. As an optional follow-up, the problem may be solved both recursively and iteratively."
+  },
+  "approaches": [
+    {
+      "id": "recursive-mirror-check",
+      "name": "Recursive Mirror Check",
+      "pattern": "Tree DFS",
+      "summary": "Recursively compare the root's two subtrees in mirrored pairs, matching values and crossing the child directions at every level. Time: The time complexity is O(n) because each of the n nodes is examined at most once. Space: The space complexity is O(h) for the recursion stack, where h is the tree height and can be O(n) in a skewed tree.",
+      "isPrimary": true,
+      "displayOrder": 1,
+      "thinkingSteps": [
+        "A symmetric tree requires its left and right subtrees to be mirror images, not merely equal trees.",
+        "For each opposing pair, two missing nodes match, while one missing node or unequal values means failure.",
+        "After matching a pair, compare the first node's left child with the second node's right child, and vice versa."
+      ],
+      "recognitionSignals": {
+        "quote": null,
+        "bullets": [
+          "The condition is defined by pairs on opposite sides of the root.",
+          "Child positions must match in reversed left/right order.",
+          "The same mirror rule repeats for every subtree level."
+        ]
+      }
+    },
+    {
+      "id": "iterative-mirror-pairs",
+      "name": "Iterative Mirror Pair Traversal",
+      "pattern": "Queue-Based Tree Traversal",
+      "summary": "Maintain a queue of opposing node pairs, repeatedly validating each pair and adding their children in mirrored order. Time: The time complexity is O(n) because every node participates in at most one processed pair. Space: The space complexity is O(n) because the queue may hold a linear number of nodes at a wide level.",
+      "isPrimary": false,
+      "displayOrder": 2,
+      "thinkingSteps": [
+        "Begin with the two children of the root as the first opposing pair.",
+        "A pair is valid when both nodes are absent, or when both exist with equal values.",
+        "For every valid nonempty pair, continue with the two crossed child pairs until the queue is empty."
+      ],
+      "recognitionSignals": {
+        "quote": null,
+        "bullets": [
+          "An explicit worklist can replace the recursive mirror comparison.",
+          "Nodes naturally need to be processed as opposing pairs.",
+          "A breadth-first traversal may store many nodes from one level."
+        ]
+      }
+    }
+  ],
+  "related": {
+    "easier": [
+      {
+        "slug": "same-tree",
+        "title": "Same Tree",
+        "difficulty": "Easy",
+        "reason": "Practice matching the shape and values of two trees"
+      }
+    ],
+    "similar": [
+      {
+        "slug": "invert-binary-tree",
+        "title": "Invert Binary Tree",
+        "difficulty": "Easy",
+        "reason": "Practice reasoning about mirrored children"
+      }
+    ],
+    "harder": []
+  },
+  "provenance": {
+    "reviewed": true,
+    "reviewedBy": "Codex manual source review",
+    "reviewedAt": "2026-11-10T06:14:02+00:00",
+    "sourceUrl": "https://leetcode.com/problems/symmetric-tree/",
+    "collectionMethod": "manual_review",
+    "reuseBasis": "original_editorial",
+    "permissionNote": "Individual public problem page manually reviewed for facts; facts, examples, and teaching text are independently worded. No statement or solution code was copied. Submission entry points were reconstructed from the documented interfaces. Project owner approved the editorial for the LeetCoach catalog on 2026-11-11. No LeetCode redistribution license is claimed."
+  }
+}

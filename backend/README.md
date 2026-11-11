@@ -10,6 +10,7 @@ Create and activate a Python virtual environment, then install dependencies:
 pip install -r requirements.txt
 python -m alembic upgrade head
 python -m app.seed
+python -m app.catalog_import apply --input-dir catalog/problems
 ```
 
 ## Run
@@ -64,7 +65,7 @@ python -m app.catalog_import plan --input-dir catalog/problems
 python -m app.catalog_import apply --input-dir catalog/problems
 ```
 
-`validate` reads JSON only. `plan` reads the database and reports slugs to create, update, or leave unchanged, plus child deletions within present slugs. `apply` uses one transaction and the existing exact-sync `seed_data()` for the present JSON slugs only. The original 40 are excluded, and a missing JSON file never deletes an existing Problem row. An empty or missing input directory is an error. A fresh database needs `app.seed` followed by this import; rerun the import to refresh previously imported problems. The first ten reviewed JSON records live in `catalog/problems/`; see `catalog_import_pilot_50_report.md`.
+`validate` reads JSON only. `plan` reads the database and reports slugs to create, update, or leave unchanged, plus child deletions within present slugs. `apply` uses one transaction and the existing exact-sync `seed_data()` for the present JSON slugs only. The original 40 are excluded, and a missing JSON file never deletes an existing Problem row. An empty or missing input directory is an error. A fresh database needs `app.seed` followed by this import to reach 60 problems; rerun the import to refresh previously imported problems. Twenty reviewed JSON records live in `catalog/problems/`; see `catalog_import_pilot_50_report.md` and `catalog_50_to_60_pilot_report.md`.
 
 ## Draft editorial generator
 

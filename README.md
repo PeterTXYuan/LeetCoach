@@ -1,6 +1,6 @@
 # LeetCoach
 
-LeetCoach is a Chrome side-panel extension for practicing *how* to solve LeetCode problems. It starts with approach-specific hints and progressively more complete starter code; a full answer is available when you choose to reveal it. The extension is backed by a local FastAPI service and a curated SQLite catalog of 40 problems.
+LeetCoach is a Chrome side-panel extension for practicing *how* to solve LeetCode problems. It starts with approach-specific hints and progressively more complete starter code; a full answer is available when you choose to reveal it. The extension is backed by a local FastAPI service and a curated SQLite catalog of 60 problems.
 
 This is a local development project, not a hosted extension or a LeetCode integration. Open a supported `leetcode.com/problems/...` page with the backend running, then open LeetCoach from the Chrome toolbar.
 
@@ -21,7 +21,7 @@ The catalog stores problem specifications, submission templates, approaches, rec
 | Chrome Manifest V3 side panel | Detect the active LeetCode problem, render Coach/Practice, and persist per-problem workspace state. |
 | React + TypeScript + Vite | UI, request hooks, local cache, and disclosure controls. |
 | FastAPI | Resolve canonical problem/approach IDs and serve analysis, hints, related problems, and guidance. |
-| SQLAlchemy + SQLite + Alembic | Store the 40-problem curated catalog; migrations define the schema and an exact-sync seed loads editorial data. |
+| SQLAlchemy + SQLite + Alembic | Store the 60-problem curated catalog; migrations define the schema, the seed loads the original 40, and the reviewed JSON importer loads the next 20. |
 | Groq or mock provider | Generate guidance from one selected approach and the requested language's submission template; mock mode works offline. |
 
 The side panel calls `http://localhost:8000` directly. It does not currently connect to a hosted backend. The browser extension requests access to LeetCode problem pages, local backend requests, tabs, side-panel controls, and local storage; see [the manifest](public/manifest.json) for the exact permissions.
@@ -37,6 +37,7 @@ Prerequisites: a recent Chrome version with side-panel support, Node.js/npm, and
    python -m pip install -r requirements.txt
    python -m alembic upgrade head
    python -m app.seed
+   python -m app.catalog_import apply --input-dir catalog/problems
    python -m uvicorn app.main:app --reload
    ```
 

@@ -1,0 +1,94 @@
+{
+  "slug": "word-search",
+  "spec": {
+    "title": "Word Search",
+    "difficulty": "Medium",
+    "leetcodeNumber": 79,
+    "descriptionSourceUrl": "https://leetcode.com/problems/word-search/",
+    "descriptionSourceType": "curated_restatement",
+    "descriptionVerifiedAt": "2026-11-10T06:14:02+00:00",
+    "timeLimitMs": null,
+    "memoryLimitMb": null,
+    "timeComplexityInstruction": null,
+    "spaceComplexityInstruction": null,
+    "constraints": [
+      "m == board.length",
+      "n == board[i].length",
+      "1 <= m, n <= 6",
+      "1 <= word.length <= 15",
+      "board and word contain only uppercase and lowercase English letters.",
+      "Search pruning for larger boards is an optional follow-up."
+    ],
+    "examples": [
+      {
+        "input": "board = [[\"C\",\"A\"],[\"T\",\"R\"]], word = \"CAR\"",
+        "output": "true",
+        "explanation": "The first two letters share a row and the final letter is directly below A."
+      },
+      {
+        "input": "board = [[\"A\",\"B\"]], word = \"ABA\"",
+        "output": "false",
+        "explanation": "The first cell would have to be reused."
+      }
+    ],
+    "submissionTemplates": {
+      "python": "class Solution:\n    def exist(self, board: list[list[str]], word: str) -> bool:\n        pass",
+      "java": "class Solution {\n    public boolean exist(char[][] board, String word) {\n        return false;\n    }\n}",
+      "javascript": "var exist = function(board, word) {\n};",
+      "cpp": "class Solution {\npublic:\n    bool exist(vector<vector<char>>& board, string word) {\n        return false;\n    }\n};"
+    },
+    "summary": "Determine whether a word can be formed by tracing non-repeating orthogonally adjacent cells in a character grid.",
+    "description": "Given an m × n character grid and a target word, return whether the word can be traced in order through horizontally or vertically adjacent cells without using any cell more than once in the same trace. Letters are case-sensitive and may be uppercase or lowercase English letters. The grid dimensions satisfy m = board.length, n = board[i].length, and 1 ≤ m, n ≤ 6; the word length is between 1 and 15. Additional search pruning for larger boards is an optional follow-up."
+  },
+  "approaches": [
+    {
+      "id": "depth-first-backtracking",
+      "name": "Depth-First Backtracking",
+      "pattern": "Backtracking",
+      "summary": "Try each cell as the first letter, recursively extend the trace through matching orthogonal neighbors, and restore each visited cell when abandoning a path. Time: The worst-case time is O(mn · 3^L), where L is the word length, because every start may branch to at most three unused directions after the first move. Space: The auxiliary space is O(L) for the recursion stack, with visited state marked and restored directly in the grid.",
+      "isPrimary": true,
+      "displayOrder": 1,
+      "thinkingSteps": [
+        "A valid trace may begin at any grid cell that matches the word's first letter.",
+        "After choosing a cell, only unused horizontal or vertical neighbors can supply the next letter.",
+        "If a choice cannot complete the word, undo that choice so the cell remains available to other traces.",
+        "The word exists as soon as one trace matches all of its letters in order."
+      ],
+      "recognitionSignals": {
+        "quote": null,
+        "bullets": [
+          "The task asks whether any path satisfies local adjacency rules.",
+          "Each cell may be chosen at most once within a candidate trace.",
+          "Small dimensions and a short target make exhaustive path exploration feasible."
+        ]
+      }
+    }
+  ],
+  "related": {
+    "easier": [],
+    "similar": [
+      {
+        "slug": "number-of-islands",
+        "title": "Number of Islands",
+        "difficulty": "Medium",
+        "reason": "Practice visiting neighboring grid cells"
+      },
+      {
+        "slug": "combination-sum",
+        "title": "Combination Sum",
+        "difficulty": "Medium",
+        "reason": "Practice exploring and undoing choices"
+      }
+    ],
+    "harder": []
+  },
+  "provenance": {
+    "reviewed": true,
+    "reviewedBy": "Codex manual source review",
+    "reviewedAt": "2026-11-10T06:14:02+00:00",
+    "sourceUrl": "https://leetcode.com/problems/word-search/",
+    "collectionMethod": "manual_review",
+    "reuseBasis": "original_editorial",
+    "permissionNote": "Individual public problem page manually reviewed for facts; facts, examples, and teaching text are independently worded. No statement or solution code was copied. Submission entry points were reconstructed from the documented interfaces. Project owner approved the editorial for the LeetCoach catalog on 2026-11-11. No LeetCode redistribution license is claimed."
+  }
+}

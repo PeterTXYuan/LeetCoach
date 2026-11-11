@@ -43,8 +43,9 @@ class EditorialGeneratorTests(unittest.TestCase):
         for source in PILOT.glob("*.json"):
             (self.input_dir / source.name).write_bytes(source.read_bytes())
 
-    def test_ten_pilot_inputs_generate_separate_unreviewed_drafts_and_resume(self):
+    def test_reviewed_catalog_inputs_generate_separate_unreviewed_drafts_and_resume(self):
         original = {path.name: path.read_bytes() for path in self.input_dir.glob("*.json")}
+        self.assertEqual(len(original), 20)
         calls = []
 
         def fake_generate(source, task_facts):
@@ -56,11 +57,11 @@ class EditorialGeneratorTests(unittest.TestCase):
 
         results = generate_batch(self.input_dir, self.output_dir,
                                  cli_check=lambda: None, generate=fake_generate)
-        self.assertEqual(len(calls), 10)
-        self.assertEqual([item["status"] for item in results], ["generated"] * 10)
+        self.assertEqual(len(calls), len(original))
+        self.assertEqual([item["status"] for item in results], ["generated"] * len(original))
         self.assertEqual(original, {path.name: path.read_bytes() for path in self.input_dir.glob("*.json")})
-        self.assertEqual(len(list(self.output_dir.glob("*.json"))), 10)
-        self.assertIn("input 500, output 300", (self.output_dir / "report.md").read_text())
+        self.assertEqual(len(list(self.output_dir.glob("*.json"))), len(original))
+        self.assertIn("input 1000, output 600", (self.output_dir / "report.md").read_text())
         for source_path in self.input_dir.glob("*.json"):
             source = json.loads(source_path.read_text(encoding="utf-8"))
             draft = json.loads((self.output_dir / source_path.name).read_text(encoding="utf-8"))
@@ -78,7 +79,7 @@ class EditorialGeneratorTests(unittest.TestCase):
         second = generate_batch(self.input_dir, self.output_dir,
                                 cli_check=lambda: self.fail("CLI should not run"),
                                 generate=lambda *_: self.fail("completed drafts should be skipped"))
-        self.assertEqual([item["status"] for item in second], ["skipped"] * 10)
+        self.assertEqual([item["status"] for item in second], ["skipped"] * len(original))
 
     def test_facts_only_input_and_small_prompt(self):
         path = self.input_dir / "move-zeroes.json"

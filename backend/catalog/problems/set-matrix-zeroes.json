@@ -1,0 +1,115 @@
+{
+  "slug": "set-matrix-zeroes",
+  "spec": {
+    "title": "Set Matrix Zeroes",
+    "difficulty": "Medium",
+    "leetcodeNumber": 73,
+    "descriptionSourceUrl": "https://leetcode.com/problems/set-matrix-zeroes/",
+    "descriptionSourceType": "curated_restatement",
+    "descriptionVerifiedAt": "2026-11-10T06:14:02+00:00",
+    "timeLimitMs": null,
+    "memoryLimitMb": null,
+    "timeComplexityInstruction": null,
+    "spaceComplexityInstruction": null,
+    "constraints": [
+      "m == matrix.length",
+      "n == matrix[0].length",
+      "1 <= m, n <= 200",
+      "-2^31 <= matrix[i][j] <= 2^31 - 1",
+      "The matrix must be changed in place."
+    ],
+    "examples": [
+      {
+        "input": "matrix = [[1,2],[0,4]]",
+        "output": "[[0,2],[0,0]]",
+        "explanation": "Only the originally zero-containing row and its first column are cleared."
+      },
+      {
+        "input": "matrix = [[0,2],[3,4]]",
+        "output": "[[0,0],[0,4]]",
+        "explanation": "The top row and left column are cleared."
+      }
+    ],
+    "submissionTemplates": {
+      "python": "class Solution:\n    def setZeroes(self, matrix: list[list[int]]) -> None:\n        # Update matrix in place.\n        pass",
+      "java": "class Solution {\n    public void setZeroes(int[][] matrix) {\n    }\n}",
+      "javascript": "var setZeroes = function(matrix) {\n};",
+      "cpp": "class Solution {\npublic:\n    void setZeroes(vector<vector<int>>& matrix) {\n    }\n};"
+    },
+    "summary": "Modify a rectangular matrix in place so every row and column containing an original zero becomes entirely zero.",
+    "description": "Given a nonempty m × n integer matrix, where 1 ≤ m, n ≤ 200 and each value is a 32-bit signed integer, change the supplied matrix in place so that every row and column that originally contained a zero is filled with zeros. Constant extra space is an optional follow-up, not a mandatory requirement."
+  },
+  "approaches": [
+    {
+      "id": "first-row-and-column-markers",
+      "name": "First Row and Column Markers",
+      "pattern": "In-place state encoding",
+      "summary": "Record affected rows and columns inside the matrix’s first row and first column, while separately remembering whether those two marker regions originally contained zeros, then clear the marked cells and finally handle the marker regions. Time: Time complexity is O(mn) because the matrix is scanned and updated a constant number of times. Space: Space complexity is O(1) because only a few flags are stored outside the matrix.",
+      "isPrimary": true,
+      "displayOrder": 1,
+      "thinkingSteps": [
+        "Changing cells immediately could create new zeros that were not present originally.",
+        "The matrix itself can preserve which rows and columns need clearing.",
+        "The first row and first column require separate flags because they also serve as storage.",
+        "Apply the recorded decisions only after all original zeros have been examined."
+      ],
+      "recognitionSignals": {
+        "quote": null,
+        "bullets": [
+          "The output depends only on zeros present in the original matrix.",
+          "Entire rows and columns are affected by each matching cell.",
+          "The optional follow-up asks for constant extra space."
+        ]
+      }
+    },
+    {
+      "id": "row-and-column-sets",
+      "name": "Row and Column Sets",
+      "pattern": "Auxiliary marking",
+      "summary": "First collect the indices of every row and column containing an original zero, then make a second pass that clears any cell whose row or column was recorded. Time: Time complexity is O(mn) because every matrix cell is inspected and then considered for clearing. Space: Space complexity is O(m+n) because affected row and column indices are stored separately.",
+      "isPrimary": false,
+      "displayOrder": 2,
+      "thinkingSteps": [
+        "Separate discovering original zeros from modifying the matrix.",
+        "Only row and column indices are needed to describe every required change.",
+        "After discovery is complete, each cell can be checked against the recorded indices."
+      ],
+      "recognitionSignals": {
+        "quote": null,
+        "bullets": [
+          "One cell can affect two whole dimensions.",
+          "Updates must not influence later discovery.",
+          "The matrix dimensions are small enough for row and column tracking."
+        ]
+      }
+    }
+  ],
+  "related": {
+    "easier": [
+      {
+        "slug": "move-zeroes",
+        "title": "Move Zeroes",
+        "difficulty": "Easy",
+        "reason": "Changing an input array in place"
+      }
+    ],
+    "similar": [
+      {
+        "slug": "valid-sudoku",
+        "title": "Valid Sudoku",
+        "difficulty": "Medium",
+        "reason": "Reasoning about matrix rows and columns"
+      }
+    ],
+    "harder": []
+  },
+  "provenance": {
+    "reviewed": true,
+    "reviewedBy": "Codex manual source review",
+    "reviewedAt": "2026-11-10T06:14:02+00:00",
+    "sourceUrl": "https://leetcode.com/problems/set-matrix-zeroes/",
+    "collectionMethod": "manual_review",
+    "reuseBasis": "original_editorial",
+    "permissionNote": "Individual public problem page manually reviewed for facts; facts, examples, and teaching text are independently worded. No statement or solution code was copied. Submission entry points were reconstructed from the documented interfaces. Project owner approved the editorial for the LeetCoach catalog on 2026-11-11. No LeetCode redistribution license is claimed."
+  }
+}

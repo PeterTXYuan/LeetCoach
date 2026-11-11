@@ -1,0 +1,94 @@
+{
+  "slug": "lowest-common-ancestor-of-a-binary-search-tree",
+  "spec": {
+    "title": "Lowest Common Ancestor of a Binary Search Tree",
+    "difficulty": "Medium",
+    "leetcodeNumber": 235,
+    "descriptionSourceUrl": "https://leetcode.com/problems/lowest-common-ancestor-of-a-binary-search-tree/",
+    "descriptionSourceType": "curated_restatement",
+    "descriptionVerifiedAt": "2026-11-10T06:14:02+00:00",
+    "timeLimitMs": null,
+    "memoryLimitMb": null,
+    "timeComplexityInstruction": null,
+    "spaceComplexityInstruction": null,
+    "constraints": [
+      "2 <= number of nodes <= 10^5",
+      "-10^9 <= Node.val <= 10^9",
+      "Node.val values are unique.",
+      "p != q",
+      "p and q both exist in the BST."
+    ],
+    "examples": [
+      {
+        "input": "root = [5,2,8,1,3,7,9], p = 1, q = 3",
+        "output": "2",
+        "explanation": "Both requested nodes lie beneath node 2."
+      },
+      {
+        "input": "root = [5,2,8,1,3,7,9], p = 2, q = 3",
+        "output": "2",
+        "explanation": "One requested node is an ancestor of the other."
+      }
+    ],
+    "submissionTemplates": {
+      "python": "class Solution:\n    def lowestCommonAncestor(self, root: 'TreeNode', p: 'TreeNode', q: 'TreeNode') -> 'TreeNode':\n        pass",
+      "java": "class Solution {\n    public TreeNode lowestCommonAncestor(TreeNode root, TreeNode p, TreeNode q) {\n        return null;\n    }\n}",
+      "javascript": "var lowestCommonAncestor = function(root, p, q) {\n};",
+      "cpp": "class Solution {\npublic:\n    TreeNode* lowestCommonAncestor(TreeNode* root, TreeNode* p, TreeNode* q) {\n        return nullptr;\n    }\n};"
+    },
+    "summary": "Find the lowest node in a binary search tree whose subtree contains both given nodes.",
+    "description": "Given the root of a binary search tree and two distinct nodes p and q that are guaranteed to exist in it, return their lowest common ancestor. A node is considered its own descendant, so either p or q can be the result. All node values are unique, range from -10^9 to 10^9, and follow binary search tree ordering; the tree contains between 2 and 10^5 nodes."
+  },
+  "approaches": [
+    {
+      "id": "iterative-bst-search",
+      "name": "Iterative BST Search",
+      "pattern": "Use the BST ordering to follow only the side that contains both targets; the first node where they split or match is their lowest common ancestor.",
+      "summary": "Starting at the root, move left when both target values are smaller and right when both are larger; otherwise, return the current node. Time: Time is O(h), where h is the tree height, because only one root-to-node path is examined. Space: Space is O(1) because the search stores only the current node and target values.",
+      "isPrimary": true,
+      "displayOrder": 1,
+      "thinkingSteps": [
+        "Order the two target values conceptually as the smaller and larger value.",
+        "If both values lie below the current value, their shared ancestor must be in the left subtree.",
+        "If both values lie above the current value, their shared ancestor must be in the right subtree.",
+        "Otherwise, the current node is a target or the point where their paths diverge, so it is the answer."
+      ],
+      "recognitionSignals": {
+        "quote": null,
+        "bullets": [
+          "The tree is specifically a binary search tree.",
+          "Node values are unique and both targets are guaranteed to exist.",
+          "The answer may equal one of the target nodes."
+        ]
+      }
+    }
+  ],
+  "related": {
+    "easier": [
+      {
+        "slug": "binary-search",
+        "title": "Binary Search",
+        "difficulty": "Easy",
+        "reason": "Practice using an ordered comparison"
+      }
+    ],
+    "similar": [
+      {
+        "slug": "validate-binary-search-tree",
+        "title": "Validate Binary Search Tree",
+        "difficulty": "Medium",
+        "reason": "Practice BST ordering invariants"
+      }
+    ],
+    "harder": []
+  },
+  "provenance": {
+    "reviewed": true,
+    "reviewedBy": "Codex manual source review",
+    "reviewedAt": "2026-11-10T06:14:02+00:00",
+    "sourceUrl": "https://leetcode.com/problems/lowest-common-ancestor-of-a-binary-search-tree/",
+    "collectionMethod": "manual_review",
+    "reuseBasis": "original_editorial",
+    "permissionNote": "Individual public problem page manually reviewed for facts; facts, examples, and teaching text are independently worded. No statement or solution code was copied. Submission entry points were reconstructed from the documented interfaces. Project owner approved the editorial for the LeetCoach catalog on 2026-11-11. No LeetCode redistribution license is claimed."
+  }
+}

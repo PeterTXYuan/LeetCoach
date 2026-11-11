@@ -45,8 +45,14 @@ Database
 
 AI
 - Current: deterministic offline MockLLMProvider or live GroqLLMProvider for Hints, Starter Code, and Full Solution
-- Offline Full Solution fixtures cover the original seven approaches across three problems; Groq uses all 40 seeded problems and 64 canonical approaches
+- Offline Full Solution fixtures cover the original seven approaches across three problems; Groq can use the 60-problem catalog and 90 canonical approaches after the reviewed JSON import
 - Future providers may include OpenAI, Gemini, or OpenRouter
+
+---
+
+## Approved Catalog Import: 60 Problems (November 11, 2026 Pacific)
+
+The catalog now consists of the original 40 exact-sync seeded problems and 20 reviewed JSON records in `backend/catalog/problems/`. The second ten-problem pilot was approved without changing its staged descriptions, examples, approaches, Recognition Signals, related cards, or four-language submission contracts. Provenance records the project owner's editorial approval; the original source-verification timestamp remains unchanged. A fresh migrated SQLite database reaches 60 problems, 90 canonical approaches, and 240 language templates after `app.seed` and `app.catalog_import apply`. Reapplying the 20 reviewed JSON files leaves them unchanged, and a database snapshot verifies that importing the second pilot preserves every row and child ID/content from the first 50. Policy 9 and the importer schema remain unchanged. Verification passed: 154 backend tests, 104 frontend tests on the final run, the production build, and `git diff --check`.
 
 ---
 

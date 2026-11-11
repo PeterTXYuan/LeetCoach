@@ -1,0 +1,113 @@
+{
+  "slug": "trapping-rain-water",
+  "spec": {
+    "title": "Trapping Rain Water",
+    "difficulty": "Hard",
+    "leetcodeNumber": 42,
+    "descriptionSourceUrl": "https://leetcode.com/problems/trapping-rain-water/",
+    "descriptionSourceType": "curated_restatement",
+    "descriptionVerifiedAt": "2026-11-10T06:14:02+00:00",
+    "timeLimitMs": null,
+    "memoryLimitMb": null,
+    "timeComplexityInstruction": null,
+    "spaceComplexityInstruction": null,
+    "constraints": [
+      "n == height.length",
+      "1 <= n <= 2 * 10^4",
+      "0 <= height[i] <= 10^5"
+    ],
+    "examples": [
+      {
+        "input": "height = [3,0,3]",
+        "output": "3",
+        "explanation": "The middle column holds three units between equal-height walls."
+      },
+      {
+        "input": "height = [2,1,2,0,3]",
+        "output": "3",
+        "explanation": "One unit rests above the second bar and two above the fourth."
+      }
+    ],
+    "submissionTemplates": {
+      "python": "class Solution:\n    def trap(self, height: list[int]) -> int:\n        pass",
+      "java": "class Solution {\n    public int trap(int[] height) {\n        return 0;\n    }\n}",
+      "javascript": "var trap = function(height) {\n};",
+      "cpp": "class Solution {\npublic:\n    int trap(vector<int>& height) {\n        return 0;\n    }\n};"
+    },
+    "summary": "Compute how many unit squares of rainwater are trapped between the elevation bars.",
+    "description": "Given an array height of n nonnegative integers representing unit-width bars, return the total number of unit squares of water remaining above the bars after rain, where water must be bounded by taller bars on both sides. The input satisfies n == height.length, 1 <= n <= 2 * 10^4, and 0 <= height[i] <= 10^5."
+  },
+  "approaches": [
+    {
+      "id": "two-pointers",
+      "name": "Two Pointers",
+      "pattern": "Two Pointers",
+      "summary": "Move inward from both ends while tracking the tallest boundary seen on each side; process the side with the lower boundary because that boundary determines its trapped water. Time: Time complexity is O(n) because each bar is processed once. Space: Space complexity is O(1) because only pointers, boundary heights, and the total are stored.",
+      "isPrimary": true,
+      "displayOrder": 1,
+      "thinkingSteps": [
+        "Water above a bar depends on the shorter of the tallest bars to its left and right.",
+        "Start at both ends and remember the highest boundary found from each direction.",
+        "Process the side with the lower known boundary, adding the difference when its current bar is shorter.",
+        "Continue until the two pointers meet."
+      ],
+      "recognitionSignals": {
+        "quote": null,
+        "bullets": [
+          "The bars have height and unit width, so the answer is a water volume.",
+          "Water at a low bar needs barriers on both its left and right.",
+          "The total comes from water held above individual positions."
+        ]
+      }
+    },
+    {
+      "id": "prefix-suffix-maxima",
+      "name": "Prefix and Suffix Maxima",
+      "pattern": "Prefix/Suffix Precomputation",
+      "summary": "Precompute the tallest bar on each side of every position, then add the positive difference between the smaller boundary and the current height. Time: Time complexity is O(n) because the boundary arrays and trapped-water total each require linear scans. Space: Space complexity is O(n) because left and right maximum heights are stored for every bar.",
+      "isPrimary": false,
+      "displayOrder": 2,
+      "thinkingSteps": [
+        "For each bar, identify the tallest boundary on its left and on its right.",
+        "The smaller boundary gives the highest possible water level at that position.",
+        "Subtract the bar height from that level, counting only positive results.",
+        "Sum the contributions from all positions."
+      ],
+      "recognitionSignals": {
+        "quote": null,
+        "bullets": [
+          "Every position needs information from both directions.",
+          "Repeated range maxima can be precomputed.",
+          "The total is the sum of independent per-position amounts."
+        ]
+      }
+    }
+  ],
+  "related": {
+    "easier": [
+      {
+        "slug": "container-with-most-water",
+        "title": "Container With Most Water",
+        "difficulty": "Medium",
+        "reason": "Practice reasoning with two boundary pointers"
+      },
+      {
+        "slug": "product-of-array-except-self",
+        "title": "Product of Array Except Self",
+        "difficulty": "Medium",
+        "reason": "Practice precomputed information from both sides"
+      }
+    ],
+    "similar": [],
+    "harder": []
+  },
+  "provenance": {
+    "reviewed": true,
+    "reviewedBy": "Codex manual source review",
+    "reviewedAt": "2026-11-10T06:14:02+00:00",
+    "sourceUrl": "https://leetcode.com/problems/trapping-rain-water/",
+    "collectionMethod": "manual_review",
+    "reuseBasis": "original_editorial",
+    "permissionNote": "Individual public problem page manually reviewed for facts; facts, examples, and teaching text are independently worded. No statement or solution code was copied. Submission entry points were reconstructed from the documented interfaces. Project owner approved the editorial for the LeetCoach catalog on 2026-11-11. No LeetCode redistribution license is claimed."
+  }
+}
