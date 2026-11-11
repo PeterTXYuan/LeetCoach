@@ -41,7 +41,8 @@ export function parseLeetCodeProblemUrl(rawUrl?: string): ProblemPageMatch {
 export function getProblemDisplayTitle(slug: string, tabTitle?: string) {
   const normalizedTabTitle = tabTitle?.replace(/\s+-\s+LeetCode\s*$/i, "").trim();
 
-  if (normalizedTabTitle && isUsableProblemTitle(normalizedTabTitle)) {
+  if (normalizedTabTitle && isUsableProblemTitle(normalizedTabTitle) &&
+      titleSlug(normalizedTabTitle) === slug.toLowerCase()) {
     return normalizedTabTitle;
   }
 
@@ -50,6 +51,11 @@ export function getProblemDisplayTitle(slug: string, tabTitle?: string) {
     .filter(Boolean)
     .map(formatTitleWord)
     .join(" ");
+}
+
+function titleSlug(title: string) {
+  return title.replace(/^\d+\.\s*/, "").toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 }
 
 function isUsableProblemTitle(title: string) {

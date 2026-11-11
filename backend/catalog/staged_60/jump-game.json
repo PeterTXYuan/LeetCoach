@@ -1,0 +1,91 @@
+{
+  "slug": "jump-game",
+  "spec": {
+    "title": "Jump Game",
+    "difficulty": "Medium",
+    "leetcodeNumber": 55,
+    "descriptionSourceUrl": "https://leetcode.com/problems/jump-game/",
+    "descriptionSourceType": "curated_restatement",
+    "descriptionVerifiedAt": "2026-11-10T06:14:02+00:00",
+    "timeLimitMs": null,
+    "memoryLimitMb": null,
+    "timeComplexityInstruction": null,
+    "spaceComplexityInstruction": null,
+    "constraints": [
+      "1 <= nums.length <= 10^4",
+      "0 <= nums[i] <= 10^5"
+    ],
+    "examples": [
+      {
+        "input": "nums = [2,0,1,0]",
+        "output": "true",
+        "explanation": "A jump from index zero can reach index two, then the last index."
+      },
+      {
+        "input": "nums = [1,0,2]",
+        "output": "false",
+        "explanation": "The only first jump lands on a zero before the destination."
+      }
+    ],
+    "submissionTemplates": {
+      "python": "class Solution:\n    def canJump(self, nums: list[int]) -> bool:\n        pass",
+      "java": "class Solution {\n    public boolean canJump(int[] nums) {\n        return false;\n    }\n}",
+      "javascript": "var canJump = function(nums) {\n};",
+      "cpp": "class Solution {\npublic:\n    bool canJump(vector<int>& nums) {\n        return false;\n    }\n};"
+    },
+    "summary": "Determine whether the last array index is reachable by making forward jumps bounded by each visited value.",
+    "description": "Start at index 0 of an integer array, where each value gives the maximum permitted forward jump from that index and any shorter positive jump is allowed. Return whether at least one sequence of jumps can reach the last index; an array of length one is already at the destination."
+  },
+  "approaches": [
+    {
+      "id": "greedy-farthest-reach",
+      "name": "Greedy Farthest Reach",
+      "pattern": "Greedy",
+      "summary": "Scan reachable indices while maintaining the farthest index that any processed position can reach, succeeding once that boundary covers the destination and failing if the scan moves beyond it. Time: The time complexity is O(n) because each index is processed at most once. Space: The space complexity is O(1) because only the farthest reachable index is stored.",
+      "isPrimary": true,
+      "displayOrder": 1,
+      "thinkingSteps": [
+        "Summarize all useful jump choices by the farthest position reachable so far.",
+        "Only indices within that reachable boundary can provide new jumps.",
+        "Extend the boundary with each reachable index's maximum landing position.",
+        "The destination is reachable exactly when the boundary reaches it before the scan becomes stuck."
+      ],
+      "recognitionSignals": {
+        "quote": null,
+        "bullets": [
+          "Each value gives a maximum forward jump, not a required jump length.",
+          "The question asks whether the last index can be reached at all.",
+          "A zero can block progress if no earlier jump can pass it."
+        ]
+      }
+    }
+  ],
+  "related": {
+    "easier": [
+      {
+        "slug": "climbing-stairs",
+        "title": "Climbing Stairs",
+        "difficulty": "Easy",
+        "reason": "Practice reasoning about reaching a position"
+      }
+    ],
+    "similar": [
+      {
+        "slug": "house-robber",
+        "title": "House Robber",
+        "difficulty": "Medium",
+        "reason": "Practice choosing among forward positions"
+      }
+    ],
+    "harder": []
+  },
+  "provenance": {
+    "reviewed": false,
+    "reviewedBy": "Codex manual source review",
+    "reviewedAt": "2026-11-10T06:14:02+00:00",
+    "sourceUrl": "https://leetcode.com/problems/jump-game/",
+    "collectionMethod": "manual_review",
+    "reuseBasis": "original_editorial",
+    "permissionNote": "Individual public problem page manually reviewed for facts; facts, examples, and teaching text are independently worded. No statement or solution code was copied and no redistribution license is claimed. Submission entry points are reconstructed from the documented interfaces and require final human review. Generated editorial is unreviewed; source permission and originality must be checked before import."
+  }
+}

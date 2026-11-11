@@ -1,0 +1,70 @@
+{
+  "slug": "add-two-numbers",
+  "spec": {
+    "title": "Add Two Numbers",
+    "difficulty": "Medium",
+    "leetcodeNumber": 2,
+    "taskFacts": [
+      "Two nonempty linked lists encode nonnegative integers, one decimal digit per node, with least significant digit first.",
+      "Return a linked list in the same reverse-digit order representing their sum. Input numbers have no leading zero except zero itself. Lists may differ in length and a final carry may add a node."
+    ],
+    "descriptionSourceUrl": "https://leetcode.com/problems/add-two-numbers/",
+    "descriptionSourceType": "curated_restatement",
+    "descriptionVerifiedAt": "2026-11-10T06:14:02+00:00",
+    "timeLimitMs": null,
+    "memoryLimitMb": null,
+    "timeComplexityInstruction": null,
+    "spaceComplexityInstruction": null,
+    "constraints": [
+      "1 <= nodes in each input list <= 100",
+      "0 <= Node.val <= 9",
+      "Input numbers do not have leading zeros, except the number zero."
+    ],
+    "examples": [
+      {
+        "input": "l1 = [1,8], l2 = [9]",
+        "output": "[0,9]",
+        "explanation": "The encoded inputs are 81 and 9; their sum is 90."
+      },
+      {
+        "input": "l1 = [9], l2 = [1]",
+        "output": "[0,1]",
+        "explanation": "The carry creates another digit node."
+      }
+    ],
+    "submissionTemplates": {
+      "python": "class Solution:\n    def addTwoNumbers(self, l1: 'ListNode', l2: 'ListNode') -> 'ListNode':\n        pass",
+      "java": "class Solution {\n    public ListNode addTwoNumbers(ListNode l1, ListNode l2) {\n        return null;\n    }\n}",
+      "javascript": "var addTwoNumbers = function(l1, l2) {\n};",
+      "cpp": "class Solution {\npublic:\n    ListNode* addTwoNumbers(ListNode* l1, ListNode* l2) {\n        return nullptr;\n    }\n};"
+    }
+  },
+  "related": {
+    "easier": [
+      {
+        "slug": "reverse-linked-list",
+        "title": "Reverse Linked List",
+        "difficulty": "Easy",
+        "reason": "Practice walking a linked list"
+      }
+    ],
+    "similar": [
+      {
+        "slug": "merge-two-sorted-lists",
+        "title": "Merge Two Sorted Lists",
+        "difficulty": "Easy",
+        "reason": "Practice building an output linked list"
+      }
+    ],
+    "harder": []
+  },
+  "provenance": {
+    "reviewed": true,
+    "reviewedBy": "Codex manual source review",
+    "reviewedAt": "2026-11-10T06:14:02+00:00",
+    "sourceUrl": "https://leetcode.com/problems/add-two-numbers/",
+    "collectionMethod": "manual_review",
+    "reuseBasis": "original_editorial",
+    "permissionNote": "Individual public problem page manually reviewed for facts; facts, examples, and teaching text are independently worded. No statement or solution code was copied and no redistribution license is claimed. Submission entry points are reconstructed from the documented interfaces and require final human review."
+  }
+}

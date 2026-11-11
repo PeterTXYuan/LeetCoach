@@ -1,0 +1,88 @@
+{
+  "slug": "lru-cache",
+  "spec": {
+    "title": "LRU Cache",
+    "difficulty": "Medium",
+    "leetcodeNumber": 146,
+    "descriptionSourceUrl": "https://leetcode.com/problems/lru-cache/",
+    "descriptionSourceType": "curated_restatement",
+    "descriptionVerifiedAt": "2026-11-10T06:14:02+00:00",
+    "timeLimitMs": null,
+    "memoryLimitMb": null,
+    "timeComplexityInstruction": "O(1) average time per get and put",
+    "spaceComplexityInstruction": null,
+    "constraints": [
+      "1 <= capacity <= 3000",
+      "0 <= key <= 10^4",
+      "0 <= value <= 10^5",
+      "At most 2 * 10^5 calls to get and put.",
+      "get and put require O(1) average time."
+    ],
+    "examples": [
+      {
+        "input": "operations = [\"LRUCache\",\"put\",\"put\",\"get\",\"put\",\"get\",\"get\"], arguments = [[2],[1,8],[2,9],[1],[3,7],[2],[3]]",
+        "output": "[null,null,null,8,null,-1,7]",
+        "explanation": "Reading key 1 refreshes it; inserting key 3 then evicts key 2."
+      }
+    ],
+    "submissionTemplates": {
+      "python": "class LRUCache:\n    def __init__(self, capacity: int):\n        pass\n\n    def get(self, key: int) -> int:\n        pass\n\n    def put(self, key: int, value: int) -> None:\n        pass",
+      "java": "class LRUCache {\n    public LRUCache(int capacity) {\n    }\n\n    public int get(int key) {\n        return -1;\n    }\n\n    public void put(int key, int value) {\n    }\n}",
+      "javascript": "var LRUCache = function(capacity) {\n};\n\nLRUCache.prototype.get = function(key) {\n};\n\nLRUCache.prototype.put = function(key, value) {\n};",
+      "cpp": "class LRUCache {\npublic:\n    LRUCache(int capacity) {\n    }\n\n    int get(int key) {\n        return -1;\n    }\n\n    void put(int key, int value) {\n    }\n};"
+    },
+    "summary": "Design a fixed-capacity cache that returns stored values and evicts the least recently used key in O(1) average time per operation.",
+    "description": "Implement a cache initialized with a positive capacity. get(key) returns the stored value or -1 when the key is absent, and a successful access marks the key as most recently used. put(key, value) inserts or updates a key and marks it as most recently used; if the number of keys exceeds capacity, remove the least recently used key. Both operations must run in O(1) average time. The limits are 1 <= capacity <= 3000, 0 <= key <= 10^4, 0 <= value <= 10^5, and at most 2 * 10^5 total get and put calls."
+  },
+  "approaches": [
+    {
+      "id": "hash-map-doubly-linked-list",
+      "name": "Hash Map and Doubly Linked List",
+      "pattern": "Pair direct key lookup with an ordering structure that supports constant-time removal and insertion.",
+      "summary": "Store each key's node in a hash map and maintain usage order in a doubly linked list, moving accessed or updated nodes to the most-recent end and evicting from the least-recent end. Time: Each get and put takes O(1) average time because hash-map lookup and linked-list insertion, removal, or movement are constant-time operations. Space: The cache uses O(capacity) space because the map and linked list keep one entry for each stored key.",
+      "isPrimary": true,
+      "displayOrder": 1,
+      "thinkingSteps": [
+        "The cache must track both a key's value and its position in the usage order.",
+        "A hash map provides average O(1) access to the node for any key.",
+        "A doubly linked list can move a known node or remove the oldest node in O(1) time.",
+        "After every successful access or insertion, move that key to the most-recent end; evict from the opposite end when necessary."
+      ],
+      "recognitionSignals": {
+        "quote": null,
+        "bullets": [
+          "Operations must be O(1) on average.",
+          "Accesses change the eviction priority.",
+          "The least recently used entry must be identified and removed quickly."
+        ]
+      }
+    }
+  ],
+  "related": {
+    "easier": [],
+    "similar": [
+      {
+        "slug": "min-stack",
+        "title": "Min Stack",
+        "difficulty": "Medium",
+        "reason": "Practice a class with stateful operations"
+      },
+      {
+        "slug": "time-based-key-value-store",
+        "title": "Time Based Key-Value Store",
+        "difficulty": "Medium",
+        "reason": "Practice a keyed data structure with get and set operations"
+      }
+    ],
+    "harder": []
+  },
+  "provenance": {
+    "reviewed": false,
+    "reviewedBy": "Codex manual source review",
+    "reviewedAt": "2026-11-10T06:14:02+00:00",
+    "sourceUrl": "https://leetcode.com/problems/lru-cache/",
+    "collectionMethod": "manual_review",
+    "reuseBasis": "original_editorial",
+    "permissionNote": "Individual public problem page manually reviewed for facts; facts, examples, and teaching text are independently worded. No statement or solution code was copied and no redistribution license is claimed. Submission entry points are reconstructed from the documented interfaces and require final human review. Generated editorial is unreviewed; source permission and originality must be checked before import."
+  }
+}

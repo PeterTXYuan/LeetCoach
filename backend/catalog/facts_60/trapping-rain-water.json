@@ -1,0 +1,70 @@
+{
+  "slug": "trapping-rain-water",
+  "spec": {
+    "title": "Trapping Rain Water",
+    "difficulty": "Hard",
+    "leetcodeNumber": 42,
+    "taskFacts": [
+      "Nonnegative heights describe unit-width bars in an elevation map.",
+      "Return the number of unit squares of water that remain above the bars after rain, with water bounded by taller bars on both sides."
+    ],
+    "descriptionSourceUrl": "https://leetcode.com/problems/trapping-rain-water/",
+    "descriptionSourceType": "curated_restatement",
+    "descriptionVerifiedAt": "2026-11-10T06:14:02+00:00",
+    "timeLimitMs": null,
+    "memoryLimitMb": null,
+    "timeComplexityInstruction": null,
+    "spaceComplexityInstruction": null,
+    "constraints": [
+      "n == height.length",
+      "1 <= n <= 2 * 10^4",
+      "0 <= height[i] <= 10^5"
+    ],
+    "examples": [
+      {
+        "input": "height = [3,0,3]",
+        "output": "3",
+        "explanation": "The middle column holds three units between equal-height walls."
+      },
+      {
+        "input": "height = [2,1,2,0,3]",
+        "output": "3",
+        "explanation": "One unit rests above the second bar and two above the fourth."
+      }
+    ],
+    "submissionTemplates": {
+      "python": "class Solution:\n    def trap(self, height: list[int]) -> int:\n        pass",
+      "java": "class Solution {\n    public int trap(int[] height) {\n        return 0;\n    }\n}",
+      "javascript": "var trap = function(height) {\n};",
+      "cpp": "class Solution {\npublic:\n    int trap(vector<int>& height) {\n        return 0;\n    }\n};"
+    }
+  },
+  "related": {
+    "easier": [
+      {
+        "slug": "container-with-most-water",
+        "title": "Container With Most Water",
+        "difficulty": "Medium",
+        "reason": "Practice reasoning with two boundary pointers"
+      }
+    ],
+    "similar": [
+      {
+        "slug": "product-of-array-except-self",
+        "title": "Product of Array Except Self",
+        "difficulty": "Medium",
+        "reason": "Practice precomputed information from both sides"
+      }
+    ],
+    "harder": []
+  },
+  "provenance": {
+    "reviewed": true,
+    "reviewedBy": "Codex manual source review",
+    "reviewedAt": "2026-11-10T06:14:02+00:00",
+    "sourceUrl": "https://leetcode.com/problems/trapping-rain-water/",
+    "collectionMethod": "manual_review",
+    "reuseBasis": "original_editorial",
+    "permissionNote": "Individual public problem page manually reviewed for facts; facts, examples, and teaching text are independently worded. No statement or solution code was copied and no redistribution license is claimed. Submission entry points are reconstructed from the documented interfaces and require final human review."
+  }
+}

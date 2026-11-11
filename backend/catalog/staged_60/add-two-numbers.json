@@ -1,0 +1,91 @@
+{
+  "slug": "add-two-numbers",
+  "spec": {
+    "title": "Add Two Numbers",
+    "difficulty": "Medium",
+    "leetcodeNumber": 2,
+    "descriptionSourceUrl": "https://leetcode.com/problems/add-two-numbers/",
+    "descriptionSourceType": "curated_restatement",
+    "descriptionVerifiedAt": "2026-11-10T06:14:02+00:00",
+    "timeLimitMs": null,
+    "memoryLimitMb": null,
+    "timeComplexityInstruction": null,
+    "spaceComplexityInstruction": null,
+    "constraints": [
+      "1 <= nodes in each input list <= 100",
+      "0 <= Node.val <= 9",
+      "Input numbers do not have leading zeros, except the number zero."
+    ],
+    "examples": [
+      {
+        "input": "l1 = [1,8], l2 = [9]",
+        "output": "[0,9]",
+        "explanation": "The encoded inputs are 81 and 9; their sum is 90."
+      },
+      {
+        "input": "l1 = [9], l2 = [1]",
+        "output": "[0,1]",
+        "explanation": "The carry creates another digit node."
+      }
+    ],
+    "submissionTemplates": {
+      "python": "class Solution:\n    def addTwoNumbers(self, l1: 'ListNode', l2: 'ListNode') -> 'ListNode':\n        pass",
+      "java": "class Solution {\n    public ListNode addTwoNumbers(ListNode l1, ListNode l2) {\n        return null;\n    }\n}",
+      "javascript": "var addTwoNumbers = function(l1, l2) {\n};",
+      "cpp": "class Solution {\npublic:\n    ListNode* addTwoNumbers(ListNode* l1, ListNode* l2) {\n        return nullptr;\n    }\n};"
+    },
+    "summary": "Add two nonnegative integers stored as reverse-order digit lists and return their sum in the same format.",
+    "description": "Each nonempty linked list stores a nonnegative integer with one decimal digit per node, starting with the least significant digit. Add the encoded numbers and return a linked list whose digits use the same order. The lists can have different lengths, and a carry remaining after both lists end must become a final node. Each input contains 1 to 100 nodes, every node value is between 0 and 9, and neither number has a leading zero unless it is zero."
+  },
+  "approaches": [
+    {
+      "id": "iterative-digit-addition",
+      "name": "Iterative Digit Addition",
+      "pattern": "Linked List Simulation",
+      "summary": "Traverse both lists together, append the current sum digit, and carry any value of ten or more into the next position until both lists and the carry are exhausted. Time: Time complexity is O(max(m, n)) because each node in the longer list is processed once. Space: Auxiliary space is O(1) because only pointers and a carry are maintained, excluding the required output list.",
+      "isPrimary": true,
+      "displayOrder": 1,
+      "thinkingSteps": [
+        "The first nodes represent the ones place, so addition can begin immediately without reversing either list.",
+        "At each position, combine the available digits with the carry from the previous position.",
+        "Store the remainder after division by 10 as the next output digit and keep the quotient as the new carry.",
+        "Continue while either list has a node or a carry remains."
+      ],
+      "recognitionSignals": {
+        "quote": null,
+        "bullets": [
+          "Digits are already ordered from least to most significant.",
+          "Different list lengths require treating missing digits as zero.",
+          "The result may need one extra digit for the final carry."
+        ]
+      }
+    }
+  ],
+  "related": {
+    "easier": [
+      {
+        "slug": "reverse-linked-list",
+        "title": "Reverse Linked List",
+        "difficulty": "Easy",
+        "reason": "Practice walking a linked list"
+      },
+      {
+        "slug": "merge-two-sorted-lists",
+        "title": "Merge Two Sorted Lists",
+        "difficulty": "Easy",
+        "reason": "Practice building an output linked list"
+      }
+    ],
+    "similar": [],
+    "harder": []
+  },
+  "provenance": {
+    "reviewed": false,
+    "reviewedBy": "Codex manual source review",
+    "reviewedAt": "2026-11-10T06:14:02+00:00",
+    "sourceUrl": "https://leetcode.com/problems/add-two-numbers/",
+    "collectionMethod": "manual_review",
+    "reuseBasis": "original_editorial",
+    "permissionNote": "Individual public problem page manually reviewed for facts; facts, examples, and teaching text are independently worded. No statement or solution code was copied and no redistribution license is claimed. Submission entry points are reconstructed from the documented interfaces and require final human review. Generated editorial is unreviewed; source permission and originality must be checked before import."
+  }
+}

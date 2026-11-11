@@ -158,6 +158,53 @@ function section(name: string) {
 }
 
 describe("persistent Coach workspaces", () => {
+  it("uses Chrome's URL update even if a tab query still reports the previous problem", async () => {
+    await mount();
+    const queriesBeforeNavigation = vi.mocked(chrome.tabs.query).mock.calls.length;
+    const updated = vi.mocked(chrome.tabs.onUpdated.addListener).mock.calls[0][0];
+    await act(async () => {
+      updated(1, { url: "https://leetcode.com/problems/valid-parentheses/" }, {
+        id: 1, url: "https://leetcode.com/problems/valid-parentheses/",
+        title: "Two Sum - LeetCode"
+      } as chrome.tabs.Tab);
+      await Promise.resolve();
+    });
+    await screen.findByRole("heading", { name: "Valid Parentheses" });
+    expect(vi.mocked(chrome.tabs.query).mock.calls.length).toBe(queriesBeforeNavigation);
+    expect(fetchMock.mock.calls.some(([url]) => String(url).endsWith("/valid-parentheses"))).toBe(true);
+    click("Get first hint");
+    await screen.findByText("valid-parentheses stack hint 1");
+    await act(async () => {
+      updated(1, { title: "20. Valid Parentheses - LeetCode" }, {
+        id: 1, url: "https://leetcode.com/problems/valid-parentheses/",
+        title: "20. Valid Parentheses - LeetCode"
+      } as chrome.tabs.Tab);
+    });
+    expect(screen.getByRole("heading", { name: "20. Valid Parentheses" })).toBeTruthy();
+    expect(screen.getByText("valid-parentheses stack hint 1")).toBeTruthy();
+  });
+
+  it("ignores a pending old tab query after a newer URL update", async () => {
+    await mount();
+    let resolveQuery!: (tabs: chrome.tabs.Tab[]) => void;
+    vi.mocked(chrome.tabs.query).mockImplementationOnce(() => new Promise((resolve) => {
+      resolveQuery = resolve;
+    }));
+    const activated = vi.mocked(chrome.tabs.onActivated.addListener).mock.calls[0][0];
+    const updated = vi.mocked(chrome.tabs.onUpdated.addListener).mock.calls[0][0];
+    await act(async () => { activated({ tabId: 1, windowId: 1 }); });
+    await act(async () => {
+      updated(1, { url: "https://leetcode.com/problems/valid-parentheses/" }, {
+        id: 1, url: "https://leetcode.com/problems/valid-parentheses/",
+        title: "Two Sum - LeetCode"
+      } as chrome.tabs.Tab);
+      resolveQuery([{ id: 1, url: "https://leetcode.com/problems/two-sum/",
+        title: "Two Sum - LeetCode" } as chrome.tabs.Tab]);
+      await Promise.resolve();
+    });
+    await screen.findByRole("heading", { name: "Valid Parentheses" });
+  });
+
   it("shows soft warnings beside the affected level and answer, then clears them on regeneration", async () => {
     await mount();
     click("Approach 2");

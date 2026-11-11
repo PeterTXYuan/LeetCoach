@@ -1,0 +1,70 @@
+{
+  "slug": "minimum-size-subarray-sum",
+  "spec": {
+    "title": "Minimum Size Subarray Sum",
+    "difficulty": "Medium",
+    "leetcodeNumber": 209,
+    "taskFacts": [
+      "Find the shortest nonempty contiguous segment in an array of positive integers whose sum is at least target.",
+      "Return its length, or zero if no such segment exists. An O(n log n) alternative after finding an O(n) method is an optional follow-up."
+    ],
+    "descriptionSourceUrl": "https://leetcode.com/problems/minimum-size-subarray-sum/",
+    "descriptionSourceType": "curated_restatement",
+    "descriptionVerifiedAt": "2026-11-10T06:14:02+00:00",
+    "timeLimitMs": null,
+    "memoryLimitMb": null,
+    "timeComplexityInstruction": null,
+    "spaceComplexityInstruction": null,
+    "constraints": [
+      "1 <= target <= 10^9",
+      "1 <= nums.length <= 10^5",
+      "1 <= nums[i] <= 10^4"
+    ],
+    "examples": [
+      {
+        "input": "target = 6, nums = [1,2,3,4]",
+        "output": "2",
+        "explanation": "The final two values meet the target with the shortest possible length."
+      },
+      {
+        "input": "target = 20, nums = [2,3,4]",
+        "output": "0",
+        "explanation": "Even the full array is too small."
+      }
+    ],
+    "submissionTemplates": {
+      "python": "class Solution:\n    def minSubArrayLen(self, target: int, nums: list[int]) -> int:\n        pass",
+      "java": "class Solution {\n    public int minSubArrayLen(int target, int[] nums) {\n        return 0;\n    }\n}",
+      "javascript": "var minSubArrayLen = function(target, nums) {\n};",
+      "cpp": "class Solution {\npublic:\n    int minSubArrayLen(int target, vector<int>& nums) {\n        return 0;\n    }\n};"
+    }
+  },
+  "related": {
+    "easier": [
+      {
+        "slug": "best-time-to-buy-and-sell-stock",
+        "title": "Best Time to Buy and Sell Stock",
+        "difficulty": "Easy",
+        "reason": "Practice a moving interval over an array"
+      }
+    ],
+    "similar": [
+      {
+        "slug": "longest-substring-without-repeating-characters",
+        "title": "Longest Substring Without Repeating Characters",
+        "difficulty": "Medium",
+        "reason": "Practice shrinking a window while scanning"
+      }
+    ],
+    "harder": []
+  },
+  "provenance": {
+    "reviewed": true,
+    "reviewedBy": "Codex manual source review",
+    "reviewedAt": "2026-11-10T06:14:02+00:00",
+    "sourceUrl": "https://leetcode.com/problems/minimum-size-subarray-sum/",
+    "collectionMethod": "manual_review",
+    "reuseBasis": "original_editorial",
+    "permissionNote": "Individual public problem page manually reviewed for facts; facts, examples, and teaching text are independently worded. No statement or solution code was copied and no redistribution license is claimed. Submission entry points are reconstructed from the documented interfaces and require final human review."
+  }
+}

@@ -1,0 +1,92 @@
+{
+  "slug": "asteroid-collision",
+  "spec": {
+    "title": "Asteroid Collision",
+    "difficulty": "Medium",
+    "leetcodeNumber": 735,
+    "descriptionSourceUrl": "https://leetcode.com/problems/asteroid-collision/",
+    "descriptionSourceType": "curated_restatement",
+    "descriptionVerifiedAt": "2026-11-10T06:14:02+00:00",
+    "timeLimitMs": null,
+    "memoryLimitMb": null,
+    "timeComplexityInstruction": null,
+    "spaceComplexityInstruction": null,
+    "constraints": [
+      "2 <= asteroids.length <= 10^4",
+      "-1000 <= asteroids[i] <= 1000",
+      "asteroids[i] != 0"
+    ],
+    "examples": [
+      {
+        "input": "asteroids = [6,-2,3]",
+        "output": "[6,3]",
+        "explanation": "The right-moving six destroys the approaching two; the final three travels right."
+      },
+      {
+        "input": "asteroids = [4,-4]",
+        "output": "[]",
+        "explanation": "Equal-sized opposing asteroids both disappear."
+      }
+    ],
+    "submissionTemplates": {
+      "python": "class Solution:\n    def asteroidCollision(self, asteroids: list[int]) -> list[int]:\n        pass",
+      "java": "class Solution {\n    public int[] asteroidCollision(int[] asteroids) {\n        return new int[0];\n    }\n}",
+      "javascript": "var asteroidCollision = function(asteroids) {\n};",
+      "cpp": "class Solution {\npublic:\n    vector<int> asteroidCollision(vector<int>& asteroids) {\n        return {};\n    }\n};"
+    },
+    "summary": "Simulate all asteroid collisions and return the surviving asteroids in their original order.",
+    "description": "The integer list describes asteroids from left to right, where each absolute value is a size and each sign is its travel direction. Every asteroid moves at the same speed, so asteroids moving together never meet. When opposing asteroids meet, the smaller one disappears; if their sizes are equal, both disappear. Return the survivors in their original left-to-right order after all possible collisions. The list length is between 2 and 10^4, and every value is a nonzero integer from -1000 to 1000."
+  },
+  "approaches": [
+    {
+      "id": "survivor-stack",
+      "name": "Survivor Stack",
+      "pattern": "Stack Simulation",
+      "summary": "Maintain the survivors in a stack and repeatedly compare each left-moving asteroid with right-moving survivors until one side is destroyed or no collision remains possible. Time: Time complexity is O(n) because each asteroid is pushed once and removed at most once. Space: Space complexity is O(n) because the survivor stack may contain every asteroid.",
+      "isPrimary": true,
+      "displayOrder": 1,
+      "thinkingSteps": [
+        "A collision is possible only when a right-moving survivor is followed by a left-moving asteroid.",
+        "Compare their sizes to decide whether the stack top, the current asteroid, or both disappear.",
+        "Keep resolving collisions with earlier survivors until the current asteroid is destroyed or can safely join the stack.",
+        "The remaining stack already preserves the required left-to-right order."
+      ],
+      "recognitionSignals": {
+        "quote": null,
+        "bullets": [
+          "Positive and negative signs describe opposite travel directions.",
+          "A single asteroid can survive one collision and face another.",
+          "Surviving asteroids stay in their left-to-right order."
+        ]
+      }
+    }
+  ],
+  "related": {
+    "easier": [
+      {
+        "slug": "valid-parentheses",
+        "title": "Valid Parentheses",
+        "difficulty": "Easy",
+        "reason": "Practice matching the newest unresolved item"
+      }
+    ],
+    "similar": [
+      {
+        "slug": "daily-temperatures",
+        "title": "Daily Temperatures",
+        "difficulty": "Medium",
+        "reason": "Practice a stack of unresolved positions"
+      }
+    ],
+    "harder": []
+  },
+  "provenance": {
+    "reviewed": false,
+    "reviewedBy": "Codex manual source review",
+    "reviewedAt": "2026-11-10T06:14:02+00:00",
+    "sourceUrl": "https://leetcode.com/problems/asteroid-collision/",
+    "collectionMethod": "manual_review",
+    "reuseBasis": "original_editorial",
+    "permissionNote": "Individual public problem page manually reviewed for facts; facts, examples, and teaching text are independently worded. No statement or solution code was copied and no redistribution license is claimed. Submission entry points are reconstructed from the documented interfaces and require final human review. Generated editorial is unreviewed; source permission and originality must be checked before import."
+  }
+}

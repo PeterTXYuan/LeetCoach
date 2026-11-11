@@ -1,0 +1,69 @@
+{
+  "slug": "jump-game",
+  "spec": {
+    "title": "Jump Game",
+    "difficulty": "Medium",
+    "leetcodeNumber": 55,
+    "taskFacts": [
+      "Begin at the first index of an integer array. At each index, its value is the greatest forward jump length allowed, so shorter jumps are also allowed.",
+      "Return whether some sequence of jumps reaches the last index. A single-element input is already at the destination."
+    ],
+    "descriptionSourceUrl": "https://leetcode.com/problems/jump-game/",
+    "descriptionSourceType": "curated_restatement",
+    "descriptionVerifiedAt": "2026-11-10T06:14:02+00:00",
+    "timeLimitMs": null,
+    "memoryLimitMb": null,
+    "timeComplexityInstruction": null,
+    "spaceComplexityInstruction": null,
+    "constraints": [
+      "1 <= nums.length <= 10^4",
+      "0 <= nums[i] <= 10^5"
+    ],
+    "examples": [
+      {
+        "input": "nums = [2,0,1,0]",
+        "output": "true",
+        "explanation": "A jump from index zero can reach index two, then the last index."
+      },
+      {
+        "input": "nums = [1,0,2]",
+        "output": "false",
+        "explanation": "The only first jump lands on a zero before the destination."
+      }
+    ],
+    "submissionTemplates": {
+      "python": "class Solution:\n    def canJump(self, nums: list[int]) -> bool:\n        pass",
+      "java": "class Solution {\n    public boolean canJump(int[] nums) {\n        return false;\n    }\n}",
+      "javascript": "var canJump = function(nums) {\n};",
+      "cpp": "class Solution {\npublic:\n    bool canJump(vector<int>& nums) {\n        return false;\n    }\n};"
+    }
+  },
+  "related": {
+    "easier": [
+      {
+        "slug": "climbing-stairs",
+        "title": "Climbing Stairs",
+        "difficulty": "Easy",
+        "reason": "Practice reasoning about reaching a position"
+      }
+    ],
+    "similar": [
+      {
+        "slug": "house-robber",
+        "title": "House Robber",
+        "difficulty": "Medium",
+        "reason": "Practice choosing among forward positions"
+      }
+    ],
+    "harder": []
+  },
+  "provenance": {
+    "reviewed": true,
+    "reviewedBy": "Codex manual source review",
+    "reviewedAt": "2026-11-10T06:14:02+00:00",
+    "sourceUrl": "https://leetcode.com/problems/jump-game/",
+    "collectionMethod": "manual_review",
+    "reuseBasis": "original_editorial",
+    "permissionNote": "Individual public problem page manually reviewed for facts; facts, examples, and teaching text are independently worded. No statement or solution code was copied and no redistribution license is claimed. Submission entry points are reconstructed from the documented interfaces and require final human review."
+  }
+}

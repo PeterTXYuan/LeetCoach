@@ -1,0 +1,69 @@
+{
+  "slug": "symmetric-tree",
+  "spec": {
+    "title": "Symmetric Tree",
+    "difficulty": "Easy",
+    "leetcodeNumber": 101,
+    "taskFacts": [
+      "Return whether a binary tree mirrors itself about its root.",
+      "Corresponding nodes on opposite sides must have equal values and mirrored left/right child structure. Solving both recursively and iteratively is an optional follow-up."
+    ],
+    "descriptionSourceUrl": "https://leetcode.com/problems/symmetric-tree/",
+    "descriptionSourceType": "curated_restatement",
+    "descriptionVerifiedAt": "2026-11-10T06:14:02+00:00",
+    "timeLimitMs": null,
+    "memoryLimitMb": null,
+    "timeComplexityInstruction": null,
+    "spaceComplexityInstruction": null,
+    "constraints": [
+      "1 <= number of nodes <= 1000",
+      "-100 <= Node.val <= 100"
+    ],
+    "examples": [
+      {
+        "input": "root = [1,2,2,4,null,null,4]",
+        "output": "true",
+        "explanation": "The two outer grandchildren match and the inner child positions are both absent."
+      },
+      {
+        "input": "root = [1,2,2,null,4,null,4]",
+        "output": "false",
+        "explanation": "Matching values occupy the same side, rather than mirrored positions."
+      }
+    ],
+    "submissionTemplates": {
+      "python": "class Solution:\n    def isSymmetric(self, root: 'TreeNode') -> bool:\n        pass",
+      "java": "class Solution {\n    public boolean isSymmetric(TreeNode root) {\n        return false;\n    }\n}",
+      "javascript": "var isSymmetric = function(root) {\n};",
+      "cpp": "class Solution {\npublic:\n    bool isSymmetric(TreeNode* root) {\n        return false;\n    }\n};"
+    }
+  },
+  "related": {
+    "easier": [
+      {
+        "slug": "same-tree",
+        "title": "Same Tree",
+        "difficulty": "Easy",
+        "reason": "Practice matching the shape and values of two trees"
+      }
+    ],
+    "similar": [
+      {
+        "slug": "invert-binary-tree",
+        "title": "Invert Binary Tree",
+        "difficulty": "Easy",
+        "reason": "Practice reasoning about mirrored children"
+      }
+    ],
+    "harder": []
+  },
+  "provenance": {
+    "reviewed": true,
+    "reviewedBy": "Codex manual source review",
+    "reviewedAt": "2026-11-10T06:14:02+00:00",
+    "sourceUrl": "https://leetcode.com/problems/symmetric-tree/",
+    "collectionMethod": "manual_review",
+    "reuseBasis": "original_editorial",
+    "permissionNote": "Individual public problem page manually reviewed for facts; facts, examples, and teaching text are independently worded. No statement or solution code was copied and no redistribution license is claimed. Submission entry points are reconstructed from the documented interfaces and require final human review."
+  }
+}

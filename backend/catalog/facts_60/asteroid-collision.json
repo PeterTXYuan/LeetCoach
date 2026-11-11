@@ -1,0 +1,70 @@
+{
+  "slug": "asteroid-collision",
+  "spec": {
+    "title": "Asteroid Collision",
+    "difficulty": "Medium",
+    "leetcodeNumber": 735,
+    "taskFacts": [
+      "Integers list asteroids from left to right; magnitude gives size and sign gives travel direction. All move at the same speed.",
+      "When opposing asteroids meet, the smaller disappears; equal sizes both disappear. Asteroids traveling together do not meet. Return survivors in their original left-to-right order after every possible collision."
+    ],
+    "descriptionSourceUrl": "https://leetcode.com/problems/asteroid-collision/",
+    "descriptionSourceType": "curated_restatement",
+    "descriptionVerifiedAt": "2026-11-10T06:14:02+00:00",
+    "timeLimitMs": null,
+    "memoryLimitMb": null,
+    "timeComplexityInstruction": null,
+    "spaceComplexityInstruction": null,
+    "constraints": [
+      "2 <= asteroids.length <= 10^4",
+      "-1000 <= asteroids[i] <= 1000",
+      "asteroids[i] != 0"
+    ],
+    "examples": [
+      {
+        "input": "asteroids = [6,-2,3]",
+        "output": "[6,3]",
+        "explanation": "The right-moving six destroys the approaching two; the final three travels right."
+      },
+      {
+        "input": "asteroids = [4,-4]",
+        "output": "[]",
+        "explanation": "Equal-sized opposing asteroids both disappear."
+      }
+    ],
+    "submissionTemplates": {
+      "python": "class Solution:\n    def asteroidCollision(self, asteroids: list[int]) -> list[int]:\n        pass",
+      "java": "class Solution {\n    public int[] asteroidCollision(int[] asteroids) {\n        return new int[0];\n    }\n}",
+      "javascript": "var asteroidCollision = function(asteroids) {\n};",
+      "cpp": "class Solution {\npublic:\n    vector<int> asteroidCollision(vector<int>& asteroids) {\n        return {};\n    }\n};"
+    }
+  },
+  "related": {
+    "easier": [
+      {
+        "slug": "valid-parentheses",
+        "title": "Valid Parentheses",
+        "difficulty": "Easy",
+        "reason": "Practice matching the newest unresolved item"
+      }
+    ],
+    "similar": [
+      {
+        "slug": "daily-temperatures",
+        "title": "Daily Temperatures",
+        "difficulty": "Medium",
+        "reason": "Practice a stack of unresolved positions"
+      }
+    ],
+    "harder": []
+  },
+  "provenance": {
+    "reviewed": true,
+    "reviewedBy": "Codex manual source review",
+    "reviewedAt": "2026-11-10T06:14:02+00:00",
+    "sourceUrl": "https://leetcode.com/problems/asteroid-collision/",
+    "collectionMethod": "manual_review",
+    "reuseBasis": "original_editorial",
+    "permissionNote": "Individual public problem page manually reviewed for facts; facts, examples, and teaching text are independently worded. No statement or solution code was copied and no redistribution license is claimed. Submission entry points are reconstructed from the documented interfaces and require final human review."
+  }
+}

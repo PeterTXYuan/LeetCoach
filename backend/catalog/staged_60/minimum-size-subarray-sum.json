@@ -1,0 +1,112 @@
+{
+  "slug": "minimum-size-subarray-sum",
+  "spec": {
+    "title": "Minimum Size Subarray Sum",
+    "difficulty": "Medium",
+    "leetcodeNumber": 209,
+    "descriptionSourceUrl": "https://leetcode.com/problems/minimum-size-subarray-sum/",
+    "descriptionSourceType": "curated_restatement",
+    "descriptionVerifiedAt": "2026-11-10T06:14:02+00:00",
+    "timeLimitMs": null,
+    "memoryLimitMb": null,
+    "timeComplexityInstruction": null,
+    "spaceComplexityInstruction": null,
+    "constraints": [
+      "1 <= target <= 10^9",
+      "1 <= nums.length <= 10^5",
+      "1 <= nums[i] <= 10^4"
+    ],
+    "examples": [
+      {
+        "input": "target = 6, nums = [1,2,3,4]",
+        "output": "2",
+        "explanation": "The final two values meet the target with the shortest possible length."
+      },
+      {
+        "input": "target = 20, nums = [2,3,4]",
+        "output": "0",
+        "explanation": "Even the full array is too small."
+      }
+    ],
+    "submissionTemplates": {
+      "python": "class Solution:\n    def minSubArrayLen(self, target: int, nums: list[int]) -> int:\n        pass",
+      "java": "class Solution {\n    public int minSubArrayLen(int target, int[] nums) {\n        return 0;\n    }\n}",
+      "javascript": "var minSubArrayLen = function(target, nums) {\n};",
+      "cpp": "class Solution {\npublic:\n    int minSubArrayLen(int target, vector<int>& nums) {\n        return 0;\n    }\n};"
+    },
+    "summary": "Find the length of the shortest nonempty contiguous segment of positive integers whose sum reaches the target, or return zero if none exists.",
+    "description": "Given an array of positive integers and a target, return the minimum length of a nonempty contiguous segment whose sum is at least the target. Return zero when no segment qualifies. An O(n log n) alternative may be considered after obtaining an O(n) solution."
+  },
+  "approaches": [
+    {
+      "id": "sliding-window",
+      "name": "Sliding Window",
+      "pattern": "Sliding Window",
+      "summary": "Expand a window to reach the target, then repeatedly remove values from its left side while recording the smallest qualifying length. Time: O(n) time because each array element enters and leaves the window at most once. Space: O(1) extra space because only window boundaries, a running sum, and the best length are stored.",
+      "isPrimary": true,
+      "displayOrder": 1,
+      "thinkingSteps": [
+        "Positive values make the window sum increase when the right boundary advances.",
+        "Once the sum reaches the target, shortening from the left can reveal the smallest valid window ending at the current position.",
+        "Track the best valid length found, and return zero if no window ever reaches the target."
+      ],
+      "recognitionSignals": {
+        "quote": null,
+        "bullets": [
+          "The desired result is a contiguous segment.",
+          "All values are positive, so window-sum changes are predictable.",
+          "The task asks for the shortest segment satisfying a sum threshold."
+        ]
+      }
+    },
+    {
+      "id": "prefix-sums-binary-search",
+      "name": "Prefix Sums with Binary Search",
+      "pattern": "Prefix Sum + Binary Search",
+      "summary": "Build increasing prefix sums and, for each starting position, binary-search the earliest ending prefix that differs by at least the target. Time: O(n log n) time because one binary search is performed for each of the n starting positions. Space: O(n) extra space for the prefix-sum array.",
+      "isPrimary": false,
+      "displayOrder": 2,
+      "thinkingSteps": [
+        "Represent every segment sum as the difference between two prefix sums.",
+        "Because every value is positive, the prefix sums are strictly increasing.",
+        "For each start, binary-search the first prefix sum large enough to form a qualifying segment, then minimize its length."
+      ],
+      "recognitionSignals": {
+        "quote": null,
+        "bullets": [
+          "Positive values make prefix sums sorted.",
+          "A sum threshold can be converted into a lower-bound search.",
+          "The optional follow-up suggests an O(n log n) alternative."
+        ]
+      }
+    }
+  ],
+  "related": {
+    "easier": [
+      {
+        "slug": "best-time-to-buy-and-sell-stock",
+        "title": "Best Time to Buy and Sell Stock",
+        "difficulty": "Easy",
+        "reason": "Practice a moving interval over an array"
+      }
+    ],
+    "similar": [
+      {
+        "slug": "longest-substring-without-repeating-characters",
+        "title": "Longest Substring Without Repeating Characters",
+        "difficulty": "Medium",
+        "reason": "Practice shrinking a window while scanning"
+      }
+    ],
+    "harder": []
+  },
+  "provenance": {
+    "reviewed": false,
+    "reviewedBy": "Codex manual source review",
+    "reviewedAt": "2026-11-10T06:14:02+00:00",
+    "sourceUrl": "https://leetcode.com/problems/minimum-size-subarray-sum/",
+    "collectionMethod": "manual_review",
+    "reuseBasis": "original_editorial",
+    "permissionNote": "Individual public problem page manually reviewed for facts; facts, examples, and teaching text are independently worded. No statement or solution code was copied and no redistribution license is claimed. Submission entry points are reconstructed from the documented interfaces and require final human review. Generated editorial is unreviewed; source permission and originality must be checked before import."
+  }
+}

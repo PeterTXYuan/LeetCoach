@@ -1,0 +1,73 @@
+{
+  "slug": "word-search",
+  "spec": {
+    "title": "Word Search",
+    "difficulty": "Medium",
+    "leetcodeNumber": 79,
+    "taskFacts": [
+      "Return whether a target word can be traced through a character grid.",
+      "Consecutive letters must occupy horizontally or vertically adjacent cells. A grid cell cannot be used twice within one trace. Letters may be uppercase or lowercase."
+    ],
+    "descriptionSourceUrl": "https://leetcode.com/problems/word-search/",
+    "descriptionSourceType": "curated_restatement",
+    "descriptionVerifiedAt": "2026-11-10T06:14:02+00:00",
+    "timeLimitMs": null,
+    "memoryLimitMb": null,
+    "timeComplexityInstruction": null,
+    "spaceComplexityInstruction": null,
+    "constraints": [
+      "m == board.length",
+      "n == board[i].length",
+      "1 <= m, n <= 6",
+      "1 <= word.length <= 15",
+      "board and word contain only uppercase and lowercase English letters.",
+      "Search pruning for larger boards is an optional follow-up."
+    ],
+    "examples": [
+      {
+        "input": "board = [[\"C\",\"A\"],[\"T\",\"R\"]], word = \"CAR\"",
+        "output": "true",
+        "explanation": "The first two letters share a row and the final letter is directly below A."
+      },
+      {
+        "input": "board = [[\"A\",\"B\"]], word = \"ABA\"",
+        "output": "false",
+        "explanation": "The first cell would have to be reused."
+      }
+    ],
+    "submissionTemplates": {
+      "python": "class Solution:\n    def exist(self, board: list[list[str]], word: str) -> bool:\n        pass",
+      "java": "class Solution {\n    public boolean exist(char[][] board, String word) {\n        return false;\n    }\n}",
+      "javascript": "var exist = function(board, word) {\n};",
+      "cpp": "class Solution {\npublic:\n    bool exist(vector<vector<char>>& board, string word) {\n        return false;\n    }\n};"
+    }
+  },
+  "related": {
+    "easier": [
+      {
+        "slug": "number-of-islands",
+        "title": "Number of Islands",
+        "difficulty": "Medium",
+        "reason": "Practice visiting neighboring grid cells"
+      }
+    ],
+    "similar": [
+      {
+        "slug": "combination-sum",
+        "title": "Combination Sum",
+        "difficulty": "Medium",
+        "reason": "Practice exploring and undoing choices"
+      }
+    ],
+    "harder": []
+  },
+  "provenance": {
+    "reviewed": true,
+    "reviewedBy": "Codex manual source review",
+    "reviewedAt": "2026-11-10T06:14:02+00:00",
+    "sourceUrl": "https://leetcode.com/problems/word-search/",
+    "collectionMethod": "manual_review",
+    "reuseBasis": "original_editorial",
+    "permissionNote": "Individual public problem page manually reviewed for facts; facts, examples, and teaching text are independently worded. No statement or solution code was copied and no redistribution license is claimed. Submission entry points are reconstructed from the documented interfaces and require final human review."
+  }
+}

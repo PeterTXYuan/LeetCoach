@@ -27,6 +27,22 @@ function canReadActiveTab() {
   return typeof chrome !== "undefined" && Boolean(chrome.tabs?.query);
 }
 
+function problemStateForUrl(rawUrl?: string, title?: string, tabId?: number): TabProblemState {
+  const match = parseLeetCodeProblemUrl(rawUrl);
+
+  if (!match.isSupported) {
+    return { status: "unsupported", tabId };
+  }
+
+  return {
+    status: "detected",
+    slug: match.slug,
+    title: getProblemDisplayTitle(match.slug, title),
+    url: match.url,
+    tabId
+  };
+}
+
 async function getActiveProblemState(): Promise<TabProblemState> {
   if (!canReadActiveTab()) {
     return { status: "unsupported" };
@@ -37,19 +53,7 @@ async function getActiveProblemState(): Promise<TabProblemState> {
     currentWindow: true
   });
 
-  const match = parseLeetCodeProblemUrl(activeTab?.url);
-
-  if (!match.isSupported) {
-    return { status: "unsupported", tabId: activeTab?.id };
-  }
-
-  return {
-    status: "detected",
-    slug: match.slug,
-    title: getProblemDisplayTitle(match.slug, activeTab?.title),
-    url: match.url,
-    tabId: activeTab?.id
-  };
+  return problemStateForUrl(activeTab?.url, activeTab?.title, activeTab?.id);
 }
 
 export function useActiveProblem() {
@@ -94,11 +98,27 @@ export function useActiveProblem() {
 
     const handleTabUpdated = (
       tabId: number,
-      changeInfo: chrome.tabs.TabChangeInfo
+      changeInfo: chrome.tabs.TabChangeInfo,
+      tab: chrome.tabs.Tab
     ) => {
-      if (tabId === activeTabId && (changeInfo.url || changeInfo.status === "complete")) {
+      if (tabId !== activeTabId) return;
+
+      if (changeInfo.url || changeInfo.status === "complete") {
         navigationRevision += 1;
-        void refreshActiveProblem();
+        if (changeInfo.url || tab?.url) {
+          // The event URL is newer than a tabs.query result during LeetCode's navigation.
+          latestRequest += 1;
+          setActiveProblem({
+            ...problemStateForUrl(changeInfo.url ?? tab.url, changeInfo.title ?? tab?.title, tabId),
+            navigationRevision
+          });
+        } else {
+          void refreshActiveProblem();
+        }
+      } else if (changeInfo.title) {
+        setActiveProblem((current) => current.status === "detected" && current.tabId === tabId
+          ? { ...current, title: getProblemDisplayTitle(current.slug, changeInfo.title) }
+          : current);
       }
     };
 
